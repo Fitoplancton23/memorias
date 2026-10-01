@@ -1,0 +1,141 @@
+---
+import Base from '../../layouts/Base.astro';
+import { P, L, D, nombre, vida, fecha } from '../../lib/datos.js';
+export async function getStaticPaths() {
+  const { personas } = await import('../../lib/datos.js');
+  return personas.map(p => ({ params: { slug: p.slug }, props: { p } }));
+}
+const { p } = Astro.props;
+const rel = slugs => slugs.map(s => P[s]).filter(Boolean);
+
+const memorias = (p.documentos || []).map(s => D[s]).filter(Boolean)
+  .sort((a, b) => (a.fecha?.ref ?? 9999) - (b.fecha?.ref ?? 9999));
+const anios = memorias.map(m => m.fecha?.ref).filter(Boolean);
+const ubicadas = memorias.filter(m => (m.lugares || []).some(s => L[s]?.lat != null));
+
+/* Quiénes comparten memorias con esta persona.
+   Se separan los parientes de los que NO lo son, porque son dos cosas
+   distintas: con un pariente compartir una foto es lo esperable; con alguien
+   de otra familia, esa foto ES la relación. Ahí está el descubrimiento —
+   "ah, estas familias se conocían" — y por eso va arriba y con el motivo
+   nombrado, nunca como un vínculo suelto. */
+const parientes = new Set([...p.padres, ...p.conyuges, ...p.hijos]);
+const juntos = new Map();
+for (const m of memorias)
+  for (const s of m.personas || []) {
+    if (s === p.slug || !P[s]) continue;
+    if (!juntos.has(s)) juntos.set(s, []);
+    juntos.get(s).push(m);
+  }
+const conocidos = [...juntos.entries()]
+  .map(([s, ms]) => ({ p: P[s], ms, pariente: parientes.has(s) }))
+  .sort((a, b) => b.ms.length - a.ms.length);
+const deOtraFamilia = conocidos.filter(c => !c.pariente && c.p.apellido && c.p.apellido !== p.apellido);
+const comoSeLee = f => {
+  if (!f?.ref) return 'sin fecha';
+  if (f.precision === 'decada') return `década de ${Math.floor(f.ref / 10) * 10}`;
+  if (f.precision === 'circa') return `aprox. ${f.ref}`;
+  return String(f.ref);
+};
+---
+<Base titulo={nombre(p)} descripcion={`${nombre(p)} — archivo histórico de Aristóbulo del Valle.`}>
+  <p class="sobretitulo">Persona</p>
+  <h1>{nombre(p)}</h1>
+  {p.apodo && <p class="bajada">«{p.apodo}»</p>}
+  <p class="etiqueta">{p.vive ? 'Datos reservados (persona viva)' : vida(p) || 'Fechas desconocidas'}</p>
+
+  {p.lugar_origen && L[p.lugar_origen] && (
+    <p>De <a href={`/lugares/${p.lugar_origen}/`}>{L[p.lugar_origen].nombre}</a>.</p>
+  )}
+  {p.notas && <p>{p.notas}</p>}
+
+  {/* La puerta. El número no es un dato al pie de la ficha: es por donde se
+      entra al archivo, y es donde empieza el descubrimiento. */}
+  {memorias.length > 0 && (
+    <section class="puerta">
+      <h2 class="puerta-tit">Aparece en {memorias.length} {memorias.length === 1 ? 'memoria' : 'memorias'}</h2>
+      {anios.length > 1 && <p class="puerta-sub">Entre {Math.min(...anios)} y {Math.max(...anios)}</p>}
+      <ul class="tarjetas">
+        {memorias.map(m => (
+          <li><a href={`/memorias/${m.slug}/`}>
+            {m.archivo
+              ? <img src={m.archivo} alt="" loading="lazy" />
+              : <span class="sinfoto" aria-hidden="true"></span>}
+            <span><b>{m.titulo}</b><i>{comoSeLee(m.fecha)}
+              {(m.lugares || []).length > 0 && L[m.lugares[0]] && <> · {L[m.lugares[0]].nombre}</>}</i></span>
+          </a></li>
+        ))}
+      </ul>
+      {ubicadas.length > 0 && (
+        <p class="puerta-pie"><a href="/">Ver en el mapa</a> · {ubicadas.length} de {memorias.length} con ubicación conocida</p>
+      )}
+    </section>
+  )}
+
+  {deOtraFamilia.length > 0 && (<>
+    <h2>Aparece junto a</h2>
+    <p class="bajada">
+      Gente de otras familias que comparte una memoria con {p.nombre || nombre(p)}.
+      Compartir una foto no los hace parientes: dice que existe una memoria que
+      los relaciona.
+    </p>
+    <ul class="listado">
+      {deOtraFamilia.map(c => (
+        <li>
+          <span><a href={`/personas/${c.p.slug}/`}>{nombre(c.p)}</a>
+            {c.p.apellido && <span class="meta-inline"> · familia {c.p.apellido}</span>}</span>
+          <span class="anio">{c.ms.map(m => (
+            <a href={`/memorias/${m.slug}/`}>{comoSeLee(m.fecha)}</a>
+          ))}</span>
+        </li>
+      ))}
+    </ul>
+  </>)}
+
+  {(p.padres.length + p.conyuges.length + p.hijos.length) > 0 && (<>
+    <h2>Familia</h2>
+    <div class="rejilla">
+      {p.padres.length > 0 && (
+        <div><div class="meta">Padres</div>
+          {rel(p.padres).map(x => <div><a href={`/personas/${x.slug}/`}>{nombre(x)}</a></div>)}
+        </div>)}
+      {p.conyuges.length > 0 && (
+        <div><div class="meta">Cónyuge</div>
+          {rel(p.conyuges).map(x => <div><a href={`/personas/${x.slug}/`}>{nombre(x)}</a></div>)}
+        </div>)}
+      {p.hijos.length > 0 && (
+        <div><div class="meta">Hijos</div>
+          {rel(p.hijos).map(x => <div><a href={`/personas/${x.slug}/`}>{nombre(x)}</a></div>)}
+        </div>)}
+    </div>
+    <p style="margin-top:1rem"><a href={`/linajes/?foco=${p.slug}`}>Ver el linaje completo →</a></p>
+  </>)}
+
+  {p.apellido && (
+    <p style="margin-top:2.5rem">
+      <a href={`/memorias/?apellido=${encodeURIComponent(p.apellido)}`}>
+        Ver todas las memorias de la familia {p.apellido} →</a>
+    </p>
+  )}
+
+  <style>
+    .puerta { border: 1px solid var(--linea); border-radius: 4px; padding: 1.4rem 1.5rem;
+              margin: 2.5rem 0; background: var(--panel); }
+    .puerta-tit { margin: 0; font-size: 1.15rem; font-weight: 500; text-transform: none;
+                  letter-spacing: 0; color: var(--tinta); }
+    .puerta-sub { margin: .2rem 0 1.1rem; font-size: .8rem; color: var(--tinta-2); }
+    .tarjetas { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem;
+                grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); }
+    .tarjetas a { display: flex; gap: .75rem; align-items: center; border: 0;
+                  padding: .45rem; border-radius: 3px; background: var(--placa); }
+    .tarjetas a:hover { background: var(--panel-2); }
+    .tarjetas img, .tarjetas .sinfoto { width: 64px; height: 48px; object-fit: cover;
+                  border-radius: 2px; flex: none; background: var(--panel-2); }
+    .tarjetas .sinfoto { border: 1px dashed var(--linea-viva); }
+    .tarjetas b { display: block; font-weight: 400; font-size: .84rem; line-height: 1.3; }
+    .tarjetas i { font-style: normal; font-size: .72rem; color: var(--tinta-2); }
+    .puerta-pie { margin: 1.1rem 0 0; font-size: .78rem; color: var(--tinta-2); }
+    .meta-inline { font-size: .74rem; color: var(--tinta-2); }
+    .listado .anio a { margin-left: .5rem; }
+  </style>
+</Base>

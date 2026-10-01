@@ -1,0 +1,33 @@
+{
+  "mapas": [
+    {
+      "nombre": "ejido",
+      "bounds": [
+        -27.15281,
+        -54.96031,
+        -27.001,
+        -54.75809
+      ],
+      "viewBox": [
+        2000,
+        1686
+      ],
+      "proyeccion": "EPSG:3857"
+    },
+    {
+      "nombre": "casco",
+      "bounds": [
+        -27.1197927,
+        -54.914052299999994,
+        -27.0794811,
+        -54.8695504
+      ],
+      "viewBox": [
+        2000,
+        2035
+      ],
+      "proyeccion": "EPSG:3857"
+    }
+  ],
+  "fuente": "OpenStreetMap contributors, ODbL"
+}

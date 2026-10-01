@@ -1,0 +1,89 @@
+{
+  "_fuente": "Documento 'Memorias de nuestro pueblo' (Drive) + carpeta 'Fotos de vecinos', leídos el 2026-10-01.",
+  "_nota": "Material REAL. Entra a la base con estado='pendiente' y es_demo=false: no se publica hasta que se apruebe y se resuelva el consentimiento.",
+  "lugares": [
+    { "slug": "escuela-406", "nombre": "Escuela 406", "lat": -27.093606584363265, "lng": -54.88554657576054 },
+    { "slug": "municipalidad", "nombre": "Municipalidad", "lat": -27.09668684967551, "lng": -54.89557835947953 },
+    { "slug": "av-de-las-americas-680", "nombre": "Av. de las Américas 680", "lat": -27.09871392937437, "lng": -54.89361560419459 },
+    { "slug": "km-1209", "nombre": "Km 1209", "lat": -27.088401827359707, "lng": -54.85764290402585 },
+    { "slug": "km-1208", "nombre": "Km 1208", "lat": -27.091051960264473, "lng": -54.86427771855284 },
+    { "slug": "comercio-de-jueguitos", "nombre": "Comercio de jueguitos electrónicos", "lat": -27.099036759991073, "lng": -54.89286754738126, "notas": "Nombre a confirmar: en el relato nadie lo nombra, se pregunta por él." },
+    { "slug": "escuela-425-salto-encantado", "nombre": "Escuela 425, Salto Encantado", "lat": -27.03631613654542, "lng": -54.82947828831826 },
+    { "slug": "ruta-14-vieja", "nombre": "Ruta 14 vieja", "lat": -27.0961566352717, "lng": -54.8938097831849 },
+    { "slug": "avenida-centro", "nombre": "Avenida (centro)", "lat": -27.09882682689972, "lng": -54.89355451245606, "notas": "A 13 m de av-de-las-americas-680: confirmar si son el mismo lugar." },
+    { "slug": "escuela-normal", "nombre": "Escuela Normal", "lat": -27.09589150638696, "lng": -54.89556476944564 },
+    { "slug": "unidad-sanitaria", "nombre": "Unidad Sanitaria", "lat": -27.104403724005294, "lng": -54.88772583093217 }
+  ],
+  "memorias": [
+    { "slug": "plantel-escuela-406-1985", "titulo": "Plantel de docentes de la Escuela 406", "fecha_texto": "1985/1986 Aprox", "lugar": "escuela-406", "fotos": ["406-1985-1986"],
+      "descripcion": "El blanco de sus guardapolvos, esos uniformes que con tanto orgullo portaron.",
+      "personas": ["Nélida Ramírez","Delfia Carloto","Nelly Schoninger","Gladiz Engel","doña Goya","doña Pocha Casco","Amalia Haureluk","Susana Carson","Luba Novosad","Mabel Oberenko","Angelita Pereira","Morocha Fontana","Yolanda Llamosas","Roberto Ramírez","Delicia Zelmer","Mabel Zurakouski"] },
+
+    { "slug": "entrega-del-acervo-al-municipio", "titulo": "Entrega del acervo al Municipio", "fecha_texto": "07/10/2025", "lugar": "municipalidad", "fotos": ["7-oct-2025"],
+      "aportante": "Matías Vazquez y Sergio Toledo",
+      "descripcion": "Cierre del proyecto del grupo: se entrega al Municipio todo el material fotográfico y documental recabado. El material sigue siendo de carácter público, resguardado institucionalmente.",
+      "personas": [] },
+
+    { "slug": "familia-buearc-1960", "titulo": "Familia Buearc en el km 200", "fecha_texto": "1960 aprox", "lugar": "av-de-las-americas-680", "fotos": ["1960-aprox-buearc"],
+      "aportante": "Graciela Buearc", "personas": [] },
+
+    { "slug": "familia-buearc-2020", "titulo": "Familia Buearc, el mismo lugar 60 años después", "fecha_texto": "2020", "lugar": "av-de-las-americas-680", "fotos": ["25-de-noviembre-del-2020-buearc"],
+      "aportante": "Graciela Buearc",
+      "descripcion": "La misma esquina que la foto de 1960. Seguimos siendo del mismo partido político, hinchas de River y de Chevrolet.",
+      "personas": [] },
+
+    { "slug": "abuelos-signer-1943", "titulo": "Los abuelos Signer", "fecha_texto": "1943", "lugar": null, "fotos": ["1943-monica-signer"],
+      "aportante": "Mónica Signer",
+      "personas": ["Hernann Signer","Alette Mechtilde Bongers","Alfredo Signer","Walter Signer","Rodolfo 'Rudy' Signer"] },
+
+    { "slug": "carroza-1967", "titulo": "Una carroza", "fecha_texto": "1967 Aprox", "lugar": null, "fotos": ["carroza-1967-aprox"],
+      "aportante": "Bárbara Núñez",
+      "personas": ["Juan Núñez","Lucy Domínguez de Beitía","Angélica Zilke"] },
+
+    { "slug": "casa-otto-raihenbach-1966", "titulo": "La casa de los Otto - Raihenbach", "fecha_texto": "1966", "lugar": "km-1209", "fotos": ["prytuluk-1966"],
+      "aportante": "Maidi Prytuluk", "personas": [] },
+
+    { "slug": "casa-familia-reschke-1968", "titulo": "Casa de la familia Reschke", "fecha_texto": "1968", "lugar": "km-1208", "fotos": ["reschke-1968"],
+      "aportante": "Maidi Prytuluk", "personas": ["Nilda Reschke"] },
+
+    { "slug": "comercio-de-jueguitos", "titulo": "El comercio de los jueguitos electrónicos", "fecha_texto": "pendiente", "lugar": "comercio-de-jueguitos", "fotos": ["juegos"],
+      "aportante": "Sergio Toledo", "personas": [] },
+
+    { "slug": "escuela-425-libro-historico", "titulo": "Escuela 425 de Salto Encantado, del libro histórico", "fecha_texto": "1966", "lugar": "escuela-425-salto-encantado",
+      "fotos": ["esc-425-salto-encantado","esc-425-salto-encantado-2","esc-425-salto-encantado-3"],
+      "aportante": "Sergio Toledo", "personas": [] },
+
+    { "slug": "calcomania-tito-salinas-1987", "titulo": "Calcomanía de campaña de Tito Salinas", "fecha_texto": "1987", "lugar": null, "fotos": ["tito-salinas-1987"],
+      "aportante": "Sergio Toledo, enviada por Ricardo Jorge Vallejos",
+      "descripcion": "Candidato a intendente de Aristóbulo. «Si encuentra otro mejor, vótelo».",
+      "notas": "Sin lugar a propósito: es un objeto, no un sitio.",
+      "personas": ["Tito Salinas"] },
+
+    { "slug": "gran-premio-turismo-carretera-1949", "titulo": "El Gran Premio de Turismo Carretera por la Ruta 14 vieja", "fecha_texto": "1949", "lugar": "ruta-14-vieja",
+      "fotos": ["fangio-1","fangio-2","juan-galvez"],
+      "aportante": "Sergio Toledo",
+      "descripcion": "El 25 de noviembre de 1949 se disputaba la XI etapa del Gran Premio de la República, que recorrió 11.035 km en 12 etapas y pasó aquel día por la incipiente Colonia Aristóbulo del Valle.",
+      "personas": ["Juan Manuel Fangio","Juan Gálvez"] },
+
+    { "slug": "desfile-25-de-mayo-1961", "titulo": "Desfile del 25 de Mayo", "fecha_texto": "1961", "lugar": "avenida-centro", "fotos": ["desfile-25-de-mayo-1961"],
+      "personas": [] },
+
+    { "slug": "reina-de-los-estudiantes-1963", "titulo": "Reina de los estudiantes", "fecha_texto": "1963", "lugar": "avenida-centro", "fotos": ["morocha-fontana-1963"],
+      "aportante": "Isabel Dos Santos",
+      "personas": ["Morocha Fontana","Carmen Ramírez","Mirta Bianchetti"] },
+
+    { "slug": "campana-antivariolica-1977", "titulo": "Campaña de vacunación antivariólica en la Escuela Normal", "fecha_texto": "1977", "lugar": "escuela-normal", "fotos": [],
+      "notas": "SIN FOTO en la carpeta.",
+      "personas": ["Petrona Torres","Iracema Argüello","/Potschka/","/Prevelis/"] },
+
+    { "slug": "enfermeras-unidad-sanitaria-1975", "titulo": "Enfermeras de la Unidad Sanitaria", "fecha_texto": "", "lugar": "unidad-sanitaria", "fotos": [],
+      "aportante": "Isabel Dos Santos, gentileza de Marlene Abranson",
+      "notas": "SIN FOTO en la carpeta. SIN campo Año en el documento: el relato dice 1975, pero no está cargado como fecha.",
+      "personas": ["Margarita Gerber","Susana Nowitzki","Petrona Torres"] }
+  ],
+  "sin_memoria": [
+    { "foto": "carmen-ramirez-1968",
+      "observado": "Coronación: una joven con corona, banda y cetro, y un hombre de traje acomodándole la capa.",
+      "pendiente": "No hay entrada en el documento. El nombre del archivo dice Carmen Ramírez 1968, y en el documento Carmen Ramírez figura como princesa en 1963. Lo tiene que confirmar Matías: no se inventa la memoria." }
+  ]
+}

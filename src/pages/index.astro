@@ -1,0 +1,378 @@
+---
+import Base from '../layouts/Base.astro';
+import { lugares, documentos, personas as personasTodas } from '../lib/datos.js';
+import { aNormalizado } from '../lib/proyeccion.js';
+import mapas from '../../public/mapa/mapa.json';
+
+/* El ejido, no el casco: de los once lugares relevados, tres caen fuera del
+   casco urbano —los dos kilómetros de la ruta y Salto Encantado—. El archivo
+   abarca las dos escalas porque el pueblo se fundó con los colonos de esos
+   parajes, así que el mapa tiene que abarcarlas también. */
+const mapa = mapas.mapas.find(m => m.nombre === 'ejido');
+const [ANCHO, ALTO] = mapa.viewBox;
+
+const doc = Object.fromEntries(documentos.map(d => [d.slug, d]));
+const puntos = lugares
+  .filter(l => l.lat != null && l.lng != null)
+  .map(l => {
+    const { x, y } = aNormalizado(l.lat, l.lng, mapa);
+    const docs = (l.documentos || []).map(s => doc[s]).filter(Boolean)
+      .sort((a, b) => (a.fecha?.ref ?? 9999) - (b.fecha?.ref ?? 9999));
+    const anios = docs.map(d => d.fecha?.ref).filter(Boolean);
+    return {
+      slug: l.slug, nombre: l.nombre, notas: l.notas || '',
+      cx: +(x * ANCHO).toFixed(1), cy: +(y * ALTO).toFixed(1),
+      fuera: x < 0 || x > 1 || y < 0 || y > 1,
+      n: docs.length,
+      desde: anios.length ? Math.min(...anios) : null,
+      hasta: anios.length ? Math.max(...anios) : null,
+      docs: docs.map(d => ({
+        slug: d.slug, titulo: d.titulo,
+        anio: d.fecha?.ref ?? null, texto: d.fecha?.texto || '',
+        foto: d.archivo || null,
+      })),
+    };
+  });
+
+const conMaterial = puntos.filter(p => p.n > 0).length;
+const totalDocs = puntos.reduce((a, p) => a + p.n, 0);
+const anios = puntos.flatMap(p => p.docs.map(d => d.anio)).filter(Boolean);
+const rango = anios.length ? [Math.min(...anios), Math.max(...anios)] : null;
+const fuera = puntos.filter(p => p.fuera).length;
+/* Las memorias sin ubicación no desaparecen del mapa: el mapa dice cuántas
+   son y abre la puerta a verlas. Una memoria sin coordenada sigue siendo una
+   memoria. */
+const sinUbicar = documentos.filter(d => !(d.lugares || []).some(s => lugares.find(l => l.slug === s && l.lat != null))).length;
+
+/* Debajo del mapa va texto de verdad. El lienzo no se indexa, y el canal por
+   el que llega la gente a este archivo es buscar el apellido del abuelo en
+   Google: la portada tiene que tener algo que Google pueda leer. */
+const ultimas = [...documentos]
+  .sort((a, b) => (b.fecha?.ref ?? -1) - (a.fecha?.ref ?? -1)).slice(0, 10);
+const cuentaApellidos = {};
+for (const d of documentos)
+  for (const s of d.personas || []) {
+    const p = personasTodas.find(x => x.slug === s);
+    if (p?.apellido) cuentaApellidos[p.apellido] = (cuentaApellidos[p.apellido] || 0) + 1;
+  }
+const apellidosPortada = Object.entries(cuentaApellidos)
+  .map(([a, n]) => ({ a, n })).sort((x, y) => y.n - x.n || x.a.localeCompare(y.a));
+---
+<Base descripcion="Archivo histórico de Aristóbulo del Valle, Salto Encantado y Cerro Moreno: memorias, personas, familias y lugares.">
+  <div class="mapa-lienzo">
+    <svg id="mapa" viewBox={`0 0 ${ANCHO} ${ALTO}`} role="application"
+         aria-label="Mapa de Aristóbulo del Valle con las memorias ubicadas.">
+      <g id="mundo">
+        <g id="base"></g>
+        <g id="marcas">
+          {puntos.map(p => (
+            <g class={'sitio' + (p.n ? '' : ' vacio')} data-slug={p.slug}
+               transform={`translate(${p.cx},${p.cy})`} tabindex="0" role="button">
+              <circle class="halo" r={10 + Math.sqrt(p.n) * 9} />
+              <circle class="punto" r={4 + Math.sqrt(p.n) * 2.6} />
+              <text class="rotulo" y={-14 - Math.sqrt(p.n) * 2.6}>{p.nombre}</text>
+            </g>
+          ))}
+        </g>
+      </g>
+    </svg>
+
+    <div class="cifras-mapa">
+      <b>{conMaterial}</b> lugares con memorias · <b>{totalDocs}</b> memorias
+      {rango && <span> · {rango[0]}–{rango[1]}</span>}
+      {sinUbicar > 0 && (
+        <> · <a href="/memorias/?lugar=sin">{sinUbicar} sin ubicación conocida</a></>
+      )}
+    </div>
+
+    <aside class="mapa-ficha" id="ficha" hidden></aside>
+
+    <div class="mapa-ctrl">
+      <button id="acercar" aria-label="Acercar">+</button>
+      <button id="alejar" aria-label="Alejar">−</button>
+      <button id="todo" aria-label="Ver todo">⌖</button>
+    </div>
+
+    <p class="credito">Base cartográfica © colaboradores de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, ODbL</p>
+  </div>
+
+
+  <section class="envoltorio portada-texto">
+    <h1>La historia de un pueblo, contada por quienes la vivieron</h1>
+    <p class="bajada">
+      Un archivo hecho con las fotografías y los relatos de los vecinos de
+      Aristóbulo del Valle, Salto Encantado y Cerro Moreno. Cada memoria se
+      puede encontrar por el lugar donde ocurrió, por quiénes aparecen, o
+      buscándola directamente.
+    </p>
+
+    <div class="puertas">
+      <a href="/"><b>Mapa</b><span>¿Dónde ocurrió?</span></a>
+      <a href="/memorias/"><b>Memorias</b><span>¿Qué ocurrió?</span></a>
+      <a href="/personas/"><b>Personas y familias</b><span>¿Quiénes están relacionados?</span></a>
+    </div>
+
+    <h2>Últimas memorias</h2>
+    <ul class="listado">
+      {ultimas.map(m => (
+        <li><a href={`/memorias/${m.slug}/`}>{m.titulo}</a>
+          <span class="anio">{m.fecha?.ref ?? 'sin fecha'}</span></li>
+      ))}
+    </ul>
+
+    {apellidosPortada.length > 0 && (
+      <>
+        <h2>Las familias del archivo</h2>
+        <p class="apellidos">
+          {apellidosPortada.map(a => (
+            <a href={`/memorias/?apellido=${encodeURIComponent(a.a)}`}>{a.a} <i>{a.n}</i></a>
+          ))}
+        </p>
+      </>
+    )}
+  </section>
+
+  <script define:vars={{ PUNTOS: puntos, ANCHO, ALTO }}>
+    window.__MAPA = { PUNTOS, ANCHO, ALTO };
+  </script>
+
+  <script>
+    import { select } from 'd3-selection';
+    import { zoom, zoomIdentity } from 'd3-zoom';
+
+    const { PUNTOS, ANCHO, ALTO } = window.__MAPA;
+    const svgEl = document.getElementById('mapa');
+    const mundo = document.getElementById('mundo');
+    const base = document.getElementById('base');
+    const ficha = document.getElementById('ficha');
+    const porSlug = Object.fromEntries(PUNTOS.map(p => [p.slug, p]));
+
+    /* La base se trae aparte en vez de incrustarse: son 800 KB de trazados que
+       el navegador cachea una vez y no tienen por qué viajar dentro del HTML
+       en cada visita. */
+    fetch('/mapa/ejido.svg')
+      .then(r => r.text())
+      .then(t => {
+        const doc = new DOMParser().parseFromString(t, 'image/svg+xml');
+        const svg = doc.documentElement;
+        for (const hijo of Array.from(svg.childNodes))
+          if (hijo.nodeType === 1 && hijo.nodeName !== 'metadata') base.appendChild(hijo);
+        base.classList.add('listo');
+      })
+      .catch(() => { base.innerHTML = ''; });
+
+    /* ---- zoom ---- */
+    const zm = zoom().scaleExtent([.8, 40])
+      .on('zoom', ev => {
+        mundo.setAttribute('transform', ev.transform.toString());
+        /* Los marcadores no crecen con el zoom: son datos, no geografía. */
+        mundo.style.setProperty('--k', ev.transform.k);
+        repartirRotulos(ev.transform);
+      });
+    const sel = select(svgEl).call(zm);
+
+    /* Todo en unidades del viewBox. El SVG escala entero al contenedor, así que
+       mezclar píxeles de pantalla con unidades del mapa —que es lo que hacía la
+       primera versión— da un encuadre que nunca acerca. */
+    function encuadrar(slugs) {
+      const ps = slugs ? PUNTOS.filter(p => slugs.includes(p.slug)) : PUNTOS;
+      if (!ps.length) return;
+      const xs = ps.map(p => p.cx), ys = ps.map(p => p.cy);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs);
+      const y0 = Math.min(...ys), y1 = Math.max(...ys);
+      /* Un solo punto no tiene caja: se le da una ventana de barrio. */
+      const m = ps.length === 1 ? 70 : 90;
+      const bw = Math.max(x1 - x0, 1) + m * 2, bh = Math.max(y1 - y0, 1) + m * 2;
+      const k = Math.min(40, Math.max(.8, Math.min(ANCHO / bw, ALTO / bh)));
+      zm.transform(sel, zoomIdentity
+        .translate(ANCHO / 2 - k * (x0 + x1) / 2, ALTO / 2 - k * (y0 + y1) / 2)
+        .scale(k));
+    }
+
+    /* Los rótulos no escalan con el zoom, así que de lejos se amontonan sobre el
+       casco. Se reparten por colisión: gana el lugar con más memorias, y el que
+       no entra espera a que te acerques. Mejor un nombre menos que una mancha. */
+    const rotulos = [...document.querySelectorAll('.sitio')].map(g => ({
+      g, t: g.querySelector('.rotulo'),
+      p: PUNTOS.find(x => x.slug === g.dataset.slug),
+    })).filter(r => r.p).sort((a, b) => b.p.n - a.p.n);
+
+    function repartirRotulos(t) {
+      const puestos = [];
+      for (const r of rotulos) {
+        const x = r.p.cx * t.k + t.x, y = r.p.cy * t.k + t.y;
+        const w = (r.p.nombre.length * 6.6) / 2 + 6;
+        const caja = { a: x - w, b: x + w, c: y - 30, d: y - 10 };
+        const choca = puestos.some(q => caja.a < q.b && caja.b > q.a && caja.c < q.d && caja.d > q.c);
+        r.t.style.display = choca ? 'none' : '';
+        if (!choca) puestos.push(caja);
+      }
+    }
+
+    /* ---- ficha ---- */
+    function mostrar(slug) {
+      const p = porSlug[slug];
+      if (!p) return;
+      for (const g of document.querySelectorAll('.sitio'))
+        g.classList.toggle('foco', g.dataset.slug === slug);
+      const lapso = p.desde ? (p.desde === p.hasta ? p.desde : `${p.desde}–${p.hasta}`) : null;
+      ficha.hidden = false;
+      ficha.innerHTML = `
+        <div class="f-cab">
+          <div><strong>${p.nombre}</strong>
+            <em>${p.n} ${p.n === 1 ? 'memoria' : 'memorias'}${lapso ? ' · ' + lapso : ''}</em></div>
+          <button class="f-cerrar" aria-label="Cerrar">×</button>
+        </div>
+        ${p.notas ? `<p class="f-nota">${p.notas}</p>` : ''}
+        <ul class="f-memorias">${p.docs.map(d => `
+          <li><a href="/memorias/${d.slug}/">
+            ${d.foto ? `<img src="${d.foto}" alt="" loading="lazy" />` : '<span class="sinfoto"></span>'}
+            <span><b>${d.titulo}</b><i>${d.texto || d.anio || 'sin fecha'}</i></span>
+          </a></li>`).join('') || '<li class="f-vacio">Todavía no hay memorias en este lugar.</li>'}</ul>`;
+      ficha.querySelector('.f-cerrar').addEventListener('click', () => {
+        ficha.hidden = true;
+        for (const g of document.querySelectorAll('.sitio')) g.classList.remove('foco');
+      });
+    }
+
+    for (const g of document.querySelectorAll('.sitio')) {
+      const ir = ev => { ev.stopPropagation(); mostrar(g.dataset.slug); encuadrar([g.dataset.slug]); };
+      g.addEventListener('click', ir);
+      g.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ir(ev); } });
+    }
+    document.getElementById('acercar').addEventListener('click', () => zm.scaleBy(sel, 1.6));
+    document.getElementById('alejar').addEventListener('click', () => zm.scaleBy(sel, 1 / 1.6));
+    document.getElementById('todo').addEventListener('click', () => { ficha.hidden = true; encuadrar(); });
+
+    /* Arranca mostrando dónde está el material, no el ejido entero vacío. */
+    encuadrar(PUNTOS.filter(p => p.n > 0).map(p => p.slug));
+    new ResizeObserver(() => encuadrar()).observe(svgEl);
+  </script>
+
+  <style is:global>
+    /* ================================================================
+       EL MAPA
+       La base cartográfica es contexto y va recesiva: el pueblo dibujado
+       en papel. Las memorias son el dato y son lo único con peso.
+       Los colores de los .svg vienen del modo oscuro en que se generaron;
+       se repintan acá por CSS, que gana a los atributos de presentación.
+       ================================================================ */
+
+    /* El mapa tiene su propio fondo, casi blanco. El #edf9f4 del sitio es un
+       papel verdoso que funciona para texto, pero bajo la vegetación al 9% y
+       las manzanas en hairline deja todo en el mismo barro: no hay dónde
+       apoyar el contraste. Acá el verde queda sólo donde hay monte. */
+    /* A sangre: el envoltorio limita el texto a 72rem, pero un mapa metido en
+       una columna deja de ser territorio y pasa a ser una ilustración. */
+    .mapa-lienzo { position: relative; width: 100vw; margin-left: calc(50% - 50vw);
+                   height: 100svh; min-height: 32rem; overflow: hidden; background: #fbfdfc; }
+    main.envoltorio { padding-top: 0; }
+    #mapa { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+    #mapa:active { cursor: grabbing; }
+    #mundo { --k: 1; }
+
+    #base { opacity: 0; transition: opacity .6s ease; }
+    #base.listo { opacity: 1; }
+    /* Los trazos de la base no engordan al acercarse: una calle es una calle,
+       no un dato que crece. Sin esto, a zoom 10 las calles son bandas. */
+    #base path, #base polyline, #base line { vector-effect: non-scaling-stroke; }
+    #base #fondo    { fill: #fbfdfc; }
+    #base #verde    { fill: rgba(15, 143, 103, .15); }
+    #base #agua     { fill: rgba(41, 171, 226, .26); stroke: rgba(41, 171, 226, .5); stroke-width: 1; }
+    #base #cursos   { stroke: rgba(41, 171, 226, .62); stroke-width: 1.5; fill: none; }
+    #base #manzanas { fill: rgba(24, 30, 27, .045); stroke: rgba(24, 30, 27, .16); stroke-width: .65; }
+    #base #edificios{ fill: rgba(24, 30, 27, .13); }
+    #base #caminos  { stroke: rgba(24, 30, 27, .22); stroke-width: .8; stroke-dasharray: 4 3; fill: none; }
+    #base #calles   { stroke: rgba(24, 30, 27, .34); stroke-width: 1.2; fill: none; }
+    #base #rutas    { stroke: rgba(24, 30, 27, .52); stroke-width: 2.4; fill: none; }
+    /* Los hitos y etiquetas son los POI que trae OpenStreetMap. No son nuestros
+       datos y compiten con los marcadores: se apagan. */
+    #base #hitos, #base #etiquetas { display: none; }
+
+    /* --- marcadores ---
+       No escalan con el zoom: son datos, no geografía. Un marcador que crece
+       al acercarse estaría diciendo que la memoria se agranda. */
+    .sitio { cursor: pointer; }
+    .sitio > * { transform: scale(calc(1 / var(--k))); transform-origin: center; transform-box: fill-box; }
+    .sitio .halo  { fill: var(--tipo-lugar); opacity: .13; }
+    .sitio .punto { fill: var(--tipo-lugar); stroke: var(--placa); stroke-width: 1.5; }
+    .sitio .rotulo { font: 500 13px var(--texto); fill: var(--tinta); text-anchor: middle;
+                     paint-order: stroke; stroke: #fbfdfc; stroke-width: 3.8;
+                     stroke-linejoin: round; }
+    .sitio:hover .halo, .sitio:focus-visible .halo { opacity: .24; }
+    .sitio:focus-visible { outline: none; }
+    .sitio.foco .punto { fill: var(--cursor); }
+    .sitio.foco .halo  { fill: var(--cursor); opacity: .26; }
+    .sitio.vacio .punto { fill: none; stroke: var(--tinta-2); stroke-dasharray: 2.5 2.5; }
+    .sitio.vacio .halo { display: none; }
+    .sitio.vacio .rotulo { fill: var(--tinta-2); }
+
+    /* --- chrome --- */
+    .cifras-mapa { position: absolute; left: 1.9rem; top: 1.6rem; font-size: .78rem;
+                   color: var(--tinta-2); background: rgba(255,255,255,.72);
+                   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+                   border: 1px solid var(--linea); border-radius: 4px; padding: .5rem .8rem; }
+    .cifras-mapa b { font-weight: 500; color: var(--tinta); }
+
+    .mapa-ctrl { position: absolute; right: 1.9rem; bottom: 1.6rem; display: grid; gap: .35rem; }
+    .mapa-ctrl button { width: 32px; height: 32px; font-family: var(--texto); font-size: .95rem;
+                        color: var(--tinta-2); cursor: pointer; line-height: 1; padding: 0;
+                        border-radius: 4px; border: 1px solid var(--linea);
+                        background: rgba(255, 255, 255, .78);
+                        -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+    .mapa-ctrl button:hover { color: var(--cursor); border-color: var(--cursor); }
+
+    .credito { position: absolute; left: 1.9rem; bottom: 1.1rem; margin: 0;
+               font-size: .64rem; color: var(--tinta-2); }
+    .credito a { color: inherit; border-bottom-color: var(--linea-viva); }
+
+    .mapa-ficha { position: absolute; right: 1.9rem; top: 1.6rem; width: 21rem; border-radius: 4px;
+                  max-height: calc(100% - 7rem); overflow-y: auto;
+                  background: rgba(255, 255, 255, .8);
+                  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+                  backdrop-filter: blur(20px) saturate(1.15);
+                  border: 1px solid var(--linea);
+                  box-shadow: 0 12px 34px -20px rgba(24, 30, 27, .34); }
+    .mapa-ficha .f-cab { display: flex; gap: .7rem; align-items: flex-start; padding: .95rem 1.05rem;
+                         border-bottom: 1px solid var(--linea); }
+    .mapa-ficha strong { display: block; font-weight: 500; font-size: .95rem; }
+    .mapa-ficha em { font-style: normal; font-size: .72rem; color: var(--tinta-2); }
+    .mapa-ficha .f-cerrar { margin-left: auto; border: 0; background: none; cursor: pointer;
+                            font-size: 1.15rem; line-height: 1; color: var(--tinta-2); }
+    .mapa-ficha .f-cerrar:hover { color: var(--cursor); }
+    .mapa-ficha .f-nota { margin: .7rem 1.05rem 0; font-size: .76rem; color: var(--tinta-2); }
+    .f-memorias { list-style: none; margin: 0; padding: .4rem; }
+    .f-memorias a { display: flex; gap: .7rem; align-items: center; padding: .4rem .6rem;
+                    border: 0; border-radius: 3px; }
+    .f-memorias a:hover { background: var(--panel-2); }
+    .f-memorias img { width: 54px; height: 40px; object-fit: cover; border-radius: 2px; flex: none;
+                      background: var(--panel-2); }
+    .f-memorias .sinfoto { width: 54px; height: 40px; border-radius: 2px; flex: none;
+                           border: 1px dashed var(--linea-viva); }
+    .f-memorias b { display: block; font-weight: 400; font-size: .8rem; line-height: 1.3; }
+    .f-memorias i { font-style: normal; font-size: .7rem; color: var(--tinta-2); }
+    .f-vacio { font-size: .78rem; color: var(--tinta-2); padding: .8rem .6rem; }
+
+    .portada-texto { padding-top: 3.5rem; }
+    .portada-texto h1 { max-width: 20ch; }
+    .puertas { display: grid; gap: 1px; background: var(--linea); border: 1px solid var(--linea);
+               grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); margin: 2.5rem 0 3rem; }
+    .puertas a { background: var(--panel); padding: 1.1rem 1.2rem; border: 0; display: block; }
+    .puertas a:hover { background: var(--panel-2); }
+    .puertas b { display: block; font-weight: 500; font-size: 1rem; margin-bottom: .2rem; }
+    .puertas span { font-size: .78rem; color: var(--tinta-2); }
+    .apellidos { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .apellidos a { border: 1px solid var(--linea); border-radius: 14px; padding: .22rem .7rem;
+                   font-size: .8rem; }
+    .apellidos a:hover { border-color: var(--cursor); }
+    .apellidos i { font-style: normal; font-size: .7rem; color: var(--tinta-2); }
+
+    @media (max-width: 880px) {
+      .mapa-ficha { left: 1rem; right: 1rem; top: auto; bottom: 1rem; width: auto; max-height: 45%; }
+      .marca { left: 1rem; }
+      .cifras-mapa { left: 1rem; }
+      .credito { left: 1rem; }
+    }
+  </style>
+</Base>

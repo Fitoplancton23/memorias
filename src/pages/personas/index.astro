@@ -1,0 +1,14 @@
+---
+import Base from '../../layouts/Base.astro';
+import { personas, nombre, vida } from '../../lib/datos.js';
+const orden = [...personas].sort((a, b) => nombre(a).localeCompare(nombre(b), 'es'));
+---
+<Base titulo="Personas">
+  <p class="sobretitulo">Linajes</p>
+  <h1>Personas</h1>
+  <ul class="listado">
+    {orden.map(p => (
+      <li><a href={`/personas/${p.slug}/`}>{nombre(p)}</a><span class="anio">{vida(p)}</span></li>
+    ))}
+  </ul>
+</Base>

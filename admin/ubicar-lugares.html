@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ubicar lugares en el mapa</title>
+<style>
+  :root{--tinta:#1a1714;--papel:#f4f1ea;--papel2:#e9e4d8;--apagado:#6b6357;--linea:#cfc7b6;--acento:#8c4a2f;
+        --sans:system-ui,-apple-system,'Segoe UI',sans-serif;--serif:Georgia,serif;}
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}   /* si no, display:grid le gana al atributo hidden */
+  body{margin:0;height:100vh;display:flex;font-family:var(--sans);background:var(--papel);color:var(--tinta);overflow:hidden}
+
+  aside{width:22rem;flex:none;border-right:1px solid var(--linea);display:flex;flex-direction:column;background:var(--papel)}
+  aside header{padding:1rem 1.1rem .75rem;border-bottom:1px solid var(--linea)}
+  h1{font-family:var(--serif);font-weight:400;font-size:1.15rem;margin:0 0 .15rem}
+  .sub{font-size:.76rem;color:var(--apagado)}
+
+  .cargar{padding:.9rem 1.1rem;border-bottom:1px solid var(--linea);display:grid;gap:.5rem}
+  .cargar label{font-size:.78rem;display:flex;flex-direction:column;gap:.25rem;color:var(--apagado)}
+  input[type=file]{font-size:.75rem;font-family:inherit}
+
+  .barra{padding:.6rem 1.1rem;border-bottom:1px solid var(--linea);font-size:.78rem;color:var(--apagado);
+         display:flex;gap:.75rem;align-items:center;flex-wrap:wrap}
+  .barra b{color:var(--tinta);font-weight:600}
+
+  ul{list-style:none;margin:0;padding:0;overflow-y:auto;flex:1}
+  li{padding:.5rem 1.1rem;border-bottom:1px solid var(--linea);cursor:pointer;display:flex;gap:.6rem;align-items:baseline}
+  li:hover{background:var(--papel2)}
+  li[aria-selected=true]{background:var(--acento);color:#fff}
+  li[aria-selected=true] .tipo{color:#f0d9cd}
+  .punto{width:8px;height:8px;border-radius:50%;flex:none;border:1.5px solid var(--acento);margin-top:.35rem}
+  li.puesto .punto{background:var(--acento)}
+  li[aria-selected=true] .punto{border-color:#fff;background:transparent}
+  li[aria-selected=true].puesto .punto{background:#fff}
+  .nom{flex:1;font-size:.86rem}
+  .tipo{font-size:.7rem;color:var(--apagado)}
+
+  footer{padding:.9rem 1.1rem;border-top:1px solid var(--linea);display:grid;gap:.5rem}
+  button{font:inherit;font-size:.82rem;padding:.5rem .8rem;border:1px solid var(--linea);background:var(--papel);
+         color:var(--tinta);border-radius:3px;cursor:pointer}
+  button:hover:not(:disabled){border-color:var(--acento);color:var(--acento)}
+  button.primario{background:var(--acento);color:#fff;border-color:var(--acento)}
+  button.primario:hover:not(:disabled){filter:brightness(1.1);color:#fff}
+  button:disabled{opacity:.45;cursor:default}
+
+  main{flex:1;position:relative;background:var(--papel2)}
+  #lienzo{width:100%;height:100%;display:block;cursor:crosshair}
+  #lienzo.arrastrando{cursor:grabbing}
+  #vacio{position:absolute;inset:0;display:grid;place-content:center;text-align:center;color:var(--apagado);
+         font-size:.9rem;padding:2rem;line-height:1.6}
+  .ayuda{position:absolute;left:1rem;bottom:1rem;background:rgba(26,23,20,.88);color:#f4f1ea;font-size:.74rem;
+         padding:.5rem .7rem;border-radius:3px;line-height:1.5;max-width:20rem}
+</style>
+</head>
+<body>
+<aside>
+  <header>
+    <h1>Ubicar lugares</h1>
+    <div class="sub">Memorias de mi pueblo · herramienta de carga</div>
+  </header>
+
+  <div class="cargar">
+    <label>Mapa (.svg)<input type="file" id="fSvg" accept=".svg,image/svg+xml" /></label>
+    <label>Planilla de lugares (.csv)<input type="file" id="fCsv" accept=".csv,text/csv" /></label>
+  </div>
+
+  <div class="barra">
+    <span><b id="nPuestos">0</b> ubicados</span>
+    <span><b id="nFaltan">0</b> sin ubicar</span>
+  </div>
+
+  <ul id="lista"></ul>
+
+  <footer>
+    <button id="btnQuitar" disabled>Quitar la ubicación del seleccionado</button>
+    <button id="btnBajar" class="primario" disabled>Descargar lugares.csv</button>
+  </footer>
+</aside>
+
+<main>
+  <svg id="lienzo"></svg>
+  <div id="vacio">Cargá el mapa y la planilla de lugares para empezar.<br />
+    Los archivos no salen de esta computadora: todo pasa en el navegador.</div>
+  <div class="ayuda" hidden id="ayuda">
+    Elegí un lugar de la lista y hacé clic en el mapa para ubicarlo.<br />
+    Rueda del mouse para acercar · arrastrar para desplazar.
+  </div>
+</main>
+
+<script>
+/* ---------- CSV: se preserva el orden y el contenido de las columnas que ya existen ---------- */
+function parseCSV(texto){
+  const filas=[]; let fila=[],campo='',c=false;
+  texto=texto.replace(/^﻿/,'').replace(/\r\n/g,'\n');
+  for(let i=0;i<texto.length;i++){const ch=texto[i];
+    if(c){ if(ch==='"'){ if(texto[i+1]==='"'){campo+='"';i++;} else c=false; } else campo+=ch; }
+    else if(ch==='"') c=true;
+    else if(ch===','){fila.push(campo);campo='';}
+    else if(ch==='\n'){fila.push(campo);filas.push(fila);fila=[];campo='';}
+    else campo+=ch;}
+  if(campo.length||fila.length){fila.push(campo);filas.push(fila);}
+  return filas.filter(f=>f.some(v=>v.trim()!==''));
+}
+const esc = v => /[",\n]/.test(v) ? '"'+String(v).replace(/"/g,'""')+'"' : String(v);
+function aCSV(cabecera,filas){
+  return [cabecera.map(esc).join(',')].concat(
+    filas.map(f=>cabecera.map(h=>esc(f[h]??'')).join(','))).join('\n')+'\n';
+}
+
+/* ---------- estado ---------- */
+let cabecera=[], lugares=[], sel=null, vbOrig=null, svgMapa=null;
+const $=id=>document.getElementById(id);
+const lienzo=$('lienzo');
+
+/* ---------- mapa ---------- */
+$('fSvg').onchange = async e => {
+  const f=e.target.files[0]; if(!f) return;
+  const texto=await f.text();
+  const doc=new DOMParser().parseFromString(texto,'image/svg+xml');
+  const raiz=doc.documentElement;
+  if(raiz.nodeName!=='svg'){ alert('Ese archivo no es un SVG válido.'); return; }
+
+  let vb=raiz.getAttribute('viewBox');
+  if(!vb){                                    // sin viewBox no hay sistema de coordenadas estable
+    const w=parseFloat(raiz.getAttribute('width'))||1000;
+    const h=parseFloat(raiz.getAttribute('height'))||1000;
+    vb=`0 0 ${w} ${h}`;
+    alert('El SVG no tiene viewBox. Se asumió 0 0 '+w+' '+h+', pero conviene exportarlo con viewBox: si no, las marcas se corren cuando cambie el tamaño del dibujo.');
+  }
+  const [x,y,w,h]=vb.trim().split(/[\s,]+/).map(Number);
+  vbOrig={x,y,w,h};
+
+  lienzo.innerHTML='';
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  for(const n of Array.from(raiz.childNodes)) g.appendChild(document.importNode(n,true));
+  lienzo.appendChild(g);
+  svgMapa=g;
+  const capa=document.createElementNS('http://www.w3.org/2000/svg','g');
+  capa.id='__marcadores'; lienzo.appendChild(capa);
+  lienzo.setAttribute('viewBox',`${x} ${y} ${w} ${h}`);
+  lienzo.setAttribute('preserveAspectRatio','xMidYMid meet');
+  $('vacio').hidden=true; $('ayuda').hidden=false;
+  dibujar();
+};
+
+/* ---------- planilla ---------- */
+$('fCsv').onchange = async e => {
+  const f=e.target.files[0]; if(!f) return;
+  const filas=parseCSV(await f.text());
+  if(!filas.length){ alert('La planilla está vacía.'); return; }
+  cabecera=filas[0].map(h=>h.trim());
+  if(!cabecera.includes('slug')){ alert('La planilla no tiene columna "slug".'); return; }
+  for(const col of ['x','y']) if(!cabecera.includes(col)) cabecera.push(col);
+  lugares=filas.slice(1).map(f=>Object.fromEntries(cabecera.map((h,i)=>[h,(f[i]??'').trim()])));
+  sel=null; render();
+};
+
+/* ---------- lista ---------- */
+const puesto = l => l.x!=='' && l.y!=='' && l.x!=null && l.y!=null;
+
+function render(){
+  const ul=$('lista'); ul.innerHTML='';
+  const orden=[...lugares].sort((a,b)=> (puesto(a)-puesto(b)) || (a.nombre||'').localeCompare(b.nombre||'','es'));
+  for(const l of orden){
+    const li=document.createElement('li');
+    li.className = puesto(l)?'puesto':'';
+    li.setAttribute('aria-selected', sel===l.slug);
+    li.innerHTML='<span class="punto"></span><span class="nom"></span><span class="tipo"></span>';
+    li.querySelector('.nom').textContent=l.nombre||l.slug;
+    li.querySelector('.tipo').textContent=l.tipo||'';
+    li.onclick=()=>{ sel=(sel===l.slug?null:l.slug); render(); };
+    ul.appendChild(li);
+  }
+  const n=lugares.filter(puesto).length;
+  $('nPuestos').textContent=n;
+  $('nFaltan').textContent=lugares.length-n;
+  $('btnBajar').disabled=!lugares.length;
+  $('btnQuitar').disabled=!sel || !puesto(lugares.find(l=>l.slug===sel)||{});
+  dibujar();
+}
+
+/* ---------- marcadores ---------- */
+function dibujar(){
+  const capa=lienzo.querySelector('#__marcadores'); if(!capa||!vbOrig) return;
+  capa.innerHTML='';
+  const vb=lienzo.getAttribute('viewBox').split(/[\s,]+/).map(Number);
+  const r=vb[2]*0.009;
+  for(const l of lugares){
+    if(!puesto(l)) continue;
+    const cx=vbOrig.x+parseFloat(l.x)*vbOrig.w, cy=vbOrig.y+parseFloat(l.y)*vbOrig.h;
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r',r);
+    c.setAttribute('fill', sel===l.slug?'#8c4a2f':'rgba(140,74,47,.55)');
+    c.setAttribute('stroke','#f4f1ea'); c.setAttribute('stroke-width',r*0.35);
+    const t=document.createElementNS('http://www.w3.org/2000/svg','title');
+    t.textContent=l.nombre||l.slug; c.appendChild(t);
+    capa.appendChild(c);
+  }
+}
+
+/* ---------- clic para ubicar, arrastre para desplazar, rueda para acercar ---------- */
+let bajo=null, movido=false;
+lienzo.addEventListener('pointerdown',e=>{ bajo={x:e.clientX,y:e.clientY}; movido=false; });
+lienzo.addEventListener('pointermove',e=>{
+  if(!bajo||!vbOrig) return;
+  const dx=e.clientX-bajo.x, dy=e.clientY-bajo.y;
+  if(Math.abs(dx)+Math.abs(dy)>4){ movido=true; lienzo.classList.add('arrastrando'); }
+  if(!movido) return;
+  const vb=lienzo.getAttribute('viewBox').split(/[\s,]+/).map(Number);
+  const k=vb[2]/lienzo.clientWidth;
+  lienzo.setAttribute('viewBox',`${vb[0]-dx*k} ${vb[1]-dy*k} ${vb[2]} ${vb[3]}`);
+  bajo={x:e.clientX,y:e.clientY};
+});
+lienzo.addEventListener('pointerup',e=>{
+  lienzo.classList.remove('arrastrando');
+  const arrastro=movido; bajo=null; movido=false;
+  if(arrastro||!vbOrig||!sel) return;
+  const p=lienzo.createSVGPoint(); p.x=e.clientX; p.y=e.clientY;
+  const u=p.matrixTransform(lienzo.getScreenCTM().inverse());
+  const l=lugares.find(l=>l.slug===sel); if(!l) return;
+  l.x=((u.x-vbOrig.x)/vbOrig.w).toFixed(5);
+  l.y=((u.y-vbOrig.y)/vbOrig.h).toFixed(5);
+  const i=lugares.indexOf(l);
+  const sig=lugares.slice(i+1).find(x=>!puesto(x)) || lugares.find(x=>!puesto(x));
+  sel = sig ? sig.slug : null;                    // encadena: ubicar muchos sin volver a la lista
+  render();
+});
+lienzo.addEventListener('wheel',e=>{
+  if(!vbOrig) return;
+  e.preventDefault();
+  const vb=lienzo.getAttribute('viewBox').split(/[\s,]+/).map(Number);
+  const f=e.deltaY>0?1.12:1/1.12;
+  const p=lienzo.createSVGPoint(); p.x=e.clientX; p.y=e.clientY;
+  const u=p.matrixTransform(lienzo.getScreenCTM().inverse());
+  lienzo.setAttribute('viewBox',
+    `${u.x-(u.x-vb[0])*f} ${u.y-(u.y-vb[1])*f} ${vb[2]*f} ${vb[3]*f}`);
+  dibujar();
+},{passive:false});
+
+/* ---------- acciones ---------- */
+$('btnQuitar').onclick=()=>{ const l=lugares.find(l=>l.slug===sel); if(l){ l.x=''; l.y=''; render(); } };
+$('btnBajar').onclick=()=>{
+  const blob=new Blob([aCSV(cabecera,lugares)],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='lugares.csv'; a.click();
+  URL.revokeObjectURL(a.href);
+};
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ sel=null; render(); } });
+</script>
+</body>
+</html>

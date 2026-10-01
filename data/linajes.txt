@@ -1,0 +1,7 @@
+# Un grupo familiar por línea. Las líneas que empiezan con # se ignoran.
+# Formato:  <padre> y <madre>. Hijos: <hijo>, <hijo>, <hijo>
+# La misma persona nombrada en dos líneas distintas es UNA sola persona:
+# así es como los linajes se enhebran entre sí.
+# Se puede cargar un solo progenitor, o una pareja sin hijos todavía.
+
+Luis Dinarte Silveira y Clementina Hermann. Hijos: Gerardo Isaac Silveira, Celina Silveira, Susana Silveira, Oscar Silveira, Roberto Silveira

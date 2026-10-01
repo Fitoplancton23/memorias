@@ -1,0 +1,52 @@
+---
+import '../styles/tokens.css';
+import { demo, sinAprobar } from '../lib/datos.js';
+const { titulo, descripcion, suelto = false } = Astro.props;
+const t = titulo ? `${titulo} · Memorias de mi pueblo` : 'Memorias de mi pueblo · Aristóbulo del Valle';
+---
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{t}</title>
+  {descripcion && <meta name="description" content={descripcion} />}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600&display=swap" />
+</head>
+<body>
+  {demo && (
+    <div class="cinta-demo">
+      Datos de <strong>demostración</strong>: las personas y los parentescos son inventados.
+      No son historia de Aristóbulo del Valle.
+    </div>
+  )}
+  {sinAprobar > 0 && (
+    <div class="cinta-pendiente">
+      Vista local: incluye <strong>{sinAprobar}</strong> memoria(s) <strong>sin aprobar</strong>. No publicar.
+    </div>
+  )}
+  <header class="sitio">
+    <div class="envoltorio">
+      <a class="marca" href="/">
+        Nuestra historia
+        <em>Aristóbulo del Valle · Salto Encantado · Cerro Moreno</em>
+      </a>
+      <nav>
+        <a href="/">Mapa</a>
+        <a href="/memorias/">Memorias</a>
+        <a href="/personas/">Personas y familias</a>
+      </nav>
+    </div>
+  </header>
+  <main class={suelto ? "suelto" : "envoltorio"}><slot /></main>
+  {!suelto && (
+    <footer class="sitio">
+      <div class="envoltorio">
+        Archivo comunitario de Aristóbulo del Valle, Misiones · Material aportado por vecinas y vecinos.
+      </div>
+    </footer>
+  )}
+</body>
+</html>

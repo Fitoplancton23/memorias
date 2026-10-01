@@ -1,0 +1,20 @@
+---
+import Base from '../../layouts/Base.astro';
+import { anios } from '../../lib/datos.js';
+const max = Math.max(1, ...anios.map(a => a.documentos.length));
+---
+<Base titulo="Años">
+  <p class="sobretitulo">Línea de tiempo</p>
+  <h1>Años con material</h1>
+  <p class="bajada">Los vacíos también son información: muestran de qué períodos el pueblo todavía no recuperó su archivo.</p>
+  <ul class="listado">
+    {anios.map(a => (
+      <li>
+        <a href={`/anios/${a.anio}/`}>{a.anio}</a>
+        <span class="anio">
+          {'▌'.repeat(Math.ceil(a.documentos.length / max * 12))} {a.documentos.length}
+        </span>
+      </li>
+    ))}
+  </ul>
+</Base>

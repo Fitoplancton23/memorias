@@ -1,0 +1,13 @@
+---
+import Base from '../../layouts/Base.astro';
+import { lugares } from '../../lib/datos.js';
+---
+<Base titulo="Lugares">
+  <p class="sobretitulo">Mapa</p>
+  <h1>Lugares</h1>
+  <ul class="listado">
+    {lugares.map(l => (
+      <li><a href={`/lugares/${l.slug}/`}>{l.nombre}</a><span class="anio">{l.tipo || ''} · {l.documentos.length}</span></li>
+    ))}
+  </ul>
+</Base>

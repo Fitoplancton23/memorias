@@ -1,0 +1,225 @@
+---
+/* Línea de tiempo — generada como SVG en el build.
+   Lecturas superpuestas, cada canal con un trabajo:
+     y                = tiempo
+     alto de marca    = incertidumbre de la fecha
+     verde (señal)    = cuán firme es el dato
+     franja de calor  = cuánto material hay en ese año (falso color, con escala)
+     magenta          = lo que falta
+     cyan             = sólo la interacción, nunca un dato                      */
+const { documentos = [], acontecimientos = [] } = Astro.props;
+
+const docs = documentos.filter(d => d.fecha.ref != null);
+const sinFecha = documentos.filter(d => d.fecha.ref == null);
+const evs = acontecimientos.filter(a => a.fecha.ref != null);
+const vacio = docs.length === 0 && evs.length === 0;
+
+const todos = [...docs, ...evs];
+let min = vacio ? 1900 : Math.min(...todos.map(x => x.fecha.desde));
+let max = vacio ? 1930 : Math.max(...todos.map(x => x.fecha.hasta));
+min = Math.floor(min / 10) * 10;
+max = Math.ceil((max + 1) / 10) * 10;
+if (max - min < 30) max = min + 30;
+
+const PX = 9, PAD = 30, AX = 250, MW = 13, MG = 2;
+const CAL_X = AX + 5, CAL_W = 10, M0 = AX + 23;
+const y = a => PAD + (a - min) * PX;
+const alto = PAD * 2 + (max - min) * PX;
+
+/* --- densidad por año: cada documento cubre todo su rango --- */
+const cobertura = {};
+for (const d of docs)
+  for (let a = d.fecha.desde; a <= d.fecha.hasta; a++) cobertura[a] = (cobertura[a] || 0) + 1;
+const pico = Math.max(1, ...Object.values(cobertura));
+const nivelCalor = n => n ? Math.min(5, Math.max(1, Math.ceil(n / pico * 5))) : 0;
+/* El falso color sólo se enciende cuando hay densidad real que medir. Con tres
+   documentos, una rampa térmica sugiere una precisión que el archivo no tiene. */
+const hayCalor = pico >= 3;
+
+/* --- apilado codicioso --- */
+const cols = [];
+const marcas = docs
+  .map(d => ({ d, y1: y(d.fecha.desde), y2: Math.max(y(d.fecha.desde) + 6, y(d.fecha.hasta + 1)) }))
+  .sort((a, b) => a.y1 - b.y1)
+  .map(m => {
+    let c = cols.findIndex(fin => fin <= m.y1 - MG);
+    if (c === -1) { c = cols.length; cols.push(0); }
+    cols[c] = m.y2;
+    return { ...m, col: c };
+  });
+
+/* --- huecos --- */
+const huecos = [];
+let ini = null;
+for (let a = min; a <= max; a++) {
+  if (!cobertura[a]) { if (ini === null) ini = a; }
+  else if (ini !== null) { if (a - ini >= 8) huecos.push([ini, a - 1]); ini = null; }
+}
+if (ini !== null && max - ini >= 8) huecos.push([ini, max]);
+
+const etiqHueco = ([a, b]) => `sin material · ${a}–${b}`.length * 5.6;
+const anchoMarcas = Math.max(
+  cols.length * (MW + MG),
+  huecos.length ? Math.max(...huecos.map(etiqHueco)) + 16 : 0,
+  90
+);
+const ancho = M0 + anchoMarcas + PAD;
+
+/* --- acontecimientos, con línea guía y sin pisarse --- */
+let ultima = -Infinity;
+const eventos = evs
+  .map(a => ({ a, yr: y(a.fecha.ref) }))
+  .sort((p, q) => p.yr - q.yr)
+  .map(e => {
+    const yl = Math.max(e.yr, ultima + 15); ultima = yl;
+    const t = e.a.titulo;
+    return { ...e, yl, texto: t.length > 30 ? t.slice(0, 29) + '…' : t };
+  });
+
+const decadas = [];
+for (let a = min; a <= max; a += 10) decadas.push(a);
+
+const senal = p => p === 'dia' || p === 'mes' || p === 'anio' ? 'var(--senal-3)'
+              : p === 'circa' ? 'var(--senal-2)' : 'var(--senal-1)';
+const anios = Object.keys(cobertura).map(Number);
+---
+
+<figure class="lt">
+  <figcaption class="lt-cab">
+    <p class="sobretitulo">Línea de tiempo</p>
+    <p class="lt-nota">
+      Cada marca es una memoria. Su <strong>alto es la incertidumbre de la fecha</strong> y su
+      <strong>verde es cuán firme es el dato</strong>.
+      {hayCalor && <>La franja de calor mide cuánto material hay en cada año. </>}
+      Lo que está en blanco, el pueblo todavía no lo recuperó.
+    </p>
+
+    <div class="lt-leyendas">
+      <div class="escala">
+        <span>Dato</span>
+        <span class="pasos">
+          <i style="background:var(--senal-1)"></i><i style="background:var(--senal-2)"></i><i style="background:var(--senal-3)"></i>
+        </span>
+        <span>década → año exacto</span>
+      </div>
+      {hayCalor && <div class="escala">
+        <span>Material</span>
+        <span class="pasos">
+          <i style="background:var(--calor-1)"></i><i style="background:var(--calor-2)"></i><i style="background:var(--calor-3)"></i><i style="background:var(--calor-4)"></i><i style="background:var(--calor-5)"></i>
+        </span>
+        <span>1 → {pico} por año</span>
+      </div>}
+      <div class="escala"><i class="pto-ev"></i><span>Acontecimiento</span></div>
+    </div>
+  </figcaption>
+
+  <div class="lt-caja">
+    <svg viewBox={`0 0 ${ancho} ${alto}`} width={ancho} height={alto} role="img"
+         aria-label={`Línea de tiempo de ${min} a ${max}: ${docs.length} memorias y ${evs.length} acontecimientos.`}>
+      {decadas.map((a, i) => i % 2 === 0 && (
+        <rect x={AX} y={y(a)} width={ancho - AX} height={PX * 10} fill="var(--panel)" />
+      ))}
+
+      {hayCalor && anios.map(a => (
+        <rect x={CAL_X} y={y(a)} width={CAL_W} height={PX}
+              fill={`var(--calor-${nivelCalor(cobertura[a])})`} />
+      ))}
+
+      <line x1={AX} y1={PAD} x2={AX} y2={alto - PAD} stroke="var(--linea-viva)" stroke-width="1" />
+
+      {decadas.map(a => (
+        <g>
+          <line x1={AX - 6} y1={y(a)} x2={AX} y2={y(a)} stroke="var(--linea-viva)" stroke-width="1" />
+          <text x={40} y={y(a) + 4} text-anchor="end" class="lt-decada">{a}</text>
+        </g>
+      ))}
+
+      {huecos.map(([a, b]) => (
+        <text x={M0} y={(y(a) + y(b + 1)) / 2 + 4} class="lt-hueco">sin material · {a}–{b}</text>
+      ))}
+
+      {eventos.map(e => (
+        <g>
+          <path d={`M ${AX - 12} ${e.yl} L ${AX - 6} ${e.yl} L ${AX - 2} ${e.yr}`}
+                fill="none" stroke="var(--linea-viva)" stroke-width="1" />
+          <circle cx={AX} cy={e.yr} r="3.5" fill="var(--fondo)" stroke="var(--tinta)" stroke-width="1.5" />
+          <a href={`/acontecimientos/${e.a.slug}/`}>
+            <text x={AX - 16} y={e.yl + 4} text-anchor="end" class="lt-evento">{e.texto}</text>
+          </a>
+        </g>
+      ))}
+
+      {marcas.map(m => (
+        <a href={`/memorias/${m.d.slug}/`}
+           data-tt={`${m.d.titulo} · ${m.d.fecha.texto} · ${m.d.tipo}`}>
+          <title>{m.d.titulo} ({m.d.fecha.texto})</title>
+          <rect x={M0 + m.col * (MW + MG)} y={m.y1} width={MW} height={m.y2 - m.y1}
+                rx="2" fill={senal(m.d.fecha.precision)} />
+        </a>
+      ))}
+    </svg>
+    <div class="lt-tt" hidden></div>
+  </div>
+
+  <p class="lt-pie">
+    {sinFecha.length > 0 && <><b class="sin">{sinFecha.length} sin fecha</b> — todavía fuera de la línea. </>}
+    <a href="/anios/">Ver como listado</a>
+  </p>
+</figure>
+
+<style>
+  .lt { margin: 2.5rem 0 0; }
+  .lt-cab { margin-bottom: 1.25rem; }
+  .lt-nota { font-size: .82rem; color: var(--tinta-2); max-width: 62ch; margin: 0 0 1rem; line-height: 1.65; }
+  .lt-nota strong { color: var(--tinta); font-weight: 400; }
+
+  .lt-leyendas { display: flex; flex-wrap: wrap; gap: 1.75rem; }
+  .escala .pto-ev { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--tinta); display: block; }
+
+  .lt-caja { position: relative; overflow-x: auto; padding-bottom: .5rem; }
+  .lt-caja svg { display: block; max-width: none; }
+
+  .lt-decada { font-family: var(--mono); font-size: 11px; fill: var(--tinta-2); font-variant-numeric: tabular-nums; }
+  .lt-hueco  { font-family: var(--mono); font-size: 10px; fill: var(--anomalia); opacity: .85; letter-spacing: .04em; }
+  .lt-evento { font-family: var(--mono); font-size: 11px; fill: var(--tinta); }
+
+  .lt-caja a { border: 0; }
+  .lt-caja a rect { transition: opacity .1s; }
+  .lt-caja a:hover rect { opacity: .55; }
+  .lt-caja a:focus-visible { outline: 2px solid var(--cursor); outline-offset: 2px; }
+  .lt-caja a:hover .lt-evento, .lt-caja a:focus-visible .lt-evento { fill: var(--cursor); }
+
+  .lt-tt { position: absolute; pointer-events: none; z-index: 5; max-width: 24rem;
+           background: var(--tinta); color: var(--fondo); border: 1px solid var(--tinta);
+           font-family: var(--mono); font-size: .72rem; padding: .35rem .55rem;
+           transform: translate(-50%, -150%); white-space: nowrap; }
+
+  .lt-pie { font-size: .75rem; color: var(--tinta-2); margin-top: .9rem; }
+  .lt-pie .sin { color: var(--anomalia); font-weight: 400; }
+</style>
+
+<script>
+  const caja = document.querySelector('.lt-caja');
+  const tt = caja?.querySelector('.lt-tt');
+  if (caja && tt) {
+    const mostrar = (el, x, yy) => {
+      tt.textContent = el.getAttribute('data-tt');
+      const r = caja.getBoundingClientRect();
+      tt.style.left = (x - r.left + caja.scrollLeft) + 'px';
+      tt.style.top = (yy - r.top) + 'px';
+      tt.hidden = false;
+    };
+    caja.addEventListener('mousemove', e => {
+      const el = e.target.closest('[data-tt]');
+      if (el) mostrar(el, e.clientX, e.clientY); else tt.hidden = true;
+    });
+    caja.addEventListener('mouseleave', () => { tt.hidden = true; });
+    caja.addEventListener('focusin', e => {
+      const el = e.target.closest('[data-tt]');
+      if (!el) return;
+      const b = el.getBoundingClientRect();
+      mostrar(el, b.left + b.width / 2, b.top);
+    });
+    caja.addEventListener('focusout', () => { tt.hidden = true; });
+  }
+</script>

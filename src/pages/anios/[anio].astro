@@ -1,0 +1,27 @@
+---
+import Base from '../../layouts/Base.astro';
+import { D, A, fecha } from '../../lib/datos.js';
+export async function getStaticPaths() {
+  const { anios } = await import('../../lib/datos.js');
+  return anios.map(a => ({ params: { anio: String(a.anio) }, props: { a } }));
+}
+const { a } = Astro.props;
+---
+<Base titulo={String(a.anio)}>
+  <p class="sobretitulo">Año</p>
+  <h1>{a.anio}</h1>
+  {a.acontecimientos.length > 0 && (<>
+    <h2>Acontecimientos</h2>
+    <ul class="listado">
+      {a.acontecimientos.map(s => A[s] && (
+        <li><a href={`/acontecimientos/${s}/`}>{A[s].titulo}</a><span class="anio">{fecha(A[s].fecha)}</span></li>
+      ))}
+    </ul>
+  </>)}
+  <h2>Memorias</h2>
+  <ul class="listado">
+    {a.documentos.map(s => D[s] && (
+      <li><a href={`/memorias/${s}/`}>{D[s].titulo}</a><span class="anio">{D[s].tipo}</span></li>
+    ))}
+  </ul>
+</Base>

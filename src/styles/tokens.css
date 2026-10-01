@@ -1,0 +1,177 @@
+/* ============================================================
+   Sistema visual — Memorias de mi pueblo
+   Paleta tomada de la guía de Facundo y validada sobre #edf9f4:
+   verde, azul y dorado separan bajo protanopía, deuteranopía y
+   tritanopía. El terracota quedó FUERA del juego categórico:
+   contra el verde da ΔE 6,5 en deuteranopía, que es el choque
+   rojo/verde de siempre. Trabaja como acento de interacción.
+   ============================================================ */
+:root {
+  /* --- superficie --- */
+  --fondo: #edf9f4;        /* el blanco verdoso de la guía */
+  --panel: #e2f0ea;
+  --panel-2: #d6e9e1;
+  --linea: #cfe3db;
+  --linea-viva: #a7c5ba;
+
+  /* --- tinta --- */
+  --tinta: #181e1b;        /* el negro de la guía */
+  --tinta-2: #5c6b64;
+
+  /* --- TIPO DE ENTIDAD · categórica validada -------------------
+     El color dice QUÉ ES una cosa. La forma de la línea dice qué
+     relación es. Un canal, un trabajo.
+     Verde ↔ dorado quedan en ΔE 7,5 bajo protanopía: es legal
+     porque ninguna marca depende sólo del color — todas llevan
+     rótulo, y la persona además tiene forma propia (retrato).   */
+  --tipo-persona: #0f8f67;
+  --tipo-lugar: #29abe2;
+  --tipo-evento: #bc8f40;
+
+  /* Degradado de la guía: el halo de familia. Agrupa, no codifica;
+     quien identifica a la familia es su nombre. */
+  --halo-a: #29abe2;
+  --halo-b: #007f68;
+  --halo-familia: #1f97ab;
+
+  /* El parentesco se dibuja en tinta: sólida la pareja, punteada
+     la filiación. Nunca lleva color propio. */
+  --vinculo: #3d4a44;
+
+  /* --- INTERACCIÓN --- el terracota de la guía. Nunca un dato. */
+  --cursor: #bf4340;
+  /* Lo que reclama atención a nivel de chrome: avisos y la cinta de
+     datos falsos. Dentro de la visualización, lo incompleto se dice
+     con línea discontinua y con palabras, no con color. */
+  --anomalia: #bf4340;
+
+  /* --- SEÑAL · cuán firme es el dato -------------------------
+     Rampa secuencial de un solo tono. Sobre papel claro más señal
+     es MÁS OSCURO. Monotónica en luminosidad. */
+  --senal-1: #4eb389;      /* década     */
+  --senal-2: #0f8f67;      /* circa      */
+  --senal-3: #0a4f39;      /* año exacto */
+
+  /* --- CALOR · densidad de material (falso color) -------------
+     Dorado → terracota → vino. Monotónica. Nunca sin su escala,
+     nunca con menos de 3 documentos por año. */
+  --calor-1: #d8ab52;
+  --calor-2: #bc8f40;
+  --calor-3: #bf4340;
+  --calor-4: #8a2b33;
+  --calor-5: #4a1620;
+
+  /* --- LA MEMORIA --- la única superficie sin tramar. */
+  --placa: #ffffff;
+  --placa-tinta: #181e1b;
+
+  /* --- tipografía ---
+     Google Sans es propietaria y no se sirve desde Google Fonts.
+     Si Facundo la autohospeda, gana; si no, cae en Figtree, que es
+     la geométrica humanista abierta más cercana en eje y ancho. */
+  --texto: 'Google Sans', 'Google Sans Text', 'Figtree', 'Segoe UI', system-ui, sans-serif;
+  --mono: var(--texto);
+  --serif: Georgia, 'Times New Roman', serif;
+  --ancho: 72rem;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--fondo);
+  color: var(--tinta);
+  font-family: var(--texto);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+/* Los números son datos: tabulares siempre, para que las fechas
+   de una columna se lean como columna. */
+time, .anio, .cifras b, .f-cab em, .fec { font-variant-numeric: tabular-nums; }
+
+a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--linea-viva); }
+a:hover { color: var(--cursor); border-bottom-color: var(--cursor); }
+a:focus-visible { outline: 2px solid var(--cursor); outline-offset: 2px; border-radius: 1px; }
+
+.envoltorio { max-width: var(--ancho); margin: 0 auto; padding: 2rem 1.25rem 6rem; width: 100%; }
+main.suelto { flex: 1; min-height: 0; position: relative; }
+header.sitio, footer.sitio { flex: none; }
+
+header.sitio { border-bottom: 1px solid var(--linea); background: var(--panel); }
+header.sitio .envoltorio { padding-block: .85rem; display: flex; gap: 1.5rem; align-items: baseline; flex-wrap: wrap; }
+header.sitio .marca { font-size: .82rem; letter-spacing: .14em; text-transform: uppercase;
+                      border: 0; color: var(--tinta); line-height: 1.3; }
+header.sitio .marca em { display: block; font-style: normal; font-size: .62rem;
+                         letter-spacing: .08em; color: var(--tinta-2); }
+header.sitio nav { display: flex; gap: 1.25rem; font-size: .74rem; text-transform: uppercase; letter-spacing: .1em; margin-left: auto; }
+header.sitio nav a { border: 0; color: var(--tinta-2); }
+header.sitio nav a:hover { color: var(--cursor); }
+
+h1 { font-weight: 500; font-size: clamp(1.7rem, 3.6vw, 2.5rem); line-height: 1.15; margin: 0 0 .5rem; letter-spacing: -.015em; }
+h2 { font-weight: 500; font-size: 1.05rem; margin: 2.5rem 0 .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--tinta-2); }
+.sobretitulo { font-size: .72rem; text-transform: uppercase; letter-spacing: .16em; color: var(--senal-2); margin: 0 0 .75rem; }
+.bajada { color: var(--tinta-2); font-size: .95rem; max-width: 58ch; }
+
+.cifras { display: flex; gap: 2.5rem; flex-wrap: wrap; margin: 2.25rem 0; }
+.cifras b { display: block; font-size: 2rem; font-weight: 500; line-height: 1; color: var(--tinta); }
+.cifras span { font-size: .7rem; text-transform: uppercase; letter-spacing: .12em; color: var(--tinta-2); }
+
+.rejilla { display: grid; gap: 1px; background: var(--linea); border: 1px solid var(--linea); grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+.rejilla > * { background: var(--panel); padding: 1rem 1.1rem; border: 0; }
+.rejilla .meta { font-size: .68rem; text-transform: uppercase; letter-spacing: .12em; color: var(--tinta-2); margin-bottom: .4rem; }
+
+.etiqueta { display: inline-block; font-size: .7rem; text-transform: uppercase; letter-spacing: .1em;
+            color: var(--tinta-2); border: 1px solid var(--linea-viva); padding: .2rem .55rem; border-radius: 10px; }
+.imprecisa { color: var(--tinta-2); }
+
+.avisos { background: var(--panel); border-left: 2px solid var(--anomalia); padding: 1rem 1.2rem;
+          font-size: .82rem; margin: 2rem 0; color: var(--tinta-2); }
+.avisos strong { color: var(--anomalia); font-weight: 500; }
+.avisos ul { margin: .5rem 0 0; padding-left: 1.1rem; }
+
+.listado { list-style: none; padding: 0; margin: 0; }
+.listado li { padding: .55rem 0; border-bottom: 1px solid var(--linea); display: flex; gap: 1rem; justify-content: space-between; }
+.listado .anio { font-size: .78rem; color: var(--tinta-2); white-space: nowrap; }
+
+footer.sitio { border-top: 1px solid var(--linea); font-size: .74rem; color: var(--tinta-2); }
+footer.sitio .envoltorio { padding-block: 1.5rem; }
+
+/* --- LA PLACA: donde vive la memoria --- */
+.placa {
+  background: var(--placa);
+  color: var(--placa-tinta);
+  border: 1px solid var(--linea);
+  box-shadow: 0 1px 0 rgba(24,30,27,.05), 0 10px 30px -14px rgba(24,30,27,.25);
+  padding: 1.75rem;
+  margin: 2rem 0;
+  font-family: var(--serif);
+  font-size: 1.02rem;
+  line-height: 1.7;
+}
+.placa img { display: block; max-width: 100%; height: auto; }
+.placa p:first-child { margin-top: 0; }
+.placa p:last-child { margin-bottom: 0; }
+.placa a { border-bottom-color: rgba(24,30,27,.28); }
+.placa a:hover { color: var(--cursor); border-bottom-color: var(--cursor); }
+
+.escala { display: flex; align-items: center; gap: .5rem; font-size: .7rem;
+          color: var(--tinta-2); text-transform: uppercase; letter-spacing: .08em; }
+.escala .pasos { display: flex; }
+.escala .pasos i { width: 15px; height: 9px; display: block; }
+
+/* Aviso de datos falsos. Una genealogía inventada de un pueblo real, sin avisar,
+   sería desinformación sobre familias que existen: el aviso no se puede perder. */
+.cinta-demo { flex: none; background: var(--anomalia); color: #fff; font-family: var(--texto);
+              font-size: .74rem; text-align: center; padding: .4rem .75rem; }
+.cinta-demo strong { font-weight: 600; }
+
+/* Material cargado pero sin aprobar, visible sólo en la vista local. Si está
+   en pantalla, la pantalla lo dice: es la misma regla que la cinta de demo. */
+.cinta-pendiente { flex: none; background: var(--calor-2); color: #fff; font-family: var(--texto);
+                   font-size: .74rem; text-align: center; padding: .4rem .75rem; }
+.cinta-pendiente strong { font-weight: 600; }

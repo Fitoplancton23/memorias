@@ -1,0 +1,262 @@
+---
+import Base from '../../layouts/Base.astro';
+import LineaDeTiempo from '../../components/LineaDeTiempo.astro';
+import { documentos, personas, lugares, acontecimientos } from '../../lib/datos.js';
+
+/* El archivo. No es una lista de documentos: es la pregunta "¿qué sabemos?"
+   con el tiempo como orden natural. Por eso no hay una pestaña aparte de
+   línea de tiempo — ordenar por año YA es la línea de tiempo. */
+
+const P = Object.fromEntries(personas.map(p => [p.slug, p]));
+const L = Object.fromEntries(lugares.map(l => [l.slug, l]));
+const A = Object.fromEntries(acontecimientos.map(a => [a.slug, a]));
+const nombre = p => [p.nombre, p.apellido].filter(Boolean).join(' ') || p.slug;
+
+const memorias = documentos.map(d => {
+  const gente = (d.personas || []).map(s => P[s]).filter(Boolean);
+  const sitios = (d.lugares || []).map(s => L[s]).filter(Boolean);
+  const hechos = (d.acontecimientos || []).map(s => A[s]).filter(Boolean);
+  const apellidos = [...new Set(gente.map(p => p.apellido).filter(Boolean))];
+  return {
+    slug: d.slug, titulo: d.titulo,
+    anio: d.fecha?.ref ?? null,
+    fechaTexto: d.fecha?.texto || '',
+    precision: d.fecha?.precision || 'desconocida',
+    descripcion: d.descripcion || '',
+    foto: d.archivo || null,
+    nFotos: (d.archivos || []).length,
+    gente: gente.map(p => ({ slug: p.slug, nombre: nombre(p) })),
+    apellidos,
+    sitios: sitios.map(l => ({ slug: l.slug, nombre: l.nombre })),
+    hechos: hechos.map(a => ({ slug: a.slug, titulo: a.titulo })),
+    ubicada: sitios.some(l => l.lat != null),
+  };
+}).sort((a, b) => (b.anio ?? -1) - (a.anio ?? -1));
+
+/* Cómo se dice una fecha imprecisa en pantalla: con palabras, no con rangos. */
+const comoSeLee = m => {
+  if (!m.anio) return 'sin fecha';
+  if (m.precision === 'decada') return `década de ${Math.floor(m.anio / 10) * 10}`;
+  if (m.precision === 'circa') return `aprox. ${m.anio}`;
+  return String(m.anio);
+};
+
+const sinUbicar = memorias.filter(m => !m.ubicada).length;
+const sinFecha = memorias.filter(m => !m.anio).length;
+const anios = memorias.map(m => m.anio).filter(Boolean);
+const rango = anios.length ? [Math.min(...anios), Math.max(...anios)] : null;
+
+/* Décadas con material, para el filtro */
+const porDecada = {};
+for (const m of memorias) if (m.anio) {
+  const d = Math.floor(m.anio / 10) * 10;
+  porDecada[d] = (porDecada[d] || 0) + 1;
+}
+const decadas = Object.entries(porDecada).map(([d, n]) => ({ d: +d, n })).sort((a, b) => b.d - a.d);
+
+const apellidos = {};
+for (const m of memorias) for (const a of m.apellidos) apellidos[a] = (apellidos[a] || 0) + 1;
+const listaApellidos = Object.entries(apellidos).map(([a, n]) => ({ a, n }))
+  .sort((x, y) => y.n - x.n || x.a.localeCompare(y.a));
+
+const listaLugares = lugares
+  .map(l => ({ slug: l.slug, nombre: l.nombre, n: (l.documentos || []).length }))
+  .filter(l => l.n).sort((a, b) => b.n - a.n);
+---
+<Base titulo="Memorias" descripcion="El archivo de memorias de Aristóbulo del Valle, Salto Encantado y Cerro Moreno.">
+  <header class="arch-cab">
+    <h1>Memorias</h1>
+    <p class="bajada">
+      Todo lo que el pueblo recuperó hasta ahora: {memorias.length} memorias
+      {rango && <> entre {rango[0]} y {rango[1]}</>}. Una memoria incompleta sigue
+      siendo una memoria — las que no tienen fecha o lugar están acá igual.
+    </p>
+  </header>
+
+  <div class="filtros" id="filtros">
+    <div class="f-grupo">
+      <span class="f-tit">Década</span>
+      <div class="f-chips">
+        <button class="chip act" data-f="decada" data-v="">Todas</button>
+        {decadas.map(d => <button class="chip" data-f="decada" data-v={d.d}>{d.d}<i>{d.n}</i></button>)}
+        {sinFecha > 0 && <button class="chip" data-f="decada" data-v="sin">Sin fecha<i>{sinFecha}</i></button>}
+      </div>
+    </div>
+
+    <div class="f-grupo">
+      <span class="f-tit">Familia</span>
+      <div class="f-chips">
+        <button class="chip act" data-f="apellido" data-v="">Todas</button>
+        {listaApellidos.slice(0, 12).map(a => <button class="chip" data-f="apellido" data-v={a.a}>{a.a}<i>{a.n}</i></button>)}
+      </div>
+    </div>
+
+    <div class="f-grupo">
+      <span class="f-tit">Lugar</span>
+      <div class="f-chips">
+        <button class="chip act" data-f="lugar" data-v="">Todos</button>
+        {listaLugares.map(l => <button class="chip" data-f="lugar" data-v={l.slug}>{l.nombre}<i>{l.n}</i></button>)}
+        {sinUbicar > 0 && <button class="chip" data-f="lugar" data-v="sin">Sin ubicación conocida<i>{sinUbicar}</i></button>}
+      </div>
+    </div>
+
+    <p class="f-cuenta"><b id="cuenta">{memorias.length}</b> <span id="cuenta-pal">memorias</span>
+      <button class="f-limpiar" id="limpiar" hidden>Quitar filtros</button></p>
+  </div>
+
+  <ul class="rejilla-memorias" id="rejilla">
+    {memorias.map(m => (
+      <li class="memoria" data-anio={m.anio ?? ''} data-decada={m.anio ? Math.floor(m.anio / 10) * 10 : 'sin'}
+          data-apellidos={m.apellidos.join('|')}
+          data-lugares={m.sitios.length ? m.sitios.map(s => s.slug).join('|') : 'sin'}>
+        <a href={`/memorias/${m.slug}/`}>
+          <figure>
+            {m.foto
+              ? <img src={m.foto} alt="" loading="lazy" />
+              : <span class="sinfoto" aria-hidden="true"></span>}
+            {m.nFotos > 1 && <figcaption>{m.nFotos} fotos</figcaption>}
+          </figure>
+          <div class="m-cuerpo">
+            <h2>{m.titulo}</h2>
+            <p class="m-meta">
+              <time class={m.precision}>{comoSeLee(m)}</time>
+              {m.sitios.length > 0 && <> · {m.sitios.map(s => s.nombre).join(', ')}</>}
+              {!m.ubicada && <span class="sin-ubic"> · sin ubicación conocida</span>}
+            </p>
+            {m.gente.length > 0 && (
+              <p class="m-gente">{m.gente.slice(0, 4).map(g => g.nombre).join(' · ')}
+                {m.gente.length > 4 && <> y {m.gente.length - 4} más</>}</p>
+            )}
+          </div>
+        </a>
+      </li>
+    ))}
+  </ul>
+
+  <p class="nada" id="nada" hidden>Ninguna memoria cumple esos filtros.</p>
+
+  {/* El tiempo no es una cuarta puerta: es una lectura del mismo archivo.
+      Va después de la rejilla porque lo que la gente viene a ver son las
+      memorias, no el gráfico. */}
+  <section class="tiempo">
+    <h2>Cómo cambió el pueblo</h2>
+    <LineaDeTiempo documentos={documentos} acontecimientos={acontecimientos} />
+  </section>
+
+  <script>
+    /* Los filtros trabajan sobre el HTML ya impreso: el archivo entero está en
+       la página, así que funciona sin JavaScript y Google lo indexa completo.
+       El script sólo esconde y muestra. */
+    const rejilla = document.getElementById('rejilla');
+    const tarjetas = [...rejilla.querySelectorAll('.memoria')];
+    const cuenta = document.getElementById('cuenta');
+    const cuentaPal = document.getElementById('cuenta-pal');
+    const nada = document.getElementById('nada');
+    const limpiar = document.getElementById('limpiar');
+    const estado = { decada: '', apellido: '', lugar: '' };
+
+    function aplicar() {
+      let n = 0;
+      for (const t of tarjetas) {
+        const ok =
+          (!estado.decada || t.dataset.decada === estado.decada) &&
+          (!estado.apellido || (t.dataset.apellidos || '').split('|').includes(estado.apellido)) &&
+          (!estado.lugar || (estado.lugar === 'sin'
+            ? t.dataset.lugares === 'sin'
+            : (t.dataset.lugares || '').split('|').includes(estado.lugar)));
+        t.hidden = !ok;
+        if (ok) n++;
+      }
+      cuenta.textContent = n;
+      cuentaPal.textContent = n === 1 ? 'memoria' : 'memorias';
+      nada.hidden = n > 0;
+      limpiar.hidden = !Object.values(estado).some(Boolean);
+    }
+
+    for (const b of document.querySelectorAll('.chip')) {
+      b.addEventListener('click', () => {
+        const f = b.dataset.f;
+        estado[f] = estado[f] === b.dataset.v ? '' : b.dataset.v;
+        for (const o of document.querySelectorAll(`.chip[data-f="${f}"]`))
+          o.classList.toggle('act', (o.dataset.v || '') === estado[f]);
+        aplicar();
+      });
+    }
+    limpiar.addEventListener('click', () => {
+      for (const k in estado) estado[k] = '';
+      for (const o of document.querySelectorAll('.chip'))
+        o.classList.toggle('act', !o.dataset.v);
+      aplicar();
+    });
+
+    /* Entrar filtrado desde otra página: /memorias/?apellido=Muller */
+    const q = new URLSearchParams(location.search);
+    for (const k of ['decada', 'apellido', 'lugar']) {
+      const v = q.get(k);
+      if (!v) continue;
+      estado[k] = v;
+      for (const o of document.querySelectorAll(`.chip[data-f="${k}"]`))
+        o.classList.toggle('act', (o.dataset.v || '') === v);
+    }
+    if ([...q.keys()].length) aplicar();
+  </script>
+
+  <style>
+    .arch-cab { margin-bottom: 2rem; }
+    .arch-cab h1 { margin-bottom: .75rem; }
+
+    .filtros { border-top: 1px solid var(--linea); border-bottom: 1px solid var(--linea);
+               padding: 1.25rem 0 1rem; margin-bottom: 2rem; display: grid; gap: 1rem; }
+    .f-grupo { display: grid; grid-template-columns: 5.5rem 1fr; gap: .75rem; align-items: start; }
+    .f-tit { font-size: .66rem; letter-spacing: .1em; text-transform: uppercase;
+             color: var(--tinta-2); padding-top: .4rem; }
+    .f-chips { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .chip { display: inline-flex; align-items: center; gap: .4rem; cursor: pointer;
+            font-family: var(--texto); font-size: .78rem; color: var(--tinta);
+            background: none; border: 1px solid var(--linea); border-radius: 14px;
+            padding: .25rem .7rem; }
+    .chip i { font-style: normal; font-size: .68rem; color: var(--tinta-2); }
+    .chip:hover { border-color: var(--linea-viva); }
+    .chip.act { background: var(--tinta); color: #fff; border-color: var(--tinta); }
+    .chip.act i { color: rgba(255,255,255,.7); }
+
+    .f-cuenta { margin: .25rem 0 0; font-size: .8rem; color: var(--tinta-2); }
+    .f-cuenta b { color: var(--tinta); font-weight: 500; }
+    .f-limpiar { margin-left: .75rem; border: 0; background: none; cursor: pointer;
+                 font-family: var(--texto); font-size: .76rem; color: var(--cursor);
+                 text-decoration: underline; padding: 0; }
+
+    .rejilla-memorias { list-style: none; margin: 0; padding: 0;
+                        display: grid; gap: 1.5rem 1.25rem;
+                        grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+    .memoria a { display: block; border: 0; }
+    .memoria figure { margin: 0 0 .7rem; position: relative; aspect-ratio: 4 / 3;
+                      background: var(--panel-2); overflow: hidden; border-radius: 3px; }
+    .memoria img { width: 100%; height: 100%; object-fit: cover; display: block;
+                   transition: transform .5s ease; }
+    .memoria a:hover img { transform: scale(1.03); }
+    .memoria .sinfoto { position: absolute; inset: 0; border: 1px dashed var(--linea-viva);
+                        border-radius: 3px; }
+    .memoria figcaption { position: absolute; right: .5rem; bottom: .5rem;
+                          background: rgba(24,30,27,.72); color: #fff; font-size: .66rem;
+                          padding: .15rem .45rem; border-radius: 10px; }
+    .memoria h2 { font-size: .95rem; font-weight: 500; margin: 0 0 .25rem;
+                  text-transform: none; letter-spacing: 0; color: var(--tinta);
+                  line-height: 1.3; }
+    .memoria a:hover h2 { color: var(--cursor); }
+    .m-meta { margin: 0 0 .2rem; font-size: .76rem; color: var(--tinta-2); }
+    /* La precisión de la fecha se lee en el texto, no en un color que haya que
+       decodificar: "1966", "aprox. 1967", "década de 1940". */
+    .m-meta time.circa, .m-meta time.decada { font-style: italic; }
+    .sin-ubic { color: var(--tinta-2); }
+    .m-gente { margin: 0; font-size: .74rem; color: var(--tinta-2); }
+
+    .nada { color: var(--tinta-2); font-size: .85rem; padding: 2rem 0; }
+    .tiempo { margin-top: 4rem; padding-top: 2.5rem; border-top: 1px solid var(--linea); }
+
+    @media (max-width: 620px) {
+      .f-grupo { grid-template-columns: 1fr; gap: .4rem; }
+      .f-tit { padding-top: 0; }
+    }
+  </style>
+</Base>

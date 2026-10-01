@@ -1,0 +1,5 @@
+slug,nombre,apellido,apodo,sexo,nacimiento,defuncion,lugar_origen,vive,notas
+juan-ejemplo,Juan,Ejemplo,,M,1901,1978,plaza-libertad,no,DATO DE EJEMPLO - reemplazar
+maria-ejemplo,Maria,Ejemplo,,F,c.1905,1982,,no,DATO DE EJEMPLO - reemplazar
+pedro-ejemplo,Pedro,Ejemplo,Pepe,M,dec. 1930,,escuela-n1,no,DATO DE EJEMPLO - reemplazar
+ana-ejemplo,Ana,Ejemplo,,F,1934,,,no,DATO DE EJEMPLO - reemplazar

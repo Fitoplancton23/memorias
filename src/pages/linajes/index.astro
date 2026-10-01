@@ -1,0 +1,1190 @@
+---
+import Base from '../../layouts/Base.astro';
+import { personas, documentos, familias, lugares, acontecimientos } from '../../lib/datos.js';
+import { armarRed } from '../../lib/red.js';
+
+const red = armarRed(personas, documentos, familias, lugares, acontecimientos);
+const gente = red.nodos.filter(n => n.tipo === 'persona');
+const casas = red.nodos.filter(n => n.tipo === 'familia');
+
+/* Sugerencias de la portada: las familias con más gente, y para cada una la
+   persona más conectada, que es la que abre el linaje más rico. */
+const porApellido = {};
+for (const p of gente) if (p.apellido) (porApellido[p.apellido] ||= []).push(p.id);
+const grado = {};
+for (const f of casas) for (const x of [...f.conyuges, ...f.hijos]) grado[x] = (grado[x] || 0) + 1;
+const sugeridas = Object.entries(porApellido)
+  .sort((a, b) => b[1].length - a[1].length).slice(0, 6)
+  .map(([apellido, ids]) => ({
+    apellido, n: ids.length,
+    id: ids.slice().sort((a, b) => (grado[b] || 0) - (grado[a] || 0))[0],
+  }));
+
+const cuenta = { personas: gente.length, familias: casas.length, memorias: documentos.length };
+
+/* Regla 2 del modelo: una conexión entre familias no se guarda, se calcula a
+   partir de las memorias compartidas. Si se borra la memoria, la conexión
+   desaparece. Para que eso se cumpla también en pantalla, cada curva tiene que
+   poder nombrar la memoria que la justifica: sin esto, el frontend estaría
+   dibujando un vínculo que no puede explicar. */
+const memos = Object.fromEntries(documentos.map(d => [d.slug, {
+  titulo: d.titulo || d.slug,
+  anio: d.fecha?.ref ?? null,
+}]));
+---
+<Base titulo="Nuestra historia" descripcion="La red de personas, familias, lugares y acontecimientos de Aristóbulo del Valle." suelto={true}>
+  <div class="red-lienzo">
+    <svg id="red" role="application" aria-label="Red de personas, familias, lugares y acontecimientos."></svg>
+
+    <header class="marca">
+      <button class="marca-sello" id="ir-portada" aria-label="Volver a la búsqueda">
+        <svg viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="20" r="13" fill="none" stroke="currentColor" stroke-width="1.1" />
+          <circle cx="20" cy="20" r="4.5" fill="none" stroke="currentColor" stroke-width="1.1" />
+          <path d="M20 2 V38 M2 20 H38" stroke="currentColor" stroke-width="1.1" />
+        </svg>
+      </button>
+      <div>
+        <h1>Nuestra historia</h1>
+        <p>Aristóbulo del Valle, Misiones</p>
+      </div>
+    </header>
+
+    <div class="leyenda">
+      <ul class="ley-tipos">
+        <li><i class="pt persona"></i>Persona</li>
+        <li><i class="pt lugar"></i>Lugar</li>
+        <li><i class="pt evento"></i>Acontecimiento</li>
+      </ul>
+      <ul class="ley-lineas">
+        <li><svg viewBox="0 0 34 8"><path d="M1 4 H33" /></svg>Matrimonio o pareja</li>
+        <li><svg viewBox="0 0 34 8"><path d="M1 4 H33" stroke-dasharray="2.5 2.5" /></svg>Hijos</li>
+        <li><svg viewBox="0 0 34 8"><path d="M1 6 Q17 -3 33 6" fill="none" stroke-width="2.4" /></svg>Memorias compartidas</li>
+        <li><svg viewBox="0 0 34 8"><path d="M1 6 Q17 -3 33 6" fill="none" stroke-dasharray="4 3" /></svg>Parientes en otro linaje</li>
+      </ul>
+      <ul class="ley-planos">
+        <li><i class="pl p1"></i>Su familia</li>
+        <li><i class="pl p2"></i>Parientes del borde</li>
+        <li><i class="pl p3"></i>Linajes conectados</li>
+        <li><i class="pl p4"></i>Halo de familia</li>
+      </ul>
+    </div>
+
+    <aside class="red-ficha" id="ficha" hidden></aside>
+
+    <div class="mini">
+      <svg id="minimapa" viewBox="0 0 200 130" aria-hidden="true"></svg>
+      <div class="mini-ctrl">
+        <button id="acercar" aria-label="Acercar">+</button>
+        <button id="alejar" aria-label="Alejar">−</button>
+        <button id="centrar" aria-label="Centrar en la familia">⌖</button>
+      </div>
+    </div>
+
+    <div class="buscador">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none"/><path d="M11 11 L15 15"/></svg>
+      <input type="search" id="buscar" placeholder="Buscar por nombre, apellido o ambos" autocomplete="off" />
+      <ul id="sugerencias" hidden></ul>
+    </div>
+
+    <!-- Paso previo: nadie entra a la red sin saber a quién está buscando. -->
+    <div class="portada" id="portada">
+      <div class="portada-caja">
+        <svg class="portada-sello" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="20" r="13" fill="none" stroke="currentColor" stroke-width="1.1" />
+          <circle cx="20" cy="20" r="4.5" fill="none" stroke="currentColor" stroke-width="1.1" />
+          <path d="M20 2 V38 M2 20 H38" stroke="currentColor" stroke-width="1.1" />
+        </svg>
+        <h2>Nuestra historia</h2>
+        <p class="portada-sub">Aristóbulo del Valle, Misiones</p>
+        <p class="portada-cifras">
+          <b>{cuenta.personas}</b> personas · <b>{cuenta.familias}</b> familias · <b>{cuenta.memorias}</b> memorias
+        </p>
+
+        <label class="portada-label" for="portada-buscar">Buscar por nombre, apellido o ambos</label>
+        <div class="portada-campo">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none"/><path d="M11 11 L15 15"/></svg>
+          <input type="search" id="portada-buscar" autocomplete="off" placeholder="Silveira, Clementina, Luis Dinarte…" />
+        </div>
+        <ul class="portada-res" id="portada-res"></ul>
+
+        <div class="portada-sug" id="portada-sug">
+          <span>O empezá por una familia</span>
+          <div>
+            {sugeridas.map(s => (
+              <button data-ir={s.id}>{s.apellido}<i>{s.n}</i></button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script define:vars={{ RED: red, MEMOS: memos }}>window.__RED = RED; window.__MEMOS = MEMOS;</script>
+  <script>
+    import { forceSimulation, forceManyBody, forceCollide, forceX, forceY, forceLink, forceRadial } from 'd3-force';
+    import { select } from 'd3-selection';
+    import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
+    import { construirGrilla, GRILLA } from '../../lib/grilla.js';
+
+    const RED = window.__RED;
+    const MEMOS = window.__MEMOS || {};
+    const svgEl = document.getElementById('red');
+    const ficha = document.getElementById('ficha');
+    const NS = 'http://www.w3.org/2000/svg';
+    const crear = (t, a = {}) => { const n = document.createElementNS(NS, t); for (const k in a) n.setAttribute(k, a[k]); return n; };
+    const ANCHO_CAR = 6.9;   /* monoespaciada de 11.5px: sirve para medir sin pintar */
+
+    const todos = RED.nodos.map(n => ({ ...n }));
+    const personas = todos.filter(n => n.tipo === 'persona');
+    const entorno  = todos.filter(n => n.tipo === 'lugar' || n.tipo === 'evento');
+    const familias = todos.filter(n => n.tipo === 'familia');
+    const porId    = Object.fromEntries([...personas, ...entorno].map(n => [n.id, n]));
+    const famPorId = Object.fromEntries(familias.map(f => [f.id, f]));
+    const entornoEn = {};
+    for (const e of RED.enlaces) if (e.tipo === 'entorno') (entornoEn[e.source] ||= []).push(e.target);
+
+    const unionesDe = {}, origenDe = {};
+    for (const f of familias) {
+      for (const c of f.conyuges) if (porId[c]) (unionesDe[c] ||= []).push(f.id);
+      for (const h of f.hijos) if (porId[h]) origenDe[h] = f.id;
+    }
+    const apellidoFamilia = f => {
+      const cuenta = {};
+      for (const x of [...f.conyuges, ...f.hijos]) {
+        const p = porId[x];
+        if (p && p.apellido) cuenta[p.apellido] = (cuenta[p.apellido] || 0) + 1;
+      }
+      return Object.entries(cuenta).sort((a, b) => b[1] - a[1])[0]?.[0] || 'sin apellido';
+    };
+    for (const f of familias) {
+      f.apellido = apellidoFamilia(f);
+      f.miembros = [...f.conyuges, ...f.hijos].filter(x => porId[x]);
+      f.tipo = 'familia';
+      f.nombre = 'Familia ' + f.apellido;
+    }
+    /* parientes directos: un paso de distancia atravesando cualquier familia */
+    const vecinos = {};
+    for (const f of familias)
+      for (const a of f.miembros)
+        for (const b of f.miembros) if (a !== b) (vecinos[a] ||= new Set()).add(b);
+
+    /* ---------- capas, de lejos hacia cerca ---------- */
+    const defs = crear('defs');
+    defs.innerHTML = `
+      <filter id="suave" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur stdDeviation="18" /></filter>
+      <filter id="resplandor" x="-60%" y="-60%" width="220%" height="220%">
+        <feGaussianBlur stdDeviation="9" /></filter>
+      <linearGradient id="halo-grad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#29abe2" />
+        <stop offset="100%" stop-color="#007f68" />
+      </linearGradient>`;
+    const raiz   = crear('g', { id: 'mundo' });
+    const gHalo  = crear('g', { id: 'halos', filter: 'url(#suave)' });
+    const gRot   = crear('g', { id: 'rotulos-familia' });
+    const gCurva = crear('g', { id: 'curvas' });          /* hacia otros linajes y hacia el entorno */
+    const gLejos = crear('g', { id: 'linajes' });         /* pastillas de otras familias */
+    const gSitio = crear('g', { id: 'sitios' });          /* lugares y acontecimientos */
+    const gEstr  = crear('g', { id: 'estructura' });
+    const gBorde = crear('g', { id: 'borde' });           /* parientes justo afuera de la grilla */
+    const gGlow  = crear('g', { id: 'resplandores', filter: 'url(#resplandor)' });
+    const gNodo  = crear('g', { id: 'nodos' });
+    raiz.append(gCurva, gHalo, gRot, gLejos, gSitio, gEstr, gGlow, gBorde, gNodo);
+    svgEl.append(defs, raiz);
+
+    /* ---------- un elemento por cosa, creado una sola vez ---------- */
+    const elFoco = new Map();     /* persona dibujada entera, dentro de la grilla */
+    for (const n of personas) {
+      const g = crear('g', { class: 'nodo', tabindex: '0', role: 'button' });
+      const r = 21;
+      g.appendChild(crear('circle', { class: 'disco', r }));
+      const retrato = crear('g', { class: 'retrato' });
+      retrato.appendChild(crear('circle', { cx: 0, cy: -4.5, r: 5.4 }));
+      retrato.appendChild(crear('path', { d: 'M-9.5 11 a9.5 9.5 0 0 1 19 0 Z' }));
+      g.appendChild(retrato);
+      g.appendChild(crear('circle', { class: 'aro', r }));
+      const t1 = crear('text', { class: 'nom', y: r + 18 }); t1.textContent = n.nombre;
+      const t2 = crear('text', { class: 'fec', y: r + 32 });
+      t2.textContent = (n.nac || n.def) ? `(${n.nac || '?'} - ${n.def || ''})` : '';
+      g.append(t1, t2);
+      gNodo.appendChild(g);
+      elFoco.set(n.id, g);
+    }
+    const elBorde = new Map();    /* la misma persona, un paso más lejos: aro chico y nombre */
+    const elGlow = new Map();     /* el resplandor de la guía: jerarquía, no decoración */
+    for (const n of personas) {
+      const g = crear('g', { class: 'brd', tabindex: '0', role: 'button' });
+      g.appendChild(crear('circle', { class: 'brd-aro', r: 9 }));
+      const t = crear('text', { class: 'brd-nom', y: 24 }); t.textContent = n.nombre;
+      g.appendChild(t);
+      gBorde.appendChild(g);
+      elBorde.set(n.id, g);
+      const b = crear('circle', { class: 'glow oculto', r: 30 });
+      gGlow.appendChild(b);
+      elGlow.set(n.id, b);
+    }
+
+    /* Quienes todavía no se conectaron con nadie no son una nube de puntos:
+       son un dato, y se dicen con palabras. Una sola marca, discontinua. */
+    const nodoSin = { id: 'sin-conectar', tipo: 'linaje', apellido: 'Sin conectar', nombre: 'Sin conectar' };
+    const elSin = crear('g', { class: 'lin sin oculto', tabindex: '0', role: 'button' });
+    (() => {
+      const ancho = 168;
+      elSin.appendChild(crear('rect', { class: 'lin-caja', x: -ancho / 2, y: -15, width: ancho, height: 30, rx: 15, ry: 15 }));
+      const t = crear('text', { class: 'lin-nom', x: -ancho / 2 + 14, y: 4.5 }); t.textContent = 'Sin conectar';
+      const c = crear('text', { class: 'lin-n', x: ancho / 2 - 13, y: 4.5 });
+      elSin.append(t, c);
+      gLejos.appendChild(elSin);
+      elSin.__n = c;
+    })();
+    /* Un linaje es un apellido, no una unión: "Familia Muller" son varias parejas.
+       La pastilla agrupa por apellido y cuenta la gente que todavía no se dibujó,
+       así ninguna persona del pueblo queda sin representación en la pantalla. */
+    const famDe = {};
+    for (const p of personas) famDe[p.id] = (unionesDe[p.id] || [])[0] || origenDe[p.id] || null;
+    const apellidoDe = id => (famDe[id] && famPorId[famDe[id]]?.apellido) || porId[id]?.apellido || null;
+    const apellidos = [...new Set(personas.map(p => apellidoDe(p.id)).filter(Boolean))];
+    /* Regla 2: la conexión entre dos linajes se deriva de las memorias que
+       comparten. Se agrega por PAR DE APELLIDOS, no por par de personas: si el
+       mismo par de familias aparece dos veces en la misma foto, es una conexión,
+       no dos, y el grosor tiene que decir la verdad. */
+    const parClave = (a, b) => [a, b].sort().join('\u0000');
+    const memoriasEntre = new Map();
+    const linajeNodo = new Map(), elLinaje = new Map(), elLinajeN = new Map();
+    for (const ap of apellidos) {
+      linajeNodo.set(ap, { id: 'linaje:' + ap, tipo: 'linaje', apellido: ap, nombre: 'Familia ' + ap });
+      const g = crear('g', { class: 'lin oculto', tabindex: '0', role: 'button' });
+      const ancho = Math.max(80, ap.length * ANCHO_CAR + 50);
+      g.appendChild(crear('rect', { class: 'lin-caja', x: -ancho / 2, y: -15, width: ancho, height: 30, rx: 15, ry: 15 }));
+      const t = crear('text', { class: 'lin-nom', x: -ancho / 2 + 14, y: 4.5 }); t.textContent = ap;
+      const c = crear('text', { class: 'lin-n', x: ancho / 2 - 13, y: 4.5 });
+      g.append(t, c);
+      gLejos.appendChild(g);
+      elLinaje.set(ap, g); elLinajeN.set(ap, c);
+    }
+    for (const e of RED.enlaces) {
+      if (e.tipo !== 'coaparicion') continue;
+      const a = apellidoDe(e.source), b = apellidoDe(e.target);
+      if (!a || !b || a === b) continue;
+      const k = parClave(a, b);
+      if (!memoriasEntre.has(k)) memoriasEntre.set(k, new Set());
+      for (const d of e.docs || []) memoriasEntre.get(k).add(d);
+    }
+    const compartidas = (a, b) => [...(memoriasEntre.get(parClave(a, b)) || [])];
+
+    const elSitio = new Map();    /* lugares y acontecimientos: nunca un punto mudo */
+    for (const n of entorno) {
+      const g = crear('g', { class: 'sit ' + n.tipo, tabindex: '0', role: 'button' });
+      g.appendChild(crear('circle', { class: 'sit-pt', r: 5.5 }));
+      const t = crear('text', { class: 'sit-nom', x: 11, y: 4 }); t.textContent = n.nombre;
+      g.appendChild(t);
+      gSitio.appendChild(g);
+      elSitio.set(n.id, g);
+    }
+    const elEstr = new Map(), elHalo = new Map(), elRot = new Map();
+    for (const f of familias) {
+      const barra = crear('path', { class: 'barra' });
+      const peine = crear('path', { class: 'peine' });
+      gEstr.append(peine, barra);
+      elEstr.set(f.id, { barra, peine });
+      const halo = crear('rect', { class: 'halo', rx: 60, ry: 60, fill: 'url(#halo-grad)' });
+      gHalo.appendChild(halo);
+      elHalo.set(f.id, halo);
+      const rot = crear('text', { class: 'rot-fam', opacity: '0' });
+      gRot.appendChild(rot);
+      elRot.set(f.id, rot);
+    }
+
+    /* ---------- simulación: sólo lo que está fuera de la grilla ---------- */
+    const sim = forceSimulation([])
+      .force('vinculo', forceLink([]).id(d => d.id).distance(d => d.dist || 150).strength(.5))
+      .force('carga', forceManyBody().strength(-300).distanceMax(820))
+      .force('choque', forceCollide().radius(d => d.radio || 30))
+      .force('anillo', forceRadial(600, 0, 0).strength(d => d.cerca ? 0 : .07))
+      .stop();
+
+    let foco = null, G = null;
+    const enGrilla = new Map();
+    let borde = new Set(), linajes = [], curvas = [], activos = [];
+
+    sim.force('banda', alpha => {
+      if (!G) return;
+      const { x0, x1, y0, y1 } = G.caja;
+      for (const n of activos) {
+        if (n.fijo) continue;
+        const m = n.cerca ? 72 : 110;          /* el pariente roza el bloque; el resto se aparta */
+        const f = n.cerca ? 210 : 300;
+        if (n.x > x0 - m && n.x < x1 + m && n.y > y0 - m && n.y < y1 + m) {
+          const arriba = n.cerca && n.anclaY != null
+            ? n.anclaY < (y0 + y1) / 2
+            : n.y - (y0 - m) < (y1 + m) - n.y;
+          n.vy += (arriba ? -1 : 1) * f * alpha;
+        }
+      }
+    });
+
+    /* Cada marca de la pantalla dice algo. La distancia al foco no cambia si una
+       persona se ve o no, sino CUÁNTO de ella se ve:
+         grilla → retrato, nombre, fechas y estructura
+         borde  → aro chico y nombre
+         lejos  → su familia entera, resumida en una pastilla con apellido y tamaño
+       El único plano desenfocado es el de quienes todavía no se conectaron con nadie:
+       ahí el desenfoque es honesto, porque de esa gente el archivo no sabe nada más. */
+    function clasificar(id) {
+      G = construirGrilla(id, personas, familias, { arriba: 2, abajo: 2 });
+      enGrilla.clear();
+      for (const n of G.nodos) enGrilla.set(n.id, n);
+
+      borde = new Set();
+      for (const pid of enGrilla.keys())
+        for (const v of vecinos[pid] || []) if (!enGrilla.has(v)) borde.add(v);
+      const dibujadas = new Set([...enGrilla.keys(), ...borde]);
+
+      /* Todo el que no se dibujó entero entra en la pastilla de su apellido.
+         Sólo quien no tiene ni apellido ni parientes cae al plano desenfocado:
+         de esa gente el archivo realmente no sabe nada más. */
+      const pendientes = new Map(), polvo = [];
+      for (const p of personas) {
+        if (dibujadas.has(p.id)) continue;
+        const ap = apellidoDe(p.id);
+        if (ap && (vecinos[p.id] || new Set()).size) {
+          if (!pendientes.has(ap)) pendientes.set(ap, []);
+          pendientes.get(ap).push(p.id);
+        } else polvo.push(p);
+      }
+
+      /* de qué pariente dibujado cuelga cada linaje: ésa es la curva que se ve */
+      const ancla = new Map();
+      for (const [ap, ids] of pendientes) {
+        for (const m of ids) {
+          const v = [...(vecinos[m] || [])].find(x => dibujadas.has(x));
+          if (v) { ancla.set(ap, v); break; }
+        }
+      }
+      linajes = [...pendientes.keys()];
+
+      activos = [];
+      for (const pid of enGrilla.keys()) {
+        const n = porId[pid], g = enGrilla.get(pid);
+        n.fijo = true; n.cerca = false; n.fx = g.x; n.fy = g.y; n.x = g.x; n.y = g.y; n.radio = 34;
+        activos.push(n);
+      }
+      for (const pid of borde) {
+        const n = porId[pid];
+        n.fijo = false; n.cerca = true; n.fx = null; n.fy = null;
+        n.radio = 26 + n.nombre.length * 2.5;
+        activos.push(n);
+      }
+      for (const ap of linajes) {
+        const n = linajeNodo.get(ap);
+        n.fijo = false; n.cerca = false; n.fx = null; n.fy = null;
+        n.radio = 40 + ap.length * 3.6;
+        n.cuenta = pendientes.get(ap).length;
+        n.gente = pendientes.get(ap);
+        activos.push(n);
+      }
+      for (const n of entorno) {
+        n.fijo = false; n.cerca = false; n.fx = null; n.fy = null; n.radio = 22 + n.nombre.length * 2.6;
+        activos.push(n);
+      }
+      if (polvo.length) {
+        nodoSin.fijo = false; nodoSin.cerca = false; nodoSin.fx = null; nodoSin.fy = null;
+        nodoSin.radio = 110; nodoSin.cuenta = polvo.length;
+        nodoSin.gente = polvo.map(x => x.id);
+        activos.push(nodoSin);
+      }
+
+      const deId = {};
+      for (const n of activos) deId[n.id] = n;
+      const enlaces = [];
+      curvas = [];
+      for (const pid of borde) {
+        const anc = [...(vecinos[pid] || [])].find(v => enGrilla.has(v));
+        if (anc && deId[anc]) {
+          enlaces.push({ source: anc, target: pid, dist: 150 });
+          porId[pid].anclaY = enGrilla.get(anc).y;
+        } else porId[pid].anclaY = null;
+      }
+      const apFoco = apellidoDe(id);
+      for (const ap of linajes) {
+        const memos = apFoco ? compartidas(apFoco, ap) : [];
+        /* Un linaje sin pariente a la vista igual se ancla si comparte una
+           memoria con la familia enfocada: ése es exactamente el tejido que el
+           proyecto quiere mostrar — familias vinculadas por lo que vivieron
+           juntas, no sólo por sangre. */
+        const a = ancla.get(ap) || (memos.length ? id : null);
+        if (!a || !deId[a]) continue;
+        enlaces.push({ source: a, target: 'linaje:' + ap, dist: 330 });
+        curvas.push({
+          a, b: 'linaje:' + ap,
+          clase: memos.length ? 'por-memoria' : 'por-parentesco',
+          grosor: memos.length ? Math.min(4.5, 1 + Math.sqrt(memos.length) * .9) : 1,
+        });
+        linajeNodo.get(ap).memos = memos;
+      }
+      for (const t of entornoEn[id] || []) if (deId[t]) {
+        enlaces.push({ source: id, target: t, dist: 360 });
+        curvas.push({ a: id, b: t, clase: 'hacia-entorno' });
+      }
+      sim.nodes(activos);
+      sim.force('vinculo').links(enlaces);
+      return {
+        polvo: new Set(polvo.map(p => p.id)),
+        sueltosSitio: new Set(entorno.filter(n => !(entornoEn[id] || []).includes(n.id)).map(n => n.id)),
+        deId,
+      };
+    }
+
+    let planos = { polvo: new Set(), sueltosSitio: new Set() };
+
+    /* El foco no salta: la estructura se reacomoda a la vista. Cada cosa que ya
+       estaba en pantalla viaja desde donde estaba; lo que entra nuevo aparece en
+       su lugar y se funde. Sin esto, cada clic obliga a releer la pantalla entera. */
+    const DUR = 760;
+    let t0 = -1e9;
+    const suave = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+
+    function enfocar(id) {
+      if (!porId[id] || porId[id].tipo !== 'persona') return;
+      const antes = new Map();
+      for (const n of activos) if (n.px != null) antes.set(n.id, [n.px, n.py]);
+      foco = id;
+      planos = clasificar(id);
+      const { x0, x1, y0, y1 } = G.caja;
+      const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+      sim.force('anillo').x(cx).y(cy).radius(Math.max(420, (y1 - y0) / 2 + 420));
+      sim.alpha(1); for (let i = 0; i < 260; i++) sim.tick(); sim.stop();
+      for (const n of activos) {
+        const a = antes.get(n.id);
+        const hx = n.fijo ? n.fx : n.x, hy = n.fijo ? n.fy : n.y;
+        n.dx = a ? a[0] : hx; n.dy = a ? a[1] : hy;   /* lo nuevo no viaja: aparece */
+      }
+      t0 = performance.now();
+      pintar(); mostrarFicha(porId[id], 'Información'); encuadrar();
+    }
+
+    function marcar(el, visible, extra = '') {
+      el.setAttribute('class', el.dataset.base + (visible ? '' : ' oculto') + extra);
+    }
+
+    function pintar() {
+      for (const n of personas) {
+        const enG = enGrilla.has(n.id), enB = borde.has(n.id);
+        elFoco.get(n.id).setAttribute('class', 'nodo' + (enG ? '' : ' oculto') + (n.id === foco ? ' foco' : ''));
+        elBorde.get(n.id).setAttribute('class', 'brd' + (enB ? '' : ' oculto') + (n.suelto ? ' suelto' : ''));
+        const b = elGlow.get(n.id);
+        b.setAttribute('class', 'glow' + (enG ? '' : ' oculto') + (n.id === foco ? ' foco' : ' tenue'));
+        b.setAttribute('r', n.id === foco ? 48 : 32);
+      }
+      for (const f of familias) {
+        const dentro = G.uniones.some(u => u.id === f.id);
+        const e = elEstr.get(f.id);
+        e.barra.setAttribute('class', 'barra' + (dentro ? '' : ' oculto'));
+        e.peine.setAttribute('class', 'peine' + (dentro ? '' : ' oculto'));
+        elHalo.get(f.id).setAttribute('class', 'halo' + (dentro ? '' : ' oculto'));
+        const rot = elRot.get(f.id);
+        rot.setAttribute('class', 'rot-fam' + (dentro ? '' : ' oculto'));
+        rot.setAttribute('opacity', '0');
+        rot.textContent = dentro ? 'Familia ' + f.apellido : '';
+      }
+      for (const ap of apellidos) {
+        const act = linajes.includes(ap);
+        elLinaje.get(ap).setAttribute('class', 'lin' + (act ? '' : ' oculto'));
+        if (act) elLinajeN.get(ap).textContent = linajeNodo.get(ap).cuenta;
+      }
+      for (const ap of apellidos) if (!linajes.includes(ap)) linajeNodo.get(ap).memos = [];
+      const haySin = activos.includes(nodoSin);
+      elSin.setAttribute('class', 'lin sin' + (haySin ? '' : ' oculto'));
+      if (haySin) elSin.__n.textContent = nodoSin.cuenta;
+      for (const n of entorno)
+        elSitio.get(n.id).setAttribute('class',
+          'sit ' + n.tipo + (planos.sueltosSitio.has(n.id) ? ' lejano' : ''));
+
+      gCurva.innerHTML = '';
+      for (const c of curvas) c.el = gCurva.appendChild(crear('path', { class: 'curva ' + c.clase }));
+    }
+
+    /* ---------- dibujo ---------- */
+    personas.forEach((n, i) => { n.fase = i * 1.7; });
+    entorno.forEach((n, i) => { n.fase = i * 2.3; });
+
+    function dibujar(t) {
+      const k = suave(Math.min(1, Math.max(0, (t - t0) / DUR)));
+      for (const n of activos) {
+        let hx, hy;
+        if (n.fijo) { hx = n.fx; hy = n.fy; }
+        else {
+          const r = n.tipo === 'linaje' ? 0 : 1.4;
+          hx = n.x + Math.sin(t / 2400 + (n.fase || 0)) * r;
+          hy = n.y + Math.cos(t / 2900 + (n.fase || 0)) * r;
+        }
+        if (k < 1 && n.dx != null) { n.px = n.dx + (hx - n.dx) * k; n.py = n.dy + (hy - n.dy) * k; }
+        else { n.px = hx; n.py = hy; }
+        const mover = e => e && e.setAttribute('transform', `translate(${n.px.toFixed(1)},${n.py.toFixed(1)})`);
+        if (n.tipo === 'persona') {
+          if (enGrilla.has(n.id)) mover(elFoco.get(n.id));
+          else if (borde.has(n.id)) mover(elBorde.get(n.id));
+          const b = elGlow.get(n.id);
+          b.setAttribute('cx', n.px.toFixed(1)); b.setAttribute('cy', n.py.toFixed(1));
+        } else if (n.tipo === 'linaje') mover(n.id === 'sin-conectar' ? elSin : elLinaje.get(n.apellido));
+        else mover(elSitio.get(n.id));
+      }
+
+      const cajas = [];
+      for (const u of (G?.uniones || [])) {
+        const e = elEstr.get(u.id); if (!e) continue;
+        const a = enGrilla.get(u.a), b = u.b ? enGrilla.get(u.b) : null;
+        e.barra.setAttribute('d', a && b
+          ? `M${Math.min(a.x, b.x).toFixed(1)},${a.y.toFixed(1)} H${Math.max(a.x, b.x).toFixed(1)}` : 'M0,0');
+        const hs = u.hijos.map(h => enGrilla.get(h)).filter(Boolean);
+        if (!hs.length || !a) e.peine.setAttribute('d', 'M0,0');
+        else {
+          const yU = a.y, yM = yU + (hs[0].y - yU) * .5, xs = hs.map(h => h.x);
+          let d = `M${u.x.toFixed(1)},${yU.toFixed(1)} V${yM.toFixed(1)} `;
+          if (hs.length > 1) d += `M${Math.min(...xs).toFixed(1)},${yM.toFixed(1)} H${Math.max(...xs).toFixed(1)} `;
+          for (const h of hs) d += `M${h.x.toFixed(1)},${yM.toFixed(1)} V${h.y.toFixed(1)} `;
+          e.peine.setAttribute('d', d);
+        }
+        if (!a) continue;
+        const par = [u.a, u.b].map(x => enGrilla.get(x)).filter(Boolean);
+        const pxi = Math.min(...par.map(m => m.x)) - GRILLA.COL;
+        const pxf = Math.max(...par.map(m => m.x)) + GRILLA.COL;
+        const debajo = u.hijos.map(h => enGrilla.get(h)).filter(m =>
+          m && m.x >= pxi && m.x <= pxf
+          && !(unionesDe[m.id] || []).some(fid => G.uniones.some(v => v.id === fid)));
+        const ms = [...par, ...debajo], pad = 56;
+        const x0 = Math.min(...ms.map(m => m.x)) - pad, x1 = Math.max(...ms.map(m => m.x)) + pad;
+        const y0 = Math.min(...ms.map(m => m.y)) - pad, y1 = Math.max(...ms.map(m => m.y)) + pad;
+        const halo = elHalo.get(u.id);
+        halo.setAttribute('x', x0.toFixed(1)); halo.setAttribute('y', y0.toFixed(1));
+        halo.setAttribute('width', (x1 - x0).toFixed(1)); halo.setAttribute('height', (y1 - y0).toFixed(1));
+        cajas.push({ id: u.id, x0, x1, y0, y1, area: (x1 - x0) * (y1 - y0) });
+      }
+      /* los rótulos se reparten después de conocer todas las cajas: dos uniones
+         vecinas en la misma fila escribían su nombre en el mismo punto */
+      const puestos = [];
+      for (const c of cajas.sort((a, b) => b.area - a.area)) {
+        const rot = elRot.get(c.id);
+        if (!rot.textContent) { rot.setAttribute('opacity', '0'); continue; }
+        const ancho = rot.textContent.length * 7.4 + 10;
+        const rx = c.x1 - 8, ry = c.y0 + 14;
+        const caja = { a: rx - ancho, b: rx, c: ry - 13, d: ry + 5 };
+        if (puestos.some(q => caja.a < q.b && caja.b > q.a && caja.c < q.d && caja.d > q.c)) {
+          rot.setAttribute('opacity', '0'); continue;
+        }
+        puestos.push(caja);
+        rot.setAttribute('opacity', '1');
+        rot.setAttribute('x', rx.toFixed(1)); rot.setAttribute('y', ry.toFixed(1));
+      }
+
+      for (const c of curvas) {
+        const A = planos.deId?.[c.a], B = planos.deId?.[c.b];
+        if (!A || !B || A.px == null || B.px == null) continue;
+        const mx = (A.px + B.px) / 2, my = (A.py + B.py) / 2;
+        const dx = B.px - A.px, dy = B.py - A.py;
+        c.el.setAttribute('d', `M${A.px.toFixed(1)},${A.py.toFixed(1)} Q${(mx - dy * .18).toFixed(1)},${(my + dx * .18).toFixed(1)} ${B.px.toFixed(1)},${B.py.toFixed(1)}`);
+        if (c.grosor) c.el.setAttribute('stroke-width', c.grosor.toFixed(2));
+      }
+      pintarMini();
+    }
+
+    function bucle(t) { dibujar(t); requestAnimationFrame(bucle); }
+
+    /* ---------- minimapa ---------- */
+    const mini = document.getElementById('minimapa');
+    const miniPts = crear('g'), miniVista = crear('rect', { class: 'mini-vista' });
+    mini.append(miniPts, miniVista);
+    function pintarMini() {
+      if (!activos.length) return;
+      const xs = activos.map(n => n.px), ys = activos.map(n => n.py);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+      const k = Math.min(190 / (x1 - x0 || 1), 120 / (y1 - y0 || 1));
+      const mx = v => 5 + (v - x0) * k, my = v => 5 + (v - y0) * k;
+      if (miniPts.childNodes.length !== activos.length) {
+        miniPts.innerHTML = '';
+        for (const n of activos) miniPts.appendChild(crear('circle', { r: 1.8 }));
+      }
+      activos.forEach((n, i) => {
+        const c = miniPts.childNodes[i];
+        c.setAttribute('cx', mx(n.px).toFixed(1)); c.setAttribute('cy', my(n.py).toFixed(1));
+        c.setAttribute('class', 'mp ' + n.tipo + (n.fijo ? ' act' : ''));
+      });
+      if (G) {
+        miniVista.setAttribute('x', mx(G.caja.x0).toFixed(1));
+        miniVista.setAttribute('y', my(G.caja.y0).toFixed(1));
+        miniVista.setAttribute('width', ((G.caja.x1 - G.caja.x0) * k).toFixed(1));
+        miniVista.setAttribute('height', ((G.caja.y1 - G.caja.y0) * k).toFixed(1));
+      }
+    }
+
+    /* ---------- zoom ---------- */
+    const zm = zoom().scaleExtent([.08, 3]).on('zoom', ev => raiz.setAttribute('transform', ev.transform.toString()));
+    const sel = select(svgEl).call(zm);
+    function medir() {
+      const r = svgEl.getBoundingClientRect();
+      svgEl.setAttribute('viewBox', `${-r.width / 2} ${-r.height / 2} ${r.width} ${r.height}`);
+    }
+    medir(); new ResizeObserver(medir).observe(svgEl);
+
+    /* d3-zoom salta; acá el encuadre se desliza junto con los nodos, en el mismo
+       tiempo y con la misma curva, para que se lea como un solo movimiento. */
+    function deslizar(a, b) {
+      const ini = performance.now();
+      const paso = ahora => {
+        const k = suave(Math.min(1, (ahora - ini) / DUR));
+        zm.transform(sel, zoomIdentity
+          .translate(a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k)
+          .scale(a.k + (b.k - a.k) * k));
+        if (k < 1) requestAnimationFrame(paso);
+      };
+      requestAnimationFrame(paso);
+    }
+
+    function encuadrar(todoEl = false, animar = true) {
+      const r = svgEl.getBoundingClientRect();
+      let x0, x1, y0, y1;
+      if (todoEl) {
+        const xs = activos.map(p => p.px ?? p.x), ys = activos.map(p => p.py ?? p.y);
+        x0 = Math.min(...xs); x1 = Math.max(...xs); y0 = Math.min(...ys); y1 = Math.max(...ys);
+      } else ({ x0, x1, y0, y1 } = G.caja);
+      const m = todoEl ? 110 : 230;
+      let k = Math.min(3, Math.max(.08, Math.min(r.width / (x1 - x0 + m * 2), r.height / (y1 - y0 + m * 2))));
+      let cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+      /* una familia muy ancha no se achica hasta volver ilegibles los nombres */
+      if (!todoEl && k < .62) { k = .62; const f = enGrilla.get(foco); if (f) { cx = f.x; cy = f.y; } }
+      /* La ficha ocupa 21rem a la derecha: sin esto la familia queda centrada
+         en la ventana pero descentrada en el espacio que se ve, y las pastillas
+         de linaje terminan debajo del panel, donde no se pueden tocar. */
+      const panel = r.width > 880 ? 360 : 0;
+      const destino = zoomIdentity.scale(k).translate(-cx + panel / 2 / k, -cy);
+      const desde = zoomTransform(svgEl);
+      if (animar && desde.k) deslizar(desde, destino);
+      else zm.transform(sel, destino);
+    }
+
+    /* ---------- qué hace clic en cada plano ---------- */
+    const abrir = id => { cerrarPortada(); enfocar(id); };
+    for (const n of personas) {
+      for (const g of [elFoco.get(n.id), elBorde.get(n.id)]) {
+        g.addEventListener('click', ev => { ev.stopPropagation(); abrir(n.id); });
+        g.addEventListener('keydown', ev => {
+          if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); abrir(n.id); } });
+      }
+    }
+    /* Toda curva tiene que ser explicable: "estas dos familias están conectadas
+       PORQUE compartieron esto". Tocar la pastilla no salta a ciegas — primero
+       dice por qué está dibujada la línea. */
+    const cabezaDe = ap => {
+      const g = linajeNodo.get(ap).gente || [];
+      return g.slice().sort((a, b) =>
+        ((vecinos[b] || new Set()).size) - ((vecinos[a] || new Set()).size))[0];
+    };
+    for (const ap of apellidos) {
+      const ver = ev => { ev.stopPropagation(); mostrarLinaje(ap); };
+      elLinaje.get(ap).addEventListener('click', ver);
+      elLinaje.get(ap).addEventListener('keydown', ev => {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ver(ev); } });
+    }
+    {
+      const ir = ev => { ev.stopPropagation(); const g = nodoSin.gente || []; if (g.length) abrir(g[0]); };
+      elSin.addEventListener('click', ir);
+      elSin.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ir(ev); } });
+    }
+    for (const n of entorno) {
+      const ver = ev => { ev.stopPropagation(); mostrarSitio(n); };
+      elSitio.get(n.id).addEventListener('click', ver);
+      elSitio.get(n.id).addEventListener('keydown', ev => {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ver(ev); } });
+    }
+
+    document.getElementById('acercar').addEventListener('click', () => zm.scaleBy(sel, 1.4));
+    document.getElementById('alejar').addEventListener('click', () => zm.scaleBy(sel, 1 / 1.4));
+    document.getElementById('centrar').addEventListener('click', () => encuadrar(false));
+
+    /* ---------- ficha ---------- */
+    const fila = (k, v) => `<div class="f-fila"><span>${k}</span><div>${v}</div></div>`;
+    const enlace = s => `<a href="#" data-ir="${s}">${porId[s]?.nombre || s}</a>`;
+
+    function mostrarLinaje(ap) {
+      const n = linajeNodo.get(ap);
+      const memos = n.memos || [];
+      const apFoco = apellidoDe(foco);
+      const cabeza = cabezaDe(ap);
+      const lista = memos.slice(0, 8).map(d => {
+        const m = MEMOS[d] || {};
+        return `<a href="/memorias/${d}/">${m.titulo || d}</a>${m.anio ? ' <em>' + m.anio + '</em>' : ''}`;
+      }).join('<br />');
+      ficha.hidden = false;
+      ficha.innerHTML = `
+        <div class="f-cab">
+          <span class="f-ret linaje"></span>
+          <div><strong>Familia ${ap}</strong><em>${n.cuenta} ${n.cuenta === 1 ? 'persona' : 'personas'} fuera de la vista</em></div>
+          <button class="f-cerrar" aria-label="Cerrar">×</button>
+        </div>
+        <div class="f-cuerpo">
+          ${memos.length
+            ? fila(`Comparten con ${apFoco}`,
+                `<b>${memos.length} ${memos.length === 1 ? 'memoria' : 'memorias'}</b><div class="f-memos">${lista}` +
+                (memos.length > 8 ? `<span class="f-mas">y ${memos.length - 8} más</span>` : '') + '</div>')
+            : '<p class="f-vacio">Se conectan por parentesco: alguien de esta familia es pariente de alguien a la vista. Todavía no comparten ninguna memoria.</p>'}
+        </div>
+        ${cabeza ? `<a class="f-ficha" href="#" data-ver="${cabeza}">Ver esta familia →</a>` : ''}`;
+      ficha.querySelector('.f-cerrar').addEventListener('click', () => { ficha.hidden = true; });
+      const ir = ficha.querySelector('[data-ver]');
+      if (ir) ir.addEventListener('click', ev => { ev.preventDefault(); abrir(ir.dataset.ver); });
+    }
+
+    function mostrarSitio(n) {
+      const gente = personas.filter(p => (entornoEn[p.id] || []).includes(n.id));
+      ficha.hidden = false;
+      ficha.innerHTML = `
+        <div class="f-cab">
+          <span class="f-ret ${n.tipo}"></span>
+          <div><strong>${n.nombre}</strong><em>${n.tipo === 'lugar' ? 'Lugar' : 'Acontecimiento'}</em></div>
+          <button class="f-cerrar" aria-label="Cerrar">×</button>
+        </div>
+        <div class="f-cuerpo">
+          ${gente.length
+            ? fila('Quiénes aparecen', gente.slice(0, 12).map(p => enlace(p.id)).join('<br />'))
+            : '<p class="f-vacio">Todavía no hay personas asociadas.</p>'}
+        </div>`;
+      conectarFicha(null);
+    }
+
+    function mostrarFicha(n, pestana) {
+      const us = (unionesDe[n.id] || []).map(i => famPorId[i]);
+      const origen = origenDe[n.id] ? famPorId[origenDe[n.id]] : null;
+      const padres = origen ? origen.conyuges.filter(c => porId[c]) : [];
+      const hermanos = origen ? origen.hijos.filter(h => h !== n.id && porId[h]) : [];
+      const ent = (entornoEn[n.id] || []).map(t => porId[t]).filter(Boolean);
+      let cuerpo = '';
+      if (pestana === 'Familia') {
+        cuerpo = (padres.length ? fila('Padres', padres.map(enlace).join('<br />')) : '')
+          + (hermanos.length ? fila('Hermanos', hermanos.map(enlace).join('<br />')) : '')
+          + us.map(f => {
+              const otro = f.conyuges.filter(c => c !== n.id && porId[c]);
+              const hs = f.hijos.filter(h => porId[h]);
+              return (otro.length ? fila('Cónyuge', otro.map(enlace).join('<br />')) : '')
+                   + (hs.length ? fila('Hijos', hs.map(enlace).join('<br />')) : '');
+            }).join('')
+          || '<p class="f-vacio">Todavía no hay parentescos cargados.</p>';
+      } else if (pestana === 'Entorno') {
+        const ls = ent.filter(x => x.tipo === 'lugar'), es = ent.filter(x => x.tipo === 'evento');
+        cuerpo = ent.length
+          ? fila('Lugares', ls.length ? ls.map(x => x.nombre).join('<br />') : '—')
+            + fila('Acontecimientos', es.length ? es.map(x => x.nombre).join('<br />') : '—')
+          : '<p class="f-vacio">Sus memorias todavía no están ubicadas.</p>';
+      } else {
+        cuerpo = fila('Nombre', n.nombre)
+          + (n.nac ? fila('Nacimiento', n.nac) : '')
+          + (n.def ? fila('Fallecimiento', n.def) : '')
+          + (n.apellido ? fila('Familia', n.apellido) : '')
+          + fila('Memorias', n.docs || 'ninguna todavía')
+          + (n.suelto ? '<p class="f-vacio anom">Todavía no está conectada con nadie.</p>' : '');
+      }
+      ficha.hidden = false;
+      ficha.innerHTML = `
+        <div class="f-cab">
+          <span class="f-ret persona"></span>
+          <div><strong>${n.nombre}</strong><em>(${n.nac || '?'} - ${n.def || ''})</em></div>
+          <button class="f-cerrar" aria-label="Cerrar">×</button>
+        </div>
+        <nav class="f-tabs">${['Información', 'Familia', 'Entorno']
+          .map(t => `<button data-tab="${t}"${t === pestana ? ' class="act"' : ''}>${t}</button>`).join('')}</nav>
+        <div class="f-cuerpo">${cuerpo}</div>
+        <a class="f-ficha" href="/personas/${n.id}/">Ver su ficha completa</a>`;
+      conectarFicha(n);
+    }
+
+    function conectarFicha(n) {
+      ficha.querySelectorAll('[data-ir]').forEach(a =>
+        a.addEventListener('click', ev => { ev.preventDefault(); abrir(a.dataset.ir); }));
+      ficha.querySelectorAll('[data-tab]').forEach(b =>
+        b.addEventListener('click', () => mostrarFicha(n, b.dataset.tab)));
+      ficha.querySelector('.f-cerrar').addEventListener('click', () => { ficha.hidden = true; });
+    }
+
+    /* ---------- buscar: por nombre, por apellido o por los dos ---------- */
+    function buscarTodo(q) {
+      const t = q.trim().toLowerCase();
+      if (!t) return [];
+      const partes = t.split(/\s+/);
+      const calza = txt => { const b = txt.toLowerCase(); return partes.every(p => b.includes(p)); };
+      const gente = personas.filter(p => calza(p.nombre))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre)).slice(0, 8)
+        .map(p => ({ tipo: 'persona', id: p.id, titulo: p.nombre,
+                     pie: `${p.nac || '?'} – ${p.def || ''}${p.apellido ? ' · familia ' + p.apellido : ''}` }));
+      /* Un apellido es varias uniones. Como resultado de búsqueda, cuatro filas
+         iguales que dicen "Familia Muller" no informan nada: se agrupan por
+         apellido y se cuenta gente distinta, no uniones. */
+      const porApellido = new Map();
+      for (const f of familias) {
+        if (!calza(f.apellido)) continue;
+        if (!porApellido.has(f.apellido)) porApellido.set(f.apellido, new Set());
+        const g = porApellido.get(f.apellido);
+        for (const m of f.miembros) g.add(m);
+      }
+      const casas = [...porApellido.entries()]
+        .sort((a, b) => b[1].size - a[1].size).slice(0, 4)
+        .map(([apellido, gs]) => ({
+          tipo: 'familia',
+          id: [...gs].sort((a, b) => ((vecinos[b] || new Set()).size) - ((vecinos[a] || new Set()).size))[0],
+          titulo: 'Familia ' + apellido,
+          pie: gs.size + (gs.size === 1 ? ' persona' : ' personas'),
+        }));
+      const sitios = entorno.filter(n => calza(n.nombre)).slice(0, 4)
+        .map(n => ({ tipo: n.tipo, id: n.id, titulo: n.nombre,
+                     pie: n.tipo === 'lugar' ? 'Lugar' : 'Acontecimiento' }));
+      return [...casas, ...gente, ...sitios];
+    }
+
+    const buscar = document.getElementById('buscar');
+    const sug = document.getElementById('sugerencias');
+    buscar.addEventListener('input', () => {
+      const res = buscarTodo(buscar.value);
+      sug.innerHTML = '';
+      if (!res.length) { sug.hidden = true; return; }
+      for (const r of res) {
+        const li = document.createElement('li'), b = document.createElement('button');
+        b.innerHTML = `<i class="pt ${r.tipo}"></i><span>${r.titulo}<em>${r.pie}</em></span>`;
+        b.addEventListener('click', () => {
+          if (r.tipo === 'lugar' || r.tipo === 'evento') mostrarSitio(porId[r.id]);
+          else abrir(r.id);
+          buscar.value = ''; sug.hidden = true;
+        });
+        li.appendChild(b); sug.appendChild(li);
+      }
+      sug.hidden = false;
+    });
+
+    /* ---------- la portada: nadie entra sin saber a quién busca ---------- */
+    const portada = document.getElementById('portada');
+    const pBuscar = document.getElementById('portada-buscar');
+    const pRes = document.getElementById('portada-res');
+    const pSug = document.getElementById('portada-sug');
+    let abierta = true;
+
+    function cerrarPortada() {
+      if (!abierta) return;
+      abierta = false;
+      portada.classList.add('yendose');
+      setTimeout(() => { portada.hidden = true; portada.classList.remove('yendose'); }, 420);
+    }
+    function abrirPortada() {
+      abierta = true;
+      portada.hidden = false;
+      pBuscar.value = ''; pRes.innerHTML = ''; pSug.hidden = false;
+      requestAnimationFrame(() => pBuscar.focus());
+    }
+    document.getElementById('ir-portada').addEventListener('click', abrirPortada);
+
+    pBuscar.addEventListener('input', () => {
+      const res = buscarTodo(pBuscar.value);
+      pRes.innerHTML = '';
+      pSug.hidden = !!pBuscar.value.trim();
+      for (const r of res) {
+        const li = document.createElement('li'), b = document.createElement('button');
+        b.innerHTML = `<i class="pt ${r.tipo}"></i><span>${r.titulo}<em>${r.pie}</em></span>`;
+        b.addEventListener('click', () => {
+          if (r.tipo === 'lugar' || r.tipo === 'evento') { cerrarPortada(); mostrarSitio(porId[r.id]); }
+          else abrir(r.id);
+        });
+        li.appendChild(b); pRes.appendChild(li);
+      }
+      if (pBuscar.value.trim() && !res.length)
+        pRes.innerHTML = '<li class="nada">No encontramos a nadie con ese nombre. Puede que su familia todavía no haya mandado sus memorias.</li>';
+    });
+    pBuscar.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') { const b = pRes.querySelector('button'); if (b) b.click(); }
+    });
+    for (const b of pSug.querySelectorAll('[data-ir]'))
+      b.addEventListener('click', () => abrir(b.dataset.ir));
+    document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && abierta) cerrarPortada(); });
+
+    /* Arranca enfocado en la persona más conectada, pero con la portada encima:
+       lo que se ve detrás del vidrio es una muestra de lo que hay, no el destino. */
+    const inicial = new URLSearchParams(location.search).get('foco');
+    const masConectada = personas.slice().sort((a, b) =>
+      ((vecinos[b.id] || new Set()).size) - ((vecinos[a.id] || new Set()).size))[0];
+    enfocar(inicial && porId[inicial] ? inicial : masConectada.id);
+    if (inicial && porId[inicial]) cerrarPortada();
+    else { ficha.hidden = true; requestAnimationFrame(() => pBuscar.focus()); }
+    requestAnimationFrame(bucle);
+  </script>
+  <style is:global>
+    /* ================================================================
+       NUESTRA HISTORIA · el lienzo
+       Lenguaje tomado de la guía: círculos con resplandor, líneas finas
+       de grosor y opacidad variables, discontinuas para lo incierto,
+       transparencias en capas y mucho espacio negativo.
+       El resplandor es jerarquía: marca dónde estás mirando. No se
+       reparte por decoración.
+       ================================================================ */
+
+    .red-lienzo { position: absolute; inset: 0; overflow: hidden; }
+    #red { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+    #red:active { cursor: grabbing; }
+
+    /* vidrio: una sola definición para todos los paneles */
+    .leyenda, .red-ficha, .buscador, .buscador ul, .mini svg, .mini-ctrl button {
+      background: rgba(255, 255, 255, .72);
+      -webkit-backdrop-filter: blur(20px) saturate(1.15);
+      backdrop-filter: blur(20px) saturate(1.15);
+      border: 1px solid var(--linea);
+      box-shadow: 0 12px 34px -20px rgba(24, 30, 27, .34);
+    }
+
+    /* Nada se saca del DOM al cambiar el foco: se funde, para que la
+       transición sea un solo movimiento y no un parpadeo. */
+    .oculto { opacity: 0 !important; pointer-events: none; }
+    #nodos g, #borde g, #linajes g, #sitios g, #resplandores circle,
+    .halo, .rot-fam, .barra, .peine { transition: opacity .42s ease; }
+
+    /* --- PLANO 1 · la familia enfocada ------------------------------ */
+    .halo { opacity: .2; }
+    .rot-fam { font: 500 11px var(--texto); letter-spacing: .18em; text-transform: uppercase;
+               fill: var(--tinta-2); text-anchor: end; }
+    .barra { fill: none; stroke: var(--vinculo); stroke-width: 2; }
+    .peine { fill: none; stroke: var(--vinculo); stroke-width: 1.1; stroke-dasharray: 3 4; opacity: .7; }
+
+    .glow { fill: var(--tipo-persona); opacity: .3; }
+    .glow.tenue { opacity: .16; }
+    .glow.foco  { fill: var(--cursor); opacity: .34; }
+
+    .nodo { cursor: pointer; }
+    .nodo .disco   { fill: var(--placa); }
+    .nodo .retrato { fill: var(--tipo-persona); opacity: .42; }
+    .nodo .aro     { fill: var(--tipo-persona); fill-opacity: .1;
+                     stroke: var(--tipo-persona); stroke-width: 1.4; }
+    .nodo .nom { font: 500 12.5px var(--texto); fill: var(--tinta); text-anchor: middle; }
+    .nodo .fec { font: 400 10.5px var(--texto); fill: var(--tinta-2); text-anchor: middle; }
+    .nodo:hover .aro { stroke-width: 2.2; }
+    .nodo:focus-visible { outline: none; }
+    .nodo:focus-visible .aro { stroke: var(--cursor); stroke-width: 2.4; }
+    .nodo.foco .aro     { stroke: var(--cursor); stroke-width: 2.6; fill-opacity: .14; fill: var(--cursor); }
+    .nodo.foco .retrato { fill: var(--cursor); opacity: .5; }
+    .nodo.foco .nom     { font-size: 13.5px; }
+
+    /* --- PLANO 2 · parientes del borde ------------------------------ */
+    #borde { opacity: .95; }
+    .brd { cursor: pointer; }
+    .brd .brd-aro { fill: var(--placa); stroke: var(--tipo-persona); stroke-width: 1.2; }
+    .brd .brd-nom { font: 400 11px var(--texto); fill: var(--tinta-2); text-anchor: middle; }
+    .brd:hover .brd-aro, .brd:focus-visible .brd-aro { stroke: var(--cursor); stroke-width: 2; }
+    .brd:hover .brd-nom { fill: var(--tinta); }
+    .brd:focus-visible { outline: none; }
+    /* lo incompleto se dice con línea discontinua, no con color */
+    .brd.suelto .brd-aro { stroke: var(--tinta-2); stroke-dasharray: 3 3; }
+
+    /* --- PLANO 3 · otros linajes ------------------------------------ */
+    .lin { cursor: pointer; }
+    .lin .lin-caja { fill: rgba(41, 171, 226, .1); stroke: var(--halo-familia);
+                     stroke-width: 1; stroke-opacity: .45; }
+    .lin .lin-nom { font: 500 11.5px var(--texto); fill: var(--tinta); }
+    .lin .lin-n   { font: 400 10px var(--texto); fill: var(--tinta-2); text-anchor: end; }
+    .lin:hover .lin-caja, .lin:focus-visible .lin-caja {
+      fill: rgba(191, 67, 64, .08); stroke: var(--cursor); stroke-opacity: 1; }
+    .lin:focus-visible { outline: none; }
+    /* los que todavía no se conectaron con nadie: una marca, no una nube */
+    .lin.sin .lin-caja { fill: none; stroke: var(--tinta-2); stroke-opacity: .55;
+                         stroke-dasharray: 4 4; }
+    .lin.sin .lin-nom { fill: var(--tinta-2); }
+
+    /* --- lugares y acontecimientos ----------------------------------
+       El punto lleva el color; el nombre va en tinta. El color dice qué
+       es; el texto tiene que leerse. */
+    .sit { cursor: pointer; }
+    .sit .sit-pt { fill: var(--tipo-lugar); }
+    .sit.evento .sit-pt { fill: var(--tipo-evento); }
+    .sit .sit-nom { font: 400 10.5px var(--texto); fill: var(--tinta-2); }
+    .sit.lejano { opacity: .5; }
+    .sit:hover, .sit:focus-visible { opacity: 1; }
+    .sit:focus-visible { outline: none; }
+    .sit:hover .sit-nom { fill: var(--cursor); }
+
+    /* --- curvas: finas, de peso y opacidad distintos ----------------- */
+    .curva { fill: none; }
+    /* El grosor dice cuántas memorias comparten. Una conexión sin memorias es
+       parentesco puro: línea fina y discontinua, porque es de otra naturaleza. */
+    .curva.por-memoria     { stroke: var(--halo-familia); opacity: .55; }
+    .curva.por-parentesco  { stroke: var(--tinta-2); stroke-width: 1; opacity: .3;
+                             stroke-dasharray: 5 4; }
+    .curva.hacia-entorno { stroke: var(--tinta-2); stroke-width: .9; opacity: .34;
+                           stroke-dasharray: 1 4; }
+
+    /* --- marca ------------------------------------------------------ */
+    .marca { position: absolute; left: 1.9rem; top: 1.6rem; display: flex; gap: .85rem;
+             align-items: center; }
+    .marca-sello { width: 34px; height: 34px; flex: none; padding: 0; border: 0; cursor: pointer;
+                   background: none; color: var(--linea-viva); }
+    .marca-sello svg { width: 100%; height: 100%; display: block; }
+    .marca-sello:hover { color: var(--cursor); }
+    .marca h1 { font-size: 1rem; font-weight: 500; letter-spacing: .24em; text-transform: uppercase;
+                margin: 0 0 .2rem; line-height: 1; }
+    .marca p { margin: 0; font-size: .68rem; letter-spacing: .13em; text-transform: uppercase;
+               color: var(--tinta-2); line-height: 1; }
+
+    /* --- leyenda ---------------------------------------------------- */
+    .leyenda { position: absolute; left: 1.9rem; bottom: 1.6rem; padding: .9rem 1.1rem;
+               display: flex; gap: 1.7rem; border-radius: 4px; }
+    .leyenda ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .42rem; }
+    .leyenda li { display: flex; align-items: center; gap: .6rem; font-size: .7rem;
+                  color: var(--tinta-2); white-space: nowrap; }
+    i.pt { width: 9px; height: 9px; border-radius: 50%; display: block; flex: none; }
+    i.pt.persona { background: var(--tipo-persona); }
+    i.pt.lugar   { background: var(--tipo-lugar); }
+    i.pt.evento  { background: var(--tipo-evento); }
+    i.pt.familia { background: var(--halo-familia); }
+    .ley-lineas svg { width: 34px; height: 8px; flex: none; overflow: visible; }
+    .ley-lineas svg path { fill: none; stroke: var(--vinculo); stroke-width: 1.5; }
+    i.pl { width: 22px; height: 10px; display: block; flex: none; border-radius: 5px;
+           background: var(--tipo-persona); }
+    i.pl.p1 { opacity: 1; }
+    i.pl.p2 { opacity: .5; }
+    i.pl.p3 { background: var(--halo-familia); opacity: .45; }
+    i.pl.p4 { background: linear-gradient(135deg, var(--halo-a), var(--halo-b)); opacity: .35; }
+
+    /* --- minimapa --------------------------------------------------- */
+    .mini { position: absolute; right: 1.9rem; bottom: 1.6rem; display: flex; gap: .5rem;
+            align-items: flex-end; }
+    .mini svg { display: block; width: 200px; height: 130px; border-radius: 4px; }
+    .mp { fill: var(--linea-viva); }
+    .mp.linaje { fill: var(--halo-familia); opacity: .8; }
+    .mp.lugar  { fill: var(--tipo-lugar); opacity: .75; }
+    .mp.evento { fill: var(--tipo-evento); opacity: .75; }
+    .mp.act { fill: var(--cursor); }
+    .mini-vista { fill: rgba(191, 67, 64, .07); stroke: var(--cursor); stroke-width: 1; }
+    .mini-ctrl { display: grid; gap: .35rem; }
+    .mini-ctrl button { width: 30px; height: 30px; font-family: var(--texto); font-size: .95rem;
+                        color: var(--tinta-2); cursor: pointer; line-height: 1; padding: 0;
+                        border-radius: 4px; }
+    .mini-ctrl button:hover { color: var(--cursor); border-color: var(--cursor); }
+
+    /* --- buscador --------------------------------------------------- */
+    .buscador { position: absolute; right: 1.9rem; top: 1.6rem; width: 21rem; border-radius: 4px;
+                display: flex; align-items: center; gap: .6rem; padding: .55rem .85rem; }
+    .buscador > svg { width: 13px; height: 13px; flex: none; stroke: var(--tinta-2);
+                      stroke-width: 1.5; fill: none; }
+    .buscador input { flex: 1; min-width: 0; border: 0; background: none; font-family: var(--texto);
+                      font-size: .82rem; color: var(--tinta); padding: .15rem 0; }
+    .buscador input::placeholder { color: var(--tinta-2); }
+    .buscador input:focus { outline: none; }
+    .buscador ul { position: absolute; left: 0; right: 0; top: calc(100% + .4rem); margin: 0;
+                   padding: .3rem; list-style: none; max-height: 18rem; overflow-y: auto;
+                   border-radius: 4px; }
+    .buscador li button, .portada-res button {
+      display: flex; align-items: center; gap: .65rem; width: 100%; text-align: left;
+      border: 0; background: none; cursor: pointer; font-family: var(--texto);
+      font-size: .82rem; color: var(--tinta); padding: .42rem .6rem; border-radius: 3px; }
+    .buscador li button:hover, .portada-res button:hover { background: var(--panel-2); }
+    .buscador li span, .portada-res span { display: block; min-width: 0; }
+    .buscador li em, .portada-res em { display: block; font-style: normal; font-size: .7rem;
+                                       color: var(--tinta-2); }
+
+    /* --- ficha ------------------------------------------------------ */
+    .red-ficha { position: absolute; right: 1.9rem; top: 5.1rem; width: 21rem; border-radius: 4px;
+                 max-height: calc(100% - 12rem); overflow-y: auto; }
+    .f-cab { display: flex; gap: .75rem; align-items: flex-start; padding: .95rem 1.05rem;
+             border-bottom: 1px solid var(--linea); }
+    .f-ret { width: 30px; height: 30px; border-radius: 50%; flex: none;
+             background: rgba(15, 143, 103, .12); border: 1px solid var(--tipo-persona); }
+    .f-ret.lugar  { background: rgba(41, 171, 226, .12); border-color: var(--tipo-lugar); }
+    .f-ret.evento { background: rgba(188, 143, 64, .14); border-color: var(--tipo-evento); }
+    .f-ret.linaje { background: rgba(41, 171, 226, .12); border-color: var(--halo-familia); }
+    .f-memos { margin-top: .4rem; line-height: 1.8; }
+    .f-memos em { font-style: normal; color: var(--tinta-2); font-size: .72rem; }
+    .f-mas { display: block; color: var(--tinta-2); font-size: .72rem; margin-top: .3rem; }
+    .f-cab strong { display: block; font-weight: 500; font-size: .95rem; line-height: 1.25; }
+    .f-cab em { font-style: normal; font-size: .72rem; color: var(--tinta-2); }
+    .f-cerrar { margin-left: auto; border: 0; background: none; cursor: pointer; font-size: 1.15rem;
+                line-height: 1; color: var(--tinta-2); padding: 0 .1rem; }
+    .f-cerrar:hover { color: var(--cursor); }
+    .f-tabs { display: flex; border-bottom: 1px solid var(--linea); }
+    .f-tabs button { flex: 1; border: 0; background: none; cursor: pointer; font-family: var(--texto);
+                     font-size: .66rem; letter-spacing: .09em; text-transform: uppercase;
+                     color: var(--tinta-2); padding: .6rem .2rem; border-bottom: 2px solid transparent; }
+    .f-tabs button:hover { color: var(--tinta); }
+    .f-tabs button.act { color: var(--tinta); border-bottom-color: var(--cursor); }
+    .f-cuerpo { padding: .4rem 1.05rem .85rem; }
+    .f-fila { display: grid; grid-template-columns: 6.5rem 1fr; gap: .5rem; padding: .55rem 0;
+              border-bottom: 1px solid var(--linea); font-size: .8rem; }
+    .f-fila:last-child { border-bottom: 0; }
+    .f-fila span { font-size: .64rem; letter-spacing: .09em; text-transform: uppercase;
+                   color: var(--tinta-2); padding-top: .15rem; }
+    .f-fila a { border-bottom-color: transparent; }
+    .f-fila a:hover { border-bottom-color: var(--cursor); }
+    .f-vacio { font-size: .78rem; color: var(--tinta-2); margin: .6rem 0; }
+    .f-vacio.anom { color: var(--cursor); }
+    .f-ficha { display: block; padding: .65rem 1.05rem; border: 0; border-top: 1px solid var(--linea);
+               font-size: .66rem; letter-spacing: .09em; text-transform: uppercase; color: var(--tinta-2); }
+    .f-ficha:hover { color: var(--cursor); }
+
+    /* --- PORTADA · el paso previo ----------------------------------- */
+    .portada { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center;
+               padding: 1.5rem; background: rgba(237, 249, 244, .58);
+               -webkit-backdrop-filter: blur(28px) saturate(1.08);
+               backdrop-filter: blur(28px) saturate(1.08);
+               animation: entra .5s ease both; }
+    .portada.yendose { animation: sale .42s ease both; }
+    @keyframes entra { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes sale  { to { opacity: 0; -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); } }
+
+    .portada-caja { width: min(34rem, 100%); max-height: 100%; overflow-y: auto; text-align: center;
+                    background: rgba(255, 255, 255, .88); border: 1px solid var(--linea);
+                    border-radius: 6px;
+                    box-shadow: 0 34px 80px -46px rgba(24, 30, 27, .55);
+                    padding: 2.6rem 2.1rem 1.7rem; }
+    .portada-sello { width: 38px; height: 38px; color: var(--linea-viva); }
+    .portada-caja h2 { font-weight: 500; font-size: 1.5rem; letter-spacing: .26em;
+                       text-transform: uppercase; margin: .7rem 0 .35rem; color: var(--tinta); }
+    .portada-sub { margin: 0; font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+                   color: var(--tinta-2); }
+    .portada-cifras { margin: 1rem 0 2rem; font-size: .78rem; color: var(--tinta-2); }
+    .portada-cifras b { font-weight: 500; color: var(--tinta); }
+
+    .portada-label { display: block; text-align: left; font-size: .66rem; letter-spacing: .1em;
+                     text-transform: uppercase; color: var(--tinta-2); margin-bottom: .5rem; }
+    .portada-campo { display: flex; align-items: center; gap: .65rem; padding: .75rem .95rem;
+                     background: var(--placa); border: 1px solid var(--linea-viva); border-radius: 4px; }
+    .portada-campo:focus-within { border-color: var(--cursor); box-shadow: 0 0 0 3px rgba(191, 67, 64, .12); }
+    .portada-campo svg { width: 15px; height: 15px; flex: none; stroke: var(--tinta-2);
+                         stroke-width: 1.5; fill: none; }
+    .portada-campo input { flex: 1; min-width: 0; border: 0; background: none; outline: none;
+                           font-family: var(--texto); font-size: .95rem; color: var(--tinta); }
+    .portada-campo input::placeholder { color: var(--linea-viva); }
+
+    .portada-res { list-style: none; margin: .55rem 0 0; padding: 0; text-align: left;
+                   max-height: 15rem; overflow-y: auto; }
+    .portada-res li.nada { font-size: .78rem; color: var(--tinta-2); padding: .85rem .6rem; line-height: 1.5; }
+
+    .portada-sug { margin-top: 1.7rem; padding-top: 1.3rem; border-top: 1px solid var(--linea); }
+    .portada-sug > span { display: block; font-size: .66rem; letter-spacing: .1em;
+                          text-transform: uppercase; color: var(--tinta-2); margin-bottom: .8rem; }
+    .portada-sug div { display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center; }
+    .portada-sug button { display: flex; align-items: center; gap: .5rem; cursor: pointer;
+                          font-family: var(--texto); font-size: .8rem; color: var(--tinta);
+                          background: rgba(41, 171, 226, .09); border: 1px solid var(--linea);
+                          border-radius: 15px; padding: .32rem .8rem; }
+    .portada-sug button i { font-style: normal; font-size: .68rem; color: var(--tinta-2); }
+    .portada-sug button:hover { border-color: var(--cursor); color: var(--cursor);
+                                background: rgba(191, 67, 64, .07); }
+
+    @media (max-width: 880px) {
+      .mini, .leyenda { display: none; }
+      .buscador { left: 1rem; right: 1rem; top: auto; bottom: 1rem; width: auto; }
+      .buscador ul { top: auto; bottom: calc(100% + .4rem); }
+      .red-ficha { left: 1rem; right: 1rem; top: auto; bottom: 4.6rem; width: auto; max-height: 48%; }
+      .marca { left: 1rem; }
+      .marca h1 { font-size: .88rem; letter-spacing: .16em; }
+      .portada-caja { padding: 1.9rem 1.3rem 1.25rem; }
+      .portada-caja h2 { font-size: 1.15rem; letter-spacing: .18em; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .portada, .portada.yendose { animation: none; }
+      #nodos g, #borde g, #linajes g, #sitios g, #resplandores circle,
+      .halo, .rot-fam, .barra, .peine { transition: none; }
+    }
+  </style>
+</Base>

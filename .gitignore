@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.astro/
+src/data/snapshot.json
+.DS_Store
+
+# secretos locales
+.env
+
+# originales sin procesar: pesan y es material sin publicar
+intake/fotos/
+
+# tarballs de verificacion
+*.tgz

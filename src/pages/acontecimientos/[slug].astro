@@ -1,0 +1,31 @@
+---
+import Base from '../../layouts/Base.astro';
+import { L, D, fecha } from '../../lib/datos.js';
+export async function getStaticPaths() {
+  const { acontecimientos } = await import('../../lib/datos.js');
+  return acontecimientos.map(a => ({ params: { slug: a.slug }, props: { a } }));
+}
+const { a } = Astro.props;
+---
+<Base titulo={a.titulo} descripcion={a.descripcion?.slice(0, 160)}>
+  <p class="sobretitulo">Acontecimiento{a.tipo ? ` · ${a.tipo}` : ''}</p>
+  <h1>{a.titulo}</h1>
+  <p class="etiqueta">{fecha(a.fecha)}</p>
+  {a.descripcion && <p class="bajada">{a.descripcion}</p>}
+
+  {a.lugares.length > 0 && (<>
+    <h2>Lugares</h2>
+    <ul class="listado">
+      {a.lugares.map(s => L[s] && <li><a href={`/lugares/${s}/`}>{L[s].nombre}</a></li>)}
+    </ul>
+  </>)}
+
+  {a.documentos.length > 0 && (<>
+    <h2>Memorias</h2>
+    <ul class="listado">
+      {a.documentos.map(s => D[s] && (
+        <li><a href={`/memorias/${s}/`}>{D[s].titulo}</a><span class="anio">{fecha(D[s].fecha)}</span></li>
+      ))}
+    </ul>
+  </>)}
+</Base>

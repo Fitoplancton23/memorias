@@ -1,0 +1,44 @@
+---
+import Base from '../../layouts/Base.astro';
+import { D, A, fecha } from '../../lib/datos.js';
+export async function getStaticPaths() {
+  const { lugares } = await import('../../lib/datos.js');
+  return lugares.map(l => ({ params: { slug: l.slug }, props: { l } }));
+}
+const { l } = Astro.props;
+const porAnio = {};
+for (const s of l.documentos) {
+  const d = D[s]; if (!d) continue;
+  (porAnio[d.fecha.ref ?? 'Sin fecha'] ||= []).push(d);
+}
+const claves = Object.keys(porAnio).sort();
+---
+<Base titulo={l.nombre} descripcion={`${l.nombre} en la historia de Aristóbulo del Valle.`}>
+  <p class="sobretitulo">Lugar{l.tipo ? ` · ${l.tipo}` : ''}</p>
+  <h1>{l.nombre}</h1>
+  {l.alias.length > 0 && <p class="bajada">También llamado: {l.alias.join(', ')}.</p>}
+  {(l.desde || l.hasta) && <p class="etiqueta">{l.desde || '?'} – {l.hasta || 'actualidad'}</p>}
+  {l.notas && <p>{l.notas}</p>}
+
+  {l.acontecimientos.length > 0 && (<>
+    <h2>Acontecimientos</h2>
+    <ul class="listado">
+      {l.acontecimientos.map(s => A[s] && (
+        <li><a href={`/acontecimientos/${s}/`}>{A[s].titulo}</a><span class="anio">{fecha(A[s].fecha)}</span></li>
+      ))}
+    </ul>
+  </>)}
+
+  <h2>Material por año</h2>
+  {claves.length === 0 && <p class="imprecisa">Todavía no hay material cargado de este lugar.</p>}
+  {claves.map(k => (
+    <div>
+      <h3 style="font-weight:400;font-size:1rem;margin:1.5rem 0 .25rem">{k}</h3>
+      <ul class="listado">
+        {porAnio[k].map(d => (
+          <li><a href={`/memorias/${d.slug}/`}>{d.titulo}</a><span class="anio">{d.tipo}</span></li>
+        ))}
+      </ul>
+    </div>
+  ))}
+</Base>

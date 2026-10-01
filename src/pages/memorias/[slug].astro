@@ -1,0 +1,127 @@
+---
+import Base from '../../layouts/Base.astro';
+import { P, L, A, D, nombre, fecha, documentos } from '../../lib/datos.js';
+export async function getStaticPaths() {
+  const { documentos } = await import('../../lib/datos.js');
+  return documentos.map(d => ({ params: { slug: d.slug }, props: { d } }));
+}
+const { d } = Astro.props;
+const imprecisa = ['circa', 'decada', 'desconocida'].includes(d.fecha.precision);
+
+const fotos = (d.archivos || []).length ? d.archivos : (d.archivo ? [d.archivo] : []);
+const sitios = (d.lugares || []).map(s => L[s]).filter(Boolean);
+const ubicado = sitios.find(l => l.lat != null);
+const gente = (d.personas || []).map(s => P[s]).filter(Boolean);
+
+/* El círculo de navegación: desde una memoria se sale hacia el lugar y hacia
+   la gente, y las dos salidas tienen que llevar a MÁS memorias. Sin esto la
+   ficha es un callejón sin salida. */
+const mismoLugar = documentos.filter(o => o.slug !== d.slug
+  && (o.lugares || []).some(s => (d.lugares || []).includes(s)))
+  .sort((a, b) => (a.fecha?.ref ?? 9999) - (b.fecha?.ref ?? 9999));
+const mismaGente = documentos.filter(o => o.slug !== d.slug
+  && !mismoLugar.includes(o)
+  && (o.personas || []).some(s => (d.personas || []).includes(s)));
+
+const comoSeLee = f => {
+  if (!f?.ref) return 'sin fecha';
+  if (f.precision === 'decada') return `década de ${Math.floor(f.ref / 10) * 10}`;
+  if (f.precision === 'circa') return `aprox. ${f.ref}`;
+  return String(f.ref);
+};
+---
+<Base titulo={d.titulo} descripcion={d.descripcion?.slice(0, 160)}>
+  <p class="sobretitulo">Memoria · <span class={imprecisa ? 'imprecisa' : ''}>{fecha(d.fecha)}</span></p>
+  <h1>{d.titulo}</h1>
+
+  {/* La placa: la única superficie cálida del sitio. El instrumento es frío
+      para que la memoria sea lo único con color natural en la página. */}
+  {(fotos.length > 0 || d.transcripcion) && (
+    <div class="placa">
+      {fotos.map((f, i) => (
+        <img src={f} alt={fotos.length > 1 ? `${d.titulo} (${i + 1} de ${fotos.length})` : d.titulo}
+             loading={i === 0 ? 'eager' : 'lazy'} />
+      ))}
+      {fotos.length > 1 && <p class="placa-pie">{fotos.length} fotografías de esta memoria.</p>}
+      {d.transcripcion && <p style="white-space:pre-wrap">{d.transcripcion}</p>}
+    </div>
+  )}
+  {d.descripcion && <p class="bajada">{d.descripcion}</p>}
+
+  <div class="rejilla" style="margin-top:2.5rem">
+    {gente.length > 0 && (
+      <div><div class="meta">Personas</div>
+        {gente.map(x => <div><a href={`/personas/${x.slug}/`}>{nombre(x)}</a></div>)}
+      </div>)}
+    {sitios.length > 0 && (
+      <div><div class="meta">Lugar</div>
+        {sitios.map(l => <div><a href={`/lugares/${l.slug}/`}>{l.nombre}</a></div>)}
+        {ubicado && <div style="margin-top:.4rem"><a href="/">Ver en el mapa →</a></div>}
+      </div>)}
+    {!sitios.length && (
+      <div><div class="meta">Lugar</div>
+        <div class="imprecisa">Sin ubicación conocida</div>
+        <div style="margin-top:.4rem"><a href="/memorias/?lugar=sin">Otras sin ubicar →</a></div>
+      </div>)}
+    {(d.acontecimientos || []).length > 0 && (
+      <div><div class="meta">Acontecimiento</div>
+        {d.acontecimientos.map(s => A[s] && <div><a href={`/acontecimientos/${s}/`}>{A[s].titulo}</a></div>)}
+      </div>)}
+    {d.fecha.ref != null && (
+      <div><div class="meta">Año</div>
+        <div><a href={`/anios/${d.fecha.ref}/`}>{comoSeLee(d.fecha)}</a></div>
+        {d.fecha.texto && d.fecha.texto !== String(d.fecha.ref) && (
+          <div class="imprecisa" style="font-size:.74rem">Cargado como «{d.fecha.texto}»</div>)}
+      </div>)}
+  </div>
+
+  {(d.aportante || d.fuente_url) && (
+    <p style="margin-top:2rem" class="meta">
+      {d.aportante && <>Aportado por {d.aportante}. </>}
+      {d.fuente_url && <><a href={d.fuente_url}>Publicación original</a>.</>}
+    </p>
+  )}
+
+  {mismoLugar.length > 0 && (<>
+    <h2>Lo mismo, en otro momento</h2>
+    <p class="bajada">Otras memorias del mismo lugar.</p>
+    <ul class="tiras">
+      {mismoLugar.map(o => (
+        <li><a href={`/memorias/${o.slug}/`}>
+          {o.archivo ? <img src={o.archivo} alt="" loading="lazy" /> : <span class="sinfoto"></span>}
+          <span><b>{o.titulo}</b><i>{comoSeLee(o.fecha)}</i></span>
+        </a></li>
+      ))}
+    </ul>
+  </>)}
+
+  {mismaGente.length > 0 && (<>
+    <h2>Con la misma gente</h2>
+    <ul class="tiras">
+      {mismaGente.map(o => (
+        <li><a href={`/memorias/${o.slug}/`}>
+          {o.archivo ? <img src={o.archivo} alt="" loading="lazy" /> : <span class="sinfoto"></span>}
+          <span><b>{o.titulo}</b><i>{comoSeLee(o.fecha)}</i></span>
+        </a></li>
+      ))}
+    </ul>
+  </>)}
+
+  <p style="margin-top:3rem"><a href="/memorias/">← Todas las memorias</a></p>
+
+  <style>
+    .placa img + img { margin-top: 1rem; }
+    .placa-pie { font-family: var(--texto); font-size: .74rem; color: var(--tinta-2);
+                 margin: .8rem 0 0; }
+    .tiras { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem;
+             grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); }
+    .tiras a { display: flex; gap: .75rem; align-items: center; border: 0;
+               padding: .45rem; border-radius: 3px; background: var(--panel); }
+    .tiras a:hover { background: var(--panel-2); }
+    .tiras img, .tiras .sinfoto { width: 64px; height: 48px; object-fit: cover;
+               border-radius: 2px; flex: none; background: var(--panel-2); }
+    .tiras .sinfoto { border: 1px dashed var(--linea-viva); }
+    .tiras b { display: block; font-weight: 400; font-size: .84rem; line-height: 1.3; }
+    .tiras i { font-style: normal; font-size: .72rem; color: var(--tinta-2); }
+  </style>
+</Base>

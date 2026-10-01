@@ -1,0 +1,32 @@
+{
+  "name": "memorias-aristobulo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "datos": "npm test --silent && node scripts/build-snapshot.mjs",
+    "dev": "npm run datos && astro dev",
+    "build": "npm run datos && astro build",
+    "preview": "astro preview",
+    "test": "node scripts/test-fechas.mjs && node scripts/test-linajes.mjs && node scripts/test-proyeccion.mjs && node scripts/test-linaje-layout.mjs && node scripts/test-red.mjs && node scripts/test-familias.mjs && node scripts/test-grilla.mjs && node scripts/test-privacidad.mjs",
+    "demo": "node scripts/generar-demo.mjs && node scripts/build-snapshot.mjs --demo",
+    "dev:demo": "npm run demo && astro dev",
+    "build:demo": "npm run demo && astro build",
+    "datos:sb": "npm test --silent && node --env-file=.env scripts/build-snapshot.mjs",
+    "build:sb": "npm run datos:sb && astro build",
+    "dev:sb": "npm run datos:sb && astro dev",
+    "datos:sb:demo": "npm test --silent && node --env-file=.env scripts/build-snapshot.mjs --con-demo",
+    "fotos": "node scripts/procesar-imagenes.mjs",
+    "carga": "node scripts/generar-carga.mjs",
+    "dev:real": "npm test --silent && node --env-file=.env scripts/build-snapshot.mjs --sin-aprobar && astro dev"
+  },
+  "devDependencies": {
+    "astro": "^5.6.0"
+  },
+  "dependencies": {
+    "d3-drag": "^3.0.0",
+    "d3-force": "^3.0.0",
+    "d3-selection": "^3.0.0",
+    "d3-zoom": "^3.0.0"
+  }
+}

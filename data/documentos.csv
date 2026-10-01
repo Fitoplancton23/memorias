@@ -1,0 +1,5 @@
+slug,tipo,titulo,fecha,descripcion,transcripcion,personas,lugares,acontecimientos,aportante,fuente_url,archivo,licencia,estado
+doc-001,foto,Grupo frente a la capilla,c.1940,DATO DE EJEMPLO - reemplazar,,juan-ejemplo;maria-ejemplo,capilla-vieja,,Vecino Ejemplo,,,cesion_vecino,publicado
+doc-002,relato,Recuerdos del secadero,dec. 1950,DATO DE EJEMPLO - reemplazar,Texto completo del relato va en esta columna.,pedro-ejemplo,secadero-grande,,Vecino Ejemplo,,,cesion_vecino,publicado
+doc-003,foto,Acto en la plaza,1935,DATO DE EJEMPLO - reemplazar,,ana-ejemplo,plaza-libertad,inauguracion-escuela,Vecino Ejemplo,,,cesion_vecino,publicado
+doc-004,foto,Sin identificar,,DATO DE EJEMPLO - sin fecha a proposito,,,,,Vecino Ejemplo,,,cesion_vecino,borrador

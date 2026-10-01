@@ -24,6 +24,7 @@ const puntos = lugares
       cx: +(x * ANCHO).toFixed(1), cy: +(y * ALTO).toFixed(1),
       fuera: x < 0 || x > 1 || y < 0 || y > 1,
       n: docs.length,
+      foto: docs.find(d => d.archivo)?.archivo || null,
       desde: anios.length ? Math.min(...anios) : null,
       hasta: anios.length ? Math.max(...anios) : null,
       docs: docs.map(d => ({
@@ -62,17 +63,37 @@ const apellidosPortada = Object.entries(cuentaApellidos)
   <div class="mapa-lienzo">
     <svg id="mapa" viewBox={`0 0 ${ANCHO} ${ALTO}`} role="application"
          aria-label="Mapa de Aristóbulo del Valle con las memorias ubicadas.">
+      <defs>
+        <clipPath id="recorte-mini"><circle r="15" /></clipPath>
+      </defs>
       <g id="mundo">
         <g id="base"></g>
         <g id="marcas">
-          {puntos.map(p => (
+          {puntos.map(p => {
+            const rp = 4 + Math.sqrt(p.n) * 2.6;
+            return (
             <g class={'sitio' + (p.n ? '' : ' vacio')} data-slug={p.slug}
                transform={`translate(${p.cx},${p.cy})`} tabindex="0" role="button">
-              <circle class="halo" r={10 + Math.sqrt(p.n) * 9} />
-              <circle class="punto" r={4 + Math.sqrt(p.n) * 2.6} />
-              <text class="rotulo" y={-14 - Math.sqrt(p.n) * 2.6}>{p.nombre}</text>
+              {/* Todo lo dibujado va acá dentro. El zoom le pone scale(1/k) a este
+                  grupo, no a cada hijo: así se escala alrededor del origen del
+                  marcador —el punto geográfico— y el conjunto queda pegado a su
+                  lugar. Escalando cada hijo por separado, el tamaño quedaba bien
+                  pero la posición se magnificaba con el zoom. */}
+              <g class="contenido">
+                <circle class="golpe" r={Math.max(rp + 7, 15)} />
+                <circle class="halo" r={10 + Math.sqrt(p.n) * 9} />
+                <circle class="punto" r={rp} />
+                {p.foto && (
+                  <g class="mini" transform={`translate(${rp + 21},0)`}>
+                    <image href={p.foto} x="-15" y="-15" width="30" height="30"
+                           preserveAspectRatio="xMidYMid slice" clip-path="url(#recorte-mini)" />
+                    <circle class="aro" r="15" />
+                  </g>
+                )}
+                <text class="rotulo" y={-14 - rp}>{p.nombre}</text>
+              </g>
             </g>
-          ))}
+          )})}
         </g>
       </g>
     </svg>
@@ -162,12 +183,72 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       .catch(() => { base.innerHTML = ''; });
 
     /* ---- zoom ---- */
+    const contenidos = [...document.querySelectorAll('.sitio .contenido')];
+    const lienzo = document.querySelector('.mapa-lienzo');
+    let abierta = null;
+
+    /* La ficha sale al lado del marcador, no en una esquina fija: lo que se
+       está leyendo y el lugar del que habla tienen que estar juntos. Si no
+       entra a la derecha, pasa a la izquierda; si no entra arriba, sube. */
+    function reubicarFicha() {
+      if (!abierta || ficha.hidden) return;
+      const g = document.querySelector('.sitio[data-slug="' + abierta + '"]');
+      if (!g) return;
+      const c = lienzo.getBoundingClientRect();
+      const r = g.querySelector('.punto').getBoundingClientRect();
+      /* El marcador no termina en el punto: si hay miniatura, la ficha sale
+         después de ella. Si no, se le monta encima justo a lo que anuncia. */
+      const mi = g.querySelector('.mini');
+      const mr = mi && mi.style.display !== 'none' ? mi.getBoundingClientRect() : null;
+      const der = mr ? Math.max(r.right, mr.right) : r.right;
+      const izq = mr ? Math.min(r.left, mr.left) : r.left;
+      const w = ficha.offsetWidth, h = ficha.offsetHeight, m = 16;
+      let x = der - c.left + m;
+      if (x + w > c.width - m) x = izq - c.left - w - m;
+      x = Math.max(m, Math.min(x, c.width - w - m));
+      let y = r.top - c.top + r.height / 2 - 44;
+      y = Math.max(m, Math.min(y, c.height - h - m));
+      ficha.style.left = x + 'px';
+      ficha.style.top = y + 'px';
+    }
+
+    function cerrarFicha() {
+      ficha.hidden = true;
+      abierta = null;
+      lienzo.classList.remove('con-ficha');
+      for (const g of document.querySelectorAll('.sitio')) g.classList.remove('foco');
+    }
+
+    /* Un atributo transform de SVG escala siempre alrededor del origen local,
+       que acá es el punto geográfico. Es la diferencia con el transform de CSS,
+       cuyo origen hay que declarar y con fill-box termina siendo el centro de
+       cada elemento: el marcador conservaba el tamaño pero se despegaba. */
+    /* El SVG se estira para llenar el contenedor, así que una unidad del
+       viewBox no es un píxel. Sin esta razón, el marcador se dibuja al tamaño
+       que el contenedor decida —en 1440 px salía a la mitad— y las cajas de
+       colisión, que están en píxeles, miden otra cosa que lo que se ve. */
+    let razon = 1, kActual = 1;
+    function medirRazon() {
+      const c = svgEl.getBoundingClientRect();
+      /* preserveAspectRatio por defecto (xMidYMid meet): el viewBox entra
+         completo, así que manda el eje más apretado, no el ancho. */
+      razon = Math.min((c.width || ANCHO) / ANCHO, (c.height || ALTO) / ALTO) || 1;
+    }
+    medirRazon();
+
+    function escalarMarcas(k) {
+      const t = 'scale(' + (1 / (k * razon)) + ')';
+      for (const c of contenidos) c.setAttribute('transform', t);
+    }
+
     const zm = zoom().scaleExtent([.8, 40])
       .on('zoom', ev => {
         mundo.setAttribute('transform', ev.transform.toString());
         /* Los marcadores no crecen con el zoom: son datos, no geografía. */
-        mundo.style.setProperty('--k', ev.transform.k);
+        kActual = ev.transform.k;
+        escalarMarcas(kActual);
         repartirRotulos(ev.transform);
+        reubicarFicha();
       });
     const sel = select(svgEl).call(zm);
 
@@ -193,18 +274,24 @@ const apellidosPortada = Object.entries(cuentaApellidos)
        casco. Se reparten por colisión: gana el lugar con más memorias, y el que
        no entra espera a que te acerques. Mejor un nombre menos que una mancha. */
     const rotulos = [...document.querySelectorAll('.sitio')].map(g => ({
-      g, t: g.querySelector('.rotulo'),
+      g, t: g.querySelector('.rotulo'), mini: g.querySelector('.mini'),
       p: PUNTOS.find(x => x.slug === g.dataset.slug),
     })).filter(r => r.p).sort((a, b) => b.p.n - a.p.n);
 
     function repartirRotulos(t) {
       const puestos = [];
       for (const r of rotulos) {
-        const x = r.p.cx * t.k + t.x, y = r.p.cy * t.k + t.y;
+        const x = (r.p.cx * t.k + t.x) * razon, y = (r.p.cy * t.k + t.y) * razon;
         const w = (r.p.nombre.length * 6.6) / 2 + 6;
-        const caja = { a: x - w, b: x + w, c: y - 30, d: y - 10 };
+        /* El rótulo se dibuja a 14 px por encima del borde del punto, y ahora
+           eso es cierto a cualquier zoom, así que la caja puede ser la real. */
+        const alto = 14 + 4 + Math.sqrt(r.p.n) * 2.6;
+        const caja = { a: x - w, b: x + w, c: y - alto - 14, d: y - alto };
         const choca = puestos.some(q => caja.a < q.b && caja.b > q.a && caja.c < q.d && caja.d > q.c);
         r.t.style.display = choca ? 'none' : '';
+        /* Si no hay lugar para el nombre tampoco lo hay para la foto: dos
+           miniaturas encimadas no se leen, y encimadas dicen menos que una. */
+        if (r.mini) r.mini.style.display = choca ? 'none' : '';
         if (!choca) puestos.push(caja);
       }
     }
@@ -229,10 +316,10 @@ const apellidosPortada = Object.entries(cuentaApellidos)
             ${d.foto ? `<img src="${d.foto}" alt="" loading="lazy" />` : '<span class="sinfoto"></span>'}
             <span><b>${d.titulo}</b><i>${d.texto || d.anio || 'sin fecha'}</i></span>
           </a></li>`).join('') || '<li class="f-vacio">Todavía no hay memorias en este lugar.</li>'}</ul>`;
-      ficha.querySelector('.f-cerrar').addEventListener('click', () => {
-        ficha.hidden = true;
-        for (const g of document.querySelectorAll('.sitio')) g.classList.remove('foco');
-      });
+      ficha.querySelector('.f-cerrar').addEventListener('click', cerrarFicha);
+      abierta = slug;
+      lienzo.classList.add('con-ficha');
+      reubicarFicha();
     }
 
     for (const g of document.querySelectorAll('.sitio')) {
@@ -243,11 +330,15 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     }
     document.getElementById('acercar').addEventListener('click', () => zm.scaleBy(sel, 1.6));
     document.getElementById('alejar').addEventListener('click', () => zm.scaleBy(sel, 1 / 1.6));
-    document.getElementById('todo').addEventListener('click', () => { ficha.hidden = true; encuadrar(); });
+    document.getElementById('todo').addEventListener('click', () => { cerrarFicha(); encuadrar(); });
 
     /* Arranca mostrando dónde está el material, no el ejido entero vacío. */
     encuadrar(PUNTOS.filter(p => p.n > 0).map(p => p.slug));
-    new ResizeObserver(() => encuadrar()).observe(svgEl);
+    new ResizeObserver(() => {
+      medirRazon();
+      escalarMarcas(kActual);
+      encuadrar();
+    }).observe(svgEl);
   </script>
 
   <style is:global>
@@ -270,7 +361,6 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     main.envoltorio { padding-top: 0; }
     #mapa { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
     #mapa:active { cursor: grabbing; }
-    #mundo { --k: 1; }
 
     #base { opacity: 0; transition: opacity .6s ease; }
     #base.listo { opacity: 1; }
@@ -294,19 +384,32 @@ const apellidosPortada = Object.entries(cuentaApellidos)
        No escalan con el zoom: son datos, no geografía. Un marcador que crece
        al acercarse estaría diciendo que la memoria se agranda. */
     .sitio { cursor: pointer; }
-    .sitio > * { transform: scale(calc(1 / var(--k))); transform-origin: center; transform-box: fill-box; }
+    /* Un lugar sin memorias se dibuja con el punto vacío, y un círculo sin
+       relleno no recibe clics por dentro. Esta área invisible los recibe. */
+    .sitio .golpe { fill: transparent; }
     .sitio .halo  { fill: var(--tipo-lugar); opacity: .13; }
     .sitio .punto { fill: var(--tipo-lugar); stroke: var(--placa); stroke-width: 1.5; }
     .sitio .rotulo { font: 500 13px var(--texto); fill: var(--tinta); text-anchor: middle;
                      paint-order: stroke; stroke: #fbfdfc; stroke-width: 3.8;
                      stroke-linejoin: round; }
     .sitio:hover .halo, .sitio:focus-visible .halo { opacity: .24; }
-    .sitio:focus-visible { outline: none; }
+    .sitio:focus, .sitio:focus-visible { outline: none; }
+    .sitio:focus-visible .punto { stroke: var(--cursor); stroke-width: 3; }
+    .sitio:focus-visible .rotulo { fill: var(--cursor); }
     .sitio.foco .punto { fill: var(--cursor); }
     .sitio.foco .halo  { fill: var(--cursor); opacity: .26; }
     .sitio.vacio .punto { fill: none; stroke: var(--tinta-2); stroke-dasharray: 2.5 2.5; }
     .sitio.vacio .halo { display: none; }
     .sitio.vacio .rotulo { fill: var(--tinta-2); }
+
+    /* La miniatura adelanta qué hay en el lugar antes de abrir nada: el punto
+       dice dónde, la foto dice qué. Círculo y no rectángulo porque el lenguaje
+       de formas del archivo es circular, y el aro la despega del mapa. */
+    .sitio .mini { pointer-events: none; }
+    .sitio .mini .aro { fill: none; stroke: var(--placa); stroke-width: 2.5; }
+    .sitio .mini image { opacity: .97; }
+    .sitio:hover .mini .aro, .sitio:focus-visible .mini .aro { stroke-width: 3; }
+    .sitio.foco .mini .aro { stroke: var(--cursor); stroke-width: 3; }
 
     /* --- chrome --- */
     .cifras-mapa { position: absolute; left: 1.9rem; top: 1.6rem; font-size: .78rem;
@@ -327,13 +430,15 @@ const apellidosPortada = Object.entries(cuentaApellidos)
                font-size: .64rem; color: var(--tinta-2); }
     .credito a { color: inherit; border-bottom-color: var(--linea-viva); }
 
-    .mapa-ficha { position: absolute; right: 1.9rem; top: 1.6rem; width: 21rem; border-radius: 4px;
+    .mapa-ficha { position: absolute; left: 0; top: 0; width: 21rem; border-radius: 10px;
+                  max-width: calc(100vw - 2.2rem);
                   max-height: calc(100% - 7rem); overflow-y: auto;
-                  background: rgba(255, 255, 255, .8);
-                  -webkit-backdrop-filter: blur(20px) saturate(1.15);
-                  backdrop-filter: blur(20px) saturate(1.15);
+                  background: rgba(255, 255, 255, .72);
+                  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+                  backdrop-filter: blur(22px) saturate(1.4);
                   border: 1px solid var(--linea);
-                  box-shadow: 0 12px 34px -20px rgba(24, 30, 27, .34); }
+                  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9),
+                              0 18px 44px -22px rgba(24, 30, 27, .42); }
     .mapa-ficha .f-cab { display: flex; gap: .7rem; align-items: flex-start; padding: .95rem 1.05rem;
                          border-bottom: 1px solid var(--linea); }
     .mapa-ficha strong { display: block; font-weight: 500; font-size: .95rem; }
@@ -353,6 +458,12 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     .f-memorias b { display: block; font-weight: 400; font-size: .8rem; line-height: 1.3; }
     .f-memorias i { font-style: normal; font-size: .7rem; color: var(--tinta-2); }
     .f-vacio { font-size: .78rem; color: var(--tinta-2); padding: .8rem .6rem; }
+
+    @media (max-width: 34rem) {
+      .mapa-ficha { left: .7rem !important; top: auto !important;
+                    right: .7rem; bottom: .7rem; width: auto; max-height: 55%; }
+      .mapa-lienzo.con-ficha .mapa-ctrl { bottom: calc(55% + 1.4rem); }
+    }
 
     .portada-texto { padding-top: 3.5rem; }
     .portada-texto h1 { max-width: 20ch; }

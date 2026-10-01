@@ -106,7 +106,7 @@ export async function traerTablas({ incluirDemo = false, incluirPendientes = fal
       : (p.nacimiento_aprox ? `${p.nacimiento_anio} aprox` : String(p.nacimiento_anio)),
     defuncion: p.fallecimiento_anio == null ? '' : String(p.fallecimiento_anio),
     lugar_origen: sl(L[p.lugar_nacimiento_id]),
-    vive: pareceViva(p) ? 'si' : '',
+    vive: p.vive === true ? 'si' : (pareceViva(p) ? 'presunta' : ''),
     notas: p.notas || '',
   }));
 

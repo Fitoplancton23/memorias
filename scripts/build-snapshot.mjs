@@ -45,8 +45,9 @@ if (SB) {
   if (conteoPendientes)
     avisos.push(`VISTA LOCAL: incluye ${conteoPendientes} memoria(s) sin aprobar. No publicar este build.`);
   avisos.push(...r.avisos);
+  const etiqueta = { demo: CON_DEMO ? 'demo INCLUIDAS' : 'demo en la base (excluidas)' };
   console.log('   Fuente: Supabase · ' + Object.entries(r.conteo)
-    .map(([k, v]) => `${k} ${v}`).join(' · '));
+    .map(([k, v]) => `${etiqueta[k] || k} ${v}`).join(' · '));
   if (existsSync(join(DATA, 'linajes.txt')))
     console.log('   (data/linajes.txt ignorado: el parentesco viene de la base)');
 }
@@ -111,13 +112,14 @@ const lugares = tabla('lugares').map(r => {
 });
 
 const personas = tabla('personas').map(r => {
-  const vive = esSi(r.vive);
+  const presunta = /^presunta$/i.test((r.vive || '').trim());
+  const vive = esSi(r.vive) || presunta;
   const nac = fechaDe(r.nacimiento);
   const def = fechaDe(r.defuncion);
   if (vive && nac.desde) avisos.push(`PRIVACIDAD: ${r.slug} figura como viva y tiene fecha de nacimiento; se oculta en el sitio.`);
   return {
     slug: r.slug, nombre: r.nombre, apellido: r.apellido, apodo: r.apodo || null,
-    sexo: r.sexo || null, vive,
+    sexo: r.sexo || null, vive, vivePresunta: presunta,
     nacimiento: vive ? { desde: null, hasta: null, precision: 'oculta', texto: '' } : nac,
     defuncion: vive ? { desde: null, hasta: null, precision: 'oculta', texto: '' } : def,
     lugar_origen: r.lugar_origen || null, notas: vive ? '' : (r.notas || ''),

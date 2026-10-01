@@ -13,6 +13,18 @@ const avisos = [];
 /* La fuente puede ser la base o las planillas. Lo que cambia es SÓLO el
    lector: todo lo que sigue recibe las mismas filas. */
 const SB = !DEMO && (process.argv.includes('--supabase') || !!process.env.SUPABASE_URL);
+/* En CI no hay .env: las variables las inyecta la plataforma. Si faltan, SB
+   queda en false, el build cae a los CSV y publica datos viejos como si fueran
+   los reales, sin que nada lo diga. Con esta bandera, falla. */
+if (process.argv.includes('--exigir-supabase')) {
+  const faltan = ['SUPABASE_URL', 'SUPABASE_KEY'].filter(v => !process.env[v]);
+  if (faltan.length) {
+    console.error('\nFalta ' + faltan.join(' y ') + '.');
+    console.error('Sin base no se publica: el build caeria a los CSV y');
+    console.error('publicaria datos viejos en silencio.\n');
+    process.exit(1);
+  }
+}
 /* --con-demo trae también las filas es_demo de la base. Sirve para probar el
    camino entero antes de que haya material real, y arrastra la cinta de aviso:
    si hay una sola fila inventada, el sitio tiene que decirlo. */

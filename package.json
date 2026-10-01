@@ -1,8 +1,11 @@
 {
   "name": "memorias-aristobulo",
-  "version": "0.1.0",
   "private": true,
   "type": "module",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "datos": "npm test --silent && node scripts/build-snapshot.mjs",
     "dev": "npm run datos && astro dev",
@@ -18,7 +21,8 @@
     "datos:sb:demo": "npm test --silent && node --env-file=.env scripts/build-snapshot.mjs --con-demo",
     "fotos": "node scripts/procesar-imagenes.mjs",
     "carga": "node scripts/generar-carga.mjs",
-    "dev:real": "npm test --silent && node --env-file=.env scripts/build-snapshot.mjs --sin-aprobar && astro dev"
+    "dev:real": "npm test --silent && node --env-file=.env scripts/build-snapshot.mjs --sin-aprobar && astro dev",
+    "build:ci": "npm test --silent && node scripts/build-snapshot.mjs --exigir-supabase && astro build"
   },
   "devDependencies": {
     "astro": "^5.6.0"

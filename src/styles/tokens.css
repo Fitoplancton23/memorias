@@ -175,3 +175,54 @@ footer.sitio .envoltorio { padding-block: 1.5rem; }
 .cinta-pendiente { flex: none; background: var(--calor-2); color: #fff; font-family: var(--texto);
                    font-size: .74rem; text-align: center; padding: .4rem .75rem; }
 .cinta-pendiente strong { font-weight: 600; }
+
+/* ============================================================
+   VIDRIO
+   Una sola receta para las tres superficies que flotan sobre el
+   mapa: el marcador, la ficha del lugar y la memoria abierta.
+
+   No hay librería detrás y no hace falta: backdrop-filter es
+   nativo, y lo que una librería agrega encima es nomenclatura.
+   Lo que sí hay que saber es que NO funciona sobre elementos SVG
+   —el navegador aplica el color translúcido pero no desenfoca lo
+   de atrás—, y por eso los marcadores del mapa son HTML colocado
+   sobre el dibujo, no formas dentro de él.
+
+   Tres densidades: el marcador es el más liviano porque encima
+   lleva una fotografía; la memoria abierta es el más denso porque
+   debajo tiene que apagarse el mapa entero.
+   ============================================================ */
+:root {
+  --vidrio-leve:   rgba(255, 255, 255, .50);
+  --vidrio-medio:  rgba(255, 255, 255, .68);
+  --vidrio-denso:  rgba(255, 255, 255, .82);
+
+  --vidrio-borde:  rgba(255, 255, 255, .72);
+  --vidrio-filo:   inset 0 1px 0 rgba(255, 255, 255, .95);
+  --vidrio-sombra: 0 18px 44px -22px rgba(24, 30, 27, .42);
+  --vidrio-sombra-alta: 0 32px 70px -28px rgba(24, 30, 27, .5);
+
+  --desenfoque:       blur(22px) saturate(1.6);
+  --desenfoque-suave: blur(14px) saturate(1.4);
+  --desenfoque-velo:  blur(16px) saturate(1.1);
+}
+
+/* El filo claro del borde superior es lo que separa un vidrio de un
+   rectángulo blanco: es el reflejo, y sin él no hay volumen. */
+.vidrio {
+  background: var(--vidrio-medio);
+  -webkit-backdrop-filter: var(--desenfoque);
+  backdrop-filter: var(--desenfoque);
+  border: 1px solid var(--vidrio-borde);
+  box-shadow: var(--vidrio-filo), var(--vidrio-sombra);
+}
+
+/* Sin soporte de backdrop-filter el vidrio translúcido deja ilegible
+   lo que tiene encima: ahí se vuelve opaco y se acabó el efecto. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .vidrio { background: #fff; }
+}
+
+/* Con la memoria abierta la página de atrás no se mueve: el scroll estaría
+   corriendo el mapa por debajo del vidrio. */
+body.con-memoria { overflow: hidden; }

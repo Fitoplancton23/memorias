@@ -107,7 +107,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
             {p.foto && <img class="retrato" src={p.foto} alt="" loading="lazy" decoding="async" />}
             <span class="grano"></span>
           </span>
-          <span class="rotulo">{p.nombre}</span>
+          {!p.foto && <span class="rotulo">{p.nombre}</span>}
         </button>
       ))}
     </div>
@@ -222,6 +222,24 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       el, rotulo: el.querySelector('.rotulo'), p: porSlug[el.dataset.slug],
     })).filter(m => m.p).sort((a, b) => b.p.n - a.p.n);
 
+    /* El mapa es el tronco de la navegación: se vuelve a él donde se lo dejó,
+       no al encuadre inicial. Se guarda en sessionStorage —dura lo que dura la
+       visita, no se queda pegado para siempre— y lo lee la vuelta desde
+       cualquier página del sitio. */
+    const CLAVE = 'mapa-donde-estaba';
+    let tActual = zoomIdentity;
+    function guardarEstado() {
+      try {
+        sessionStorage.setItem(CLAVE, JSON.stringify({
+          k: tActual.k, x: tActual.x, y: tActual.y, abierta,
+        }));
+      } catch (e) { /* modo privado o storage lleno: se pierde el lugar, nada más */ }
+    }
+    function estadoGuardado() {
+      try { return JSON.parse(sessionStorage.getItem(CLAVE) || 'null'); }
+      catch (e) { return null; }
+    }
+
     /* El SVG no llena el contenedor: con preserveAspectRatio por defecto el
        viewBox entra completo y queda bordeado. Los marcadores son HTML sobre el
        contenedor, así que hay que sumar ese borde o quedan corridos. */
@@ -263,6 +281,10 @@ const apellidosPortada = Object.entries(cuentaApellidos)
            así que la caja de choque puede ser la real. Se mide contra los otros
            nombres y también contra los marcadores ya puestos: un nombre escrito
            encima de una foto no se lee y además tapa la foto. */
+        /* Los lugares con fotografía ya no llevan nombre al lado: la miniatura
+           dice qué lugar es, y al tocarla se abre la ficha con todo. El rótulo
+           queda sólo donde no hay foto, que si no sería un punto anónimo. */
+        if (!m.rotulo) continue;
         const w = (m.p.nombre.length * 6.6) / 2 + 6;
         const alto = radio + 5;
         const caja = { a: x - w, b: x + w, c: y - alto - 15, d: y - alto };
@@ -280,8 +302,10 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       .on('zoom', ev => {
         mundo.setAttribute('transform', ev.transform.toString());
         kActual = ev.transform.k;
+        tActual = ev.transform;
         repartir(ev.transform);
         reubicarFicha();
+        guardarEstado();
       });
     const sel = select(svgEl).call(zm);
 
@@ -328,6 +352,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       ficha.hidden = true;
       abierta = null;
       lienzo.classList.remove('con-ficha');
+      guardarEstado();
       for (const m of marcas) m.el.classList.remove('foco');
     }
 
@@ -355,6 +380,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       abierta = slug;
       lienzo.classList.add('con-ficha');
       reubicarFicha();
+      guardarEstado();
     }
 
     for (const m of marcas) {
@@ -417,6 +443,17 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       abrirMemoria(a.dataset.mem);
     });
 
+    /* Tocar en cualquier otro lado cierra la ficha: es lo que el dedo espera,
+       y deja el mapa limpio sin tener que apuntarle a una cruz chica. El clic
+       en un marcador no llega acá —lo detiene su propio handler—, así que
+       pasar de un lugar a otro sigue funcionando de un solo toque. */
+    document.addEventListener('click', ev => {
+      if (ficha.hidden) return;
+      if (ev.target.closest('#ficha') || ev.target.closest('.mapa-ctrl')) return;
+      if (!velo.hidden) return;
+      cerrarFicha();
+    });
+
     velo.addEventListener('click', ev => { if (ev.target === velo) cerrarMemoria(); });
     window.addEventListener('popstate', () => {
       velo.hidden = true;
@@ -434,11 +471,23 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     document.getElementById('alejar').addEventListener('click', () => zm.scaleBy(sel, 1 / 1.6));
     document.getElementById('todo').addEventListener('click', () => { cerrarFicha(); encuadrar(); });
 
-    /* Arranca mostrando dónde está el material, no el ejido entero vacío. */
-    encuadrar(PUNTOS.filter(p => p.n > 0).map(p => p.slug));
+    /* Si venís de adentro del sitio, el mapa te devuelve donde estabas. Si es
+       la primera vez, arranca mostrando dónde está el material y no el ejido
+       entero vacío. */
+    const vuelta = estadoGuardado();
+    if (vuelta && isFinite(vuelta.k)) {
+      zm.transform(sel, zoomIdentity.translate(vuelta.x, vuelta.y).scale(vuelta.k));
+      if (vuelta.abierta && porSlug[vuelta.abierta]) mostrar(vuelta.abierta);
+    } else {
+      encuadrar(PUNTOS.filter(p => p.n > 0).map(p => p.slug));
+    }
+
+    /* Redimensionar no vuelve a encuadrar: la ventana que cambia de tamaño no
+       es motivo para perder el lugar donde estabas mirando. */
     new ResizeObserver(() => {
       medir();
-      encuadrar();
+      repartir(tActual);
+      reubicarFicha();
     }).observe(svgEl);
   </script>
 
@@ -610,8 +659,8 @@ const apellidosPortada = Object.entries(cuentaApellidos)
 
     .t-fotos { display: grid; gap: 2px; padding: 0; margin: 0;
                grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
-    .t-fotos img { width: 100%; max-height: 24rem; object-fit: cover; display: block;
-                   background: var(--panel-2); }
+    .t-fotos img { width: 100%; height: auto; max-height: 62vh; object-fit: contain;
+                   display: block; background: var(--panel-2); }
     .t-cuerpo { padding: 1rem 1.3rem 1.2rem; }
     .t-cuerpo p { margin: 0 0 .7rem; font-size: .86rem; line-height: 1.55; }
     .t-dato { font-size: .76rem; color: var(--tinta-2); margin: 0 0 .35rem; }

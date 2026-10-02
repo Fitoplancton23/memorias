@@ -226,3 +226,26 @@ footer.sitio .envoltorio { padding-block: 1.5rem; }
 /* Con la memoria abierta la página de atrás no se mueve: el scroll estaría
    corriendo el mapa por debajo del vidrio. */
 body.con-memoria { overflow: hidden; }
+
+/* El mapa es el tronco de la navegación: desde cualquier página se vuelve a
+   él, y se vuelve al lugar donde se lo dejó, no al encuadre inicial. La barra
+   es pegajosa porque la decisión de volver puede aparecer en cualquier punto
+   de la lectura, no sólo arriba de todo. Es una barra entera y no una flecha:
+   buena parte del público va a tener setenta años. */
+.volver-mapa {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: baseline; gap: .55rem;
+  padding: .7rem 1.4rem; border: 0;
+  border-bottom: 1px solid var(--linea);
+  background: var(--vidrio-medio);
+  -webkit-backdrop-filter: var(--desenfoque);
+  backdrop-filter: var(--desenfoque);
+  color: var(--tinta); font-size: .9rem;
+}
+.volver-mapa b { font-weight: 500; }
+.volver-mapa em { font-style: normal; font-size: .76rem; color: var(--tinta-2); }
+.volver-mapa:hover { color: var(--cursor); }
+.volver-mapa:hover em { color: var(--cursor); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .volver-mapa { background: #fff; }
+}

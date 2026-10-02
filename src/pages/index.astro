@@ -352,6 +352,22 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         guardarEstado();
       });
     const sel = select(svgEl).call(zm);
+
+    /* zoom.transform() de d3 NO pasa por scaleExtent ni translateExtent: esos
+       límites sólo rigen para lo que hace el usuario. Todo encuadre que pongamos
+       nosotros —el inicial, el de volver donde estabas, el de redimensionar—
+       tiene que acotarse a mano o el mapa se despega de su borde. Se veía en
+       pantalla vertical, donde el encuadre inicial dejaba una franja abajo. */
+    function acotar(t) {
+      const c = svgEl.getBoundingClientRect();
+      const vw = (c.width || ANCHO) / razon, vh = (c.height || ALTO) / razon;
+      const bx = -padX / razon, by = -padY / razon;
+      const k = Math.min(40, Math.max(kMin, t.k));
+      return zoomIdentity
+        .translate(Math.min(bx, Math.max(bx + vw - ANCHO * k, t.x)),
+                   Math.min(by, Math.max(by + vh - ALTO * k, t.y)))
+        .scale(k);
+    }
     /* Recién acá: medirTodo llama a limitar(), que configura zm. Llamarlo
        antes de crear zm rompía el módulo entero y el mapa quedaba muerto. */
     medirTodo();
@@ -369,9 +385,9 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       const m = ps.length === 1 ? 70 : 90;
       const bw = Math.max(x1 - x0, 1) + m * 2, bh = Math.max(y1 - y0, 1) + m * 2;
       const k = Math.min(40, Math.max(kMin, Math.min(ANCHO / bw, ALTO / bh)));
-      zm.transform(sel, zoomIdentity
+      zm.transform(sel, acotar(zoomIdentity
         .translate(ANCHO / 2 - k * (x0 + x1) / 2, ALTO / 2 - k * (y0 + y1) / 2)
-        .scale(k));
+        .scale(k)));
     }
 
     /* ---- ficha del lugar ---- */
@@ -660,7 +676,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
        entero vacío. */
     const vuelta = estadoGuardado();
     if (vuelta && isFinite(vuelta.k)) {
-      zm.transform(sel, zoomIdentity.translate(vuelta.x, vuelta.y).scale(vuelta.k));
+      zm.transform(sel, acotar(zoomIdentity.translate(vuelta.x, vuelta.y).scale(vuelta.k)));
       if (vuelta.abierta && porSlug[vuelta.abierta]) mostrar(vuelta.abierta);
     } else {
       encuadrar(PUNTOS.filter(p => p.n > 0).map(p => p.slug));
@@ -672,7 +688,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       medirTodo();
       /* El mínimo de zoom pudo cambiar con la forma de la ventana: si la
          transformación actual quedó por debajo, d3 la corrige al reaplicarla. */
-      zm.transform(sel, tActual);
+      zm.transform(sel, acotar(tActual));
       repartir(tActual);
       reubicarFicha();
     }).observe(svgEl);

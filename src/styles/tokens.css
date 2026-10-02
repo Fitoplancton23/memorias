@@ -228,22 +228,21 @@ footer.sitio .envoltorio { padding-block: 1.5rem; }
 body.con-memoria { overflow: hidden; }
 
 /* El mapa es el tronco de la navegación: desde cualquier página se vuelve a
-   él, y se vuelve al lugar donde se lo dejó. Es un botón flotante y no una
-   barra porque tiene que verse esté donde esté la lectura, y macizo y no de
-   vidrio porque sobre fondo claro el vidrio desaparece: esto es lo único de
-   la pantalla que siempre tiene que encontrarse. */
+   él, y se vuelve al lugar donde se lo dejó. Va arriba y pegajoso: aparece
+   antes que el contenido y se queda a la vista por larga que sea la lectura.
+   Macizo y no de vidrio porque sobre fondo claro el vidrio desaparece, y esto
+   es lo único de la pantalla que siempre tiene que encontrarse. */
 .volver-mapa {
-  position: fixed; left: 1.2rem; bottom: max(1.2rem, env(safe-area-inset-bottom)); z-index: 60;
+  position: sticky; top: .75rem; z-index: 60;
+  width: fit-content; margin: .9rem 0 .2rem 1.2rem;
   display: inline-flex; align-items: center; gap: .5rem;
-  padding: .8rem 1.25rem; border: 0; border-radius: 999px;
+  padding: .7rem 1.2rem; border: 0; border-radius: 999px;
   background: var(--tinta); color: var(--placa);
   font-size: .9rem; line-height: 1;
   box-shadow: 0 12px 30px -10px rgba(24, 30, 27, .6);
-  transition: background .18s ease, transform .18s ease;
+  transition: background .18s ease;
 }
 .volver-mapa b { font-weight: 500; }
 .volver-mapa span { font-size: 1.05em; }
-.volver-mapa:hover { background: var(--cursor); color: var(--placa); transform: translateY(-1px); }
+.volver-mapa:hover { background: var(--cursor); color: var(--placa); }
 .volver-mapa:focus-visible { outline: 2px solid var(--cursor); outline-offset: 3px; }
-/* Que el pie no quede debajo del botón. */
-.volver-mapa ~ footer.sitio { padding-bottom: 4.5rem; }

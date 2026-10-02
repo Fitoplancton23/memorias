@@ -165,7 +165,32 @@ footer.sitio .envoltorio { padding-block: 1.5rem; position: relative; }
    bajas de tono — es textura de fondo, no un elemento que haya que mirar. */
 .ondas { position: absolute; inset: auto 0 0; width: 100%; height: 7rem;
          color: var(--marca); opacity: .3; pointer-events: none; }
-.ondas-pie { bottom: -1.5rem; }
+/* En el path y no en el <g>: vector-effect no se hereda. */
+.ondas path { vector-effect: non-scaling-stroke; }
+/* Medio centimetro de sangrado y no mas: con -1.5rem la banda bajaba tanto que
+   los dos contornos mas marcados quedaban fuera de la pantalla y arriba solo
+   asomaban los mas tenues, que es el degradado al reves. */
+.ondas-pie { bottom: -.5rem; }
+
+/* La deriva: tres capas de contorno que se cruzan muy despacio, como el relieve
+   visto desde un auto. Se anima `translate` y no `transform` a propósito —
+   así se compone solo con el scaleY(-1) de la portada en vez de pisarlo— y se
+   anima la raíz svg y no un <g>, porque un grupo animado repinta el svg entero
+   en cada cuadro mientras que la raíz la puede componer el navegador.
+   El recorrido cabe dentro del sangrado de los trazados (van de -20 a 1220 en
+   un viewBox de 1200), así que nunca asoma un extremo.
+   Sólo corre con .viva, que se pone cuando la franja entra en pantalla: animar
+   algo que nadie está mirando es gastar batería por nada. */
+.ondas-deriva { will-change: translate; }
+.viva .ondas-d1 { animation: deriva-1 34s ease-in-out infinite alternate; }
+.viva .ondas-d2 { animation: deriva-2 46s ease-in-out infinite alternate; }
+.viva .ondas-d3 { animation: deriva-3 58s ease-in-out infinite alternate; }
+@keyframes deriva-1 { from { translate: -1.1% 0; } to { translate: 1.1% 0; } }
+@keyframes deriva-2 { from { translate:   .9% 0; } to { translate: -.9% 0; } }
+@keyframes deriva-3 { from { translate: -.6% 0; } to { translate:  .8% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .viva .ondas-d1, .viva .ondas-d2, .viva .ondas-d3 { animation: none; }
+}
 
 /* --- LA PLACA: donde vive la memoria --- */
 .placa {

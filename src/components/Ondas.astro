@@ -3,15 +3,45 @@
    entre lomadas y el arroyo Cuñá Pirú. No son ondas decorativas, son la forma
    del terreno, y por eso van sólo en las secciones de texto —el mapa ya es la
    geografía y encimarle líneas sería contarla dos veces.
-   Trazado estático: ni animación ni filtro, 600 bytes y cero costo de pintura. */
-const { clase = '' } = Astro.props;
+
+   El viewBox se estira a lo ancho a propósito: un contorno tiene que cruzar la
+   pantalla entera mida lo que mida la franja. Lo que no puede estirarse con él
+   es el trazo. Sin vector-effect, la banda del pie escala 1,07 a lo ancho y
+   0,47 a lo alto: los cinco grosores —1,4 a 0,8— se rendían entre 0,65 y 0,37
+   píxeles, todos por debajo de uno, y el degradado de profundidad se perdía
+   entero; de yapa el trazo salía 2,29 veces más grueso en los tramos verticales
+   que en los horizontales. non-scaling-stroke los deja en píxeles reales y
+   parejos, que es lo que hace que se lean como relieve y no como rayas.
+
+   Siete contornos en vez de cinco, anidados y sin cruzarse nunca —dos curvas
+   de nivel que se cruzan no son terreno, son adorno— con la amplitud creciendo
+   hacia arriba, como una lomada. El degradado de opacidad es corto a proposito:
+   encima lleva el .26 de la portada y el .3 del pie, y cualquier valor por
+   debajo de .2 terminaba en 2% de alfa, o sea invisible. Estático
+   por defecto: cero costo de pintura. */
+const { clase = '', deriva = false } = Astro.props;
+
+const capas = [
+  [{ d: 'M-20,216 C57,216 110,205.4 187,205.4 C263,205.4 317,203.7 393,203.7 C470,203.7 523,212.3 600,212.3 C677,212.3 730,224 807,224 C883,224 937,229 1013,229 C1090,229 1143,223.2 1220,223.2', w: 1.4, o: 0.52 },
+   { d: 'M-20,188.2 C57,188.2 110,176.7 187,176.7 C263,176.7 317,176.3 393,176.3 C470,176.3 523,187.4 600,187.4 C677,187.4 730,200.7 807,200.7 C883,200.7 937,205 1013,205 C1090,205 1143,196.8 1220,196.8', w: 1.15, o: 0.46 }],
+
+  [{ d: 'M-20,159.9 C57,159.9 110,147.8 187,147.8 C263,147.8 317,149.3 393,149.3 C470,149.3 523,163.1 600,163.1 C677,163.1 730,177.6 807,177.6 C883,177.6 937,180.7 1013,180.7 C1090,180.7 1143,169.9 1220,169.9', w: 1, o: 0.4 },
+   { d: 'M-20,131.1 C57,131.1 110,119.1 187,119.1 C263,119.1 317,122.9 393,122.9 C470,122.9 523,139.3 600,139.3 C677,139.3 730,154.7 807,154.7 C883,154.7 937,156.1 1013,156.1 C1090,156.1 1143,142.3 1220,142.3', w: 0.85, o: 0.34 }],
+
+  [{ d: 'M-20,101.9 C57,101.9 110,90.4 187,90.4 C263,90.4 317,97 393,97 C470,97 523,116.1 600,116.1 C677,116.1 730,131.8 807,131.8 C883,131.8 937,130.9 1013,130.9 C1090,130.9 1143,114.2 1220,114.2', w: 0.75, o: 0.29 },
+   { d: 'M-20,72.4 C57,72.4 110,62 187,62 C263,62 317,71.6 393,71.6 C470,71.6 523,93.3 600,93.3 C677,93.3 730,108.8 807,108.8 C883,108.8 937,105.3 1013,105.3 C1090,105.3 1143,85.6 1220,85.6', w: 0.65, o: 0.24 },
+   { d: 'M-20,42.7 C57,42.7 110,33.9 187,33.9 C263,33.9 317,46.9 393,46.9 C470,46.9 523,70.9 600,70.9 C677,70.9 730,85.7 807,85.7 C883,85.7 937,79 1013,79 C1090,79 1143,56.4 1220,56.4', w: 0.55, o: 0.2 }],
+];
 ---
-<svg class={`ondas ${clase}`} viewBox="0 0 1200 240" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-  <g fill="none" stroke="currentColor" stroke-linecap="round">
-    <path d="M-20,196 C140,150 250,206 410,176 C580,144 690,196 860,164 C980,141 1100,168 1220,150" stroke-width="1.4" opacity=".55"/>
-    <path d="M-20,164 C150,112 260,176 420,142 C600,104 700,164 870,128 C990,103 1110,132 1220,112" stroke-width="1.2" opacity=".42"/>
-    <path d="M-20,132 C160,74 270,146 430,108 C620,64 710,132 880,92 C1000,65 1120,96 1220,74" stroke-width="1" opacity=".3"/>
-    <path d="M-20,100 C170,36 280,116 440,74 C640,24 720,100 890,56 C1010,27 1130,60 1220,36" stroke-width=".9" opacity=".2"/>
-    <path d="M-20,68 C180,-2 290,86 450,40 C660,-16 730,68 900,20 C1020,-11 1140,24 1220,-2" stroke-width=".8" opacity=".12"/>
-  </g>
-</svg>
+<!-- Cada capa es un svg propio y no un <g>: un grupo animado obliga a repintar
+     todo el svg en cada cuadro, mientras que la raíz svg es una caja del layout
+     y el navegador la puede componer. Sólo se separan si hay deriva; si no, un
+     solo svg y un solo dibujo. -->
+{(deriva ? capas : [capas.flat()]).map((capa, i) => (
+  <svg class={`ondas ${clase} ${deriva ? `ondas-deriva ondas-d${i + 1}` : ''}`}
+       viewBox="0 0 1200 240" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    <g fill="none" stroke="currentColor" stroke-linecap="round">
+      {capa.map(c => <path d={c.d} stroke-width={c.w} opacity={c.o} />)}
+    </g>
+  </svg>
+))}

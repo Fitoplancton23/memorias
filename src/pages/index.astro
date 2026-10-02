@@ -170,7 +170,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
 
 
   <section class="envoltorio portada-texto">
-    <Ondas clase="ondas-portada" />
+    <Ondas clase="ondas-portada" deriva />
     <h1>Aristóbulo es una historia que se cuenta todo el tiempo</h1>
     <p class="bajada">
       Un archivo hecho con las fotografías y los relatos de los vecinos de
@@ -733,6 +733,22 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     for (const ev of ['gesturestart', 'gesturechange', 'gestureend'])
       lienzo.addEventListener(ev, e => e.preventDefault());
 
+    /* Las curvas de la portada sólo se mueven mientras se las ve. La portada
+       vive debajo del mapa y casi siempre está fuera de pantalla; dejar tres
+       animaciones corriendo ahí abajo es gastar batería en algo que nadie mira.
+       Sin IntersectionObserver —o si algo falla— quedan quietas, que es el
+       estado bueno. El margen negativo es necesario: con 0 el observador ya
+       cuenta como visible una franja que apenas toca el borde de la pantalla, y
+       la portada arranca justo en el pliegue, asi que la deriva corria desde el
+       primer instante sin que se viera nada. */
+    const portada = document.querySelector(".portada-texto");
+    if (portada && "IntersectionObserver" in window) {
+      new IntersectionObserver(
+        es => es.forEach(e => portada.classList.toggle("viva", e.isIntersecting)),
+        { rootMargin: "-40px" }
+      ).observe(portada);
+    }
+
     /* La capa de transición arranca cuando el isotipo se va, no antes: lo que
        se percibe es una sola secuencia. */
     const transicion = document.getElementById('transicion');
@@ -1162,7 +1178,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     .portada-texto { padding-top: 4.5rem; position: relative; }
     /* Invertidas: nacen del borde del mapa y bajan hacia el texto, como el
        terreno que sigue más allá del encuadre. */
-    .ondas-portada { top: 0; bottom: auto; height: 7rem; transform: scaleY(-1); opacity: .26; }
+    .ondas-portada { top: 0; bottom: auto; height: 9.5rem; transform: scaleY(-1); opacity: .26; }
     .portada-texto h1 { max-width: 20ch; }
     .puertas { display: grid; gap: 1px; background: var(--linea); border: 1px solid var(--linea);
                grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); margin: 2.5rem 0 3rem; }

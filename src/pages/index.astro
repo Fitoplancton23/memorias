@@ -571,7 +571,10 @@ const apellidosPortada = Object.entries(cuentaApellidos)
           : '') +
         '<div class="t-pie">' +
           '<a href="/memorias/' + encodeURIComponent(d.slug) + '/">Ver la memoria completa →</a>' +
-          (d.lugarSlug ? '<a href="/lugares/' + encodeURIComponent(d.lugarSlug) + '/">Más de ' + esc(d.lugar) + '</a>' : '') +
+          /* El nombre del lugar ya está dos líneas más arriba, en el encabezado
+             de la tarjeta: repetirlo acá hace un botón distinto en cada memoria
+             y con direcciones largas queda impresentable. */
+          (d.lugarSlug ? '<a href="/lugares/' + encodeURIComponent(d.lugarSlug) + '/">Más sobre este lugar</a>' : '') +
         '</div>';
 
       tarjeta.querySelector('.t-cerrar').addEventListener('click', cerrarMemoria);
@@ -877,7 +880,12 @@ const apellidosPortada = Object.entries(cuentaApellidos)
                font-size: .64rem; color: var(--tinta-2); }
     .credito a { color: inherit; border-bottom-color: var(--linea-viva); }
 
+    /* La ficha abierta está por encima de todo lo que hay en el mapa: no tenía
+       z-index propio, y cualquier cosa con uno positivo —los marcadores, la
+       pieza de memorias sin ubicar— le quedaba encima. Debajo del velo, que es
+       lo único que la tapa a propósito. */
     .mapa-ficha { position: absolute; left: 0; top: 0; width: 21rem; border-radius: 14px;
+                  z-index: 18;
                   max-width: calc(100vw - 2.2rem);
                   max-height: calc(100% - 7rem); overflow-y: auto; }
     /* La ficha va más liviana que el resto del vidrio a propósito: es la que

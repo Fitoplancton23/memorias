@@ -1,8 +1,11 @@
 ---
 import '../styles/tokens.css';
 import { demo, sinAprobar } from '../lib/datos.js';
+import { sitio, tituloSitio, parajes } from '../lib/sitio.js';
+import Isotipo from '../components/Isotipo.astro';
+import Ondas from '../components/Ondas.astro';
 const { titulo, descripcion, suelto = false } = Astro.props;
-const t = titulo ? `${titulo} · Memorias de mi pueblo` : 'Memorias de mi pueblo · Aristóbulo del Valle';
+const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
 ---
 <!doctype html>
 <html lang="es">
@@ -11,15 +14,28 @@ const t = titulo ? `${titulo} · Memorias de mi pueblo` : 'Memorias de mi pueblo
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{t}</title>
   {descripcion && <meta name="description" content={descripcion} />}
+  <link rel="icon" href="/icono.svg" type="image/svg+xml" />
+  <meta name="theme-color" content="#edf9f4" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600&display=swap" />
+  {/* Antes de pintar: si ya se vio la portada en esta visita, la pantalla de
+      carga no existe. Así moverse por el sitio no pasa por ella cada vez. */}
+  <script is:inline>
+    try { if (sessionStorage.getItem('memorias:visto')) document.documentElement.classList.add('sin-carga'); } catch (e) {}
+  </script>
 </head>
 <body>
+  <div class="cargando" id="cargando">
+    <Isotipo clase="cargando-marca" dibujable />
+    <span class="cargando-puntos" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="visualmente-oculto">Cargando {sitio.nombre}</span>
+  </div>
+
   {demo && (
     <div class="cinta-demo">
       Datos de <strong>demostración</strong>: las personas y los parentescos son inventados.
-      No son historia de Aristóbulo del Valle.
+      No son historia de {sitio.lugar}.
     </div>
   )}
   {sinAprobar > 0 && (
@@ -30,8 +46,11 @@ const t = titulo ? `${titulo} · Memorias de mi pueblo` : 'Memorias de mi pueblo
   <header class="sitio">
     <div class="envoltorio">
       <a class="marca" href="/">
-        Nuestra historia
-        <em>Aristóbulo del Valle · Salto Encantado · Cerro Moreno</em>
+        <Isotipo />
+        <span class="marca-texto">
+          <b>{sitio.nombre}</b>
+          <em>{parajes}</em>
+        </span>
       </a>
       <nav>
         <a href="/">Mapa</a>
@@ -49,10 +68,40 @@ const t = titulo ? `${titulo} · Memorias de mi pueblo` : 'Memorias de mi pueblo
   <main class={suelto ? "suelto" : "envoltorio"}><slot /></main>
   {!suelto && (
     <footer class="sitio">
+      <Ondas clase="ondas-pie" />
       <div class="envoltorio">
-        Archivo comunitario de Aristóbulo del Valle, Misiones · Material aportado por vecinas y vecinos.
+        Archivo comunitario de {sitio.lugar}, {sitio.provincia} · Material aportado por vecinas y vecinos.
       </div>
     </footer>
   )}
+
+  {/* is:inline a propósito: sin esto Astro lo mete en el bundle de la página,
+      que importa d3. La pantalla de carga no se podría ir hasta que bajaran
+      57 KB de JavaScript, que es exactamente al revés de lo que tiene que
+      pasar. Así son 400 bytes en el HTML y corre apenas se parsea. */}
+  <script is:inline>
+    /* La pantalla de carga no retrasa nada: se va en cuanto el sitio está, con
+       un piso para que el trazo del logo se llegue a leer y un techo para que
+       una conexión lenta no deje a nadie mirando un logo. Una sola vez por
+       visita. */
+    const capa = document.getElementById('cargando');
+    if (capa && !document.documentElement.classList.contains('sin-carga')) {
+      const esperar = ms => new Promise(r => setTimeout(r, ms));
+      const listo = new Promise(r => {
+        let hecho = false;
+        const ok = () => { if (!hecho) { hecho = true; r(); } };
+        addEventListener('mapa-listo', ok, { once: true });
+        if (document.readyState === 'complete') ok();
+        else addEventListener('load', ok, { once: true });
+      });
+      Promise.race([Promise.all([esperar(1150), listo]), esperar(2600)]).then(() => {
+        capa.classList.add('se-va');
+        try { sessionStorage.setItem('memorias:visto', '1'); } catch (e) {}
+        setTimeout(() => capa.remove(), 600);
+      });
+    } else if (capa) {
+      capa.remove();
+    }
+  </script>
 </body>
 </html>

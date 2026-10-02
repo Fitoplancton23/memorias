@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import { lugares, documentos, personas as personasTodas } from '../lib/datos.js';
 import { aNormalizado } from '../lib/proyeccion.js';
 import mapas from '../../public/mapa/mapa.json';
+import Ondas from '../components/Ondas.astro';
 
 /* El ejido, no el casco: de los once lugares relevados, tres caen fuera del
    casco urbano —los dos kilómetros de la ruta y Salto Encantado—. El archivo
@@ -161,6 +162,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
 
 
   <section class="envoltorio portada-texto">
+    <Ondas clase="ondas-portada" />
     <h1>La historia de un pueblo, contada por quienes la vivieron</h1>
     <p class="bajada">
       Un archivo hecho con las fotografías y los relatos de los vecinos de
@@ -234,8 +236,9 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         for (const hijo of Array.from(svg.childNodes))
           if (hijo.nodeType === 1 && hijo.nodeName !== 'metadata') base.appendChild(hijo);
         base.classList.add('listo');
+        dispatchEvent(new Event('mapa-listo'));
       })
-      .catch(() => { base.innerHTML = ''; });
+      .catch(() => { base.innerHTML = ''; dispatchEvent(new Event('mapa-listo')); });
 
     /* ---- marcadores ---- */
     const marcas = [...capa.querySelectorAll('.marca-mapa')].map(el => ({
@@ -747,7 +750,8 @@ const apellidosPortada = Object.entries(cuentaApellidos)
        con 100svh el alto del encabezado se sumaba y sobraba por abajo. El JS
        mide y escribe --alto-hero; el 100svh queda de red por si no corre. */
     .mapa-lienzo { position: relative; width: 100vw; margin-left: calc(50% - 50vw);
-                   height: var(--alto-hero, 100svh); overflow: hidden; background: #fbfdfc;
+                   height: var(--alto-hero, 100svh); overflow: hidden;
+                   background-color: #fbfdfc; background-image: var(--grano);
                    /* El gesto sobre el mapa es del mapa. Estaba sólo en el SVG,
                       y todo lo que flota encima —marcadores, recuento, ficha—
                       dejaba pasar el pellizco al navegador, que zoomeaba la
@@ -1051,7 +1055,10 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       .mapa-lienzo.con-ficha .mapa-ctrl { bottom: calc(55% + 1.4rem); }
     }
 
-    .portada-texto { padding-top: 3.5rem; }
+    .portada-texto { padding-top: 4.5rem; position: relative; }
+    /* Invertidas: nacen del borde del mapa y bajan hacia el texto, como el
+       terreno que sigue más allá del encuadre. */
+    .ondas-portada { top: 0; bottom: auto; height: 7rem; transform: scaleY(-1); opacity: .26; }
     .portada-texto h1 { max-width: 20ch; }
     .puertas { display: grid; gap: 1px; background: var(--linea); border: 1px solid var(--linea);
                grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); margin: 2.5rem 0 3rem; }

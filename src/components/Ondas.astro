@@ -1,0 +1,17 @@
+---
+/* Curvas de nivel: Aristóbulo del Valle está en la sierra central de Misiones,
+   entre lomadas y el arroyo Cuñá Pirú. No son ondas decorativas, son la forma
+   del terreno, y por eso van sólo en las secciones de texto —el mapa ya es la
+   geografía y encimarle líneas sería contarla dos veces.
+   Trazado estático: ni animación ni filtro, 600 bytes y cero costo de pintura. */
+const { clase = '' } = Astro.props;
+---
+<svg class={`ondas ${clase}`} viewBox="0 0 1200 240" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+  <g fill="none" stroke="currentColor" stroke-linecap="round">
+    <path d="M-20,196 C140,150 250,206 410,176 C580,144 690,196 860,164 C980,141 1100,168 1220,150" stroke-width="1.4" opacity=".55"/>
+    <path d="M-20,164 C150,112 260,176 420,142 C600,104 700,164 870,128 C990,103 1110,132 1220,112" stroke-width="1.2" opacity=".42"/>
+    <path d="M-20,132 C160,74 270,146 430,108 C620,64 710,132 880,92 C1000,65 1120,96 1220,74" stroke-width="1" opacity=".3"/>
+    <path d="M-20,100 C170,36 280,116 440,74 C640,24 720,100 890,56 C1010,27 1130,60 1220,36" stroke-width=".9" opacity=".2"/>
+    <path d="M-20,68 C180,-2 290,86 450,40 C660,-16 730,68 900,20 C1020,-11 1140,24 1220,-2" stroke-width=".8" opacity=".12"/>
+  </g>
+</svg>

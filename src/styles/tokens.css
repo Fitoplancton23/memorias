@@ -16,6 +16,7 @@
 
   /* --- tinta --- */
   --tinta: #181e1b;        /* el negro de la guía */
+  --marca: #374c3b;        /* el verde del isotipo */
   --tinta-2: #5c6b64;
 
   /* --- TIPO DE ENTIDAD · categórica validada -------------------
@@ -78,12 +79,21 @@
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
+/* El grano es una textura de papel, no una imagen: un filtro SVG embebido de
+   unos 250 bytes que el navegador repite. Sin pedido de red, sin capa flotante
+   que recomponer en cada scroll — es un fondo y nada más. Va muy por debajo del
+   umbral de lo que se ve como ruido: lo que hace es sacarle el plano al color. */
+:root {
+  --grano: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23g)' opacity='.055'/%3E%3C/svg%3E");
+}
+
 body {
+  background-image: var(--grano);
   margin: 0;
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
-  background: var(--fondo);
+  background-color: var(--fondo);
   color: var(--tinta);
   font-family: var(--texto);
   font-size: 15px;
@@ -103,11 +113,20 @@ main.suelto { flex: 1; min-height: 0; position: relative; }
 header.sitio, footer.sitio { flex: none; }
 
 header.sitio { border-bottom: 1px solid var(--linea); background: var(--panel); }
-header.sitio .envoltorio { padding-block: .85rem; display: flex; gap: 1.5rem; align-items: baseline; flex-wrap: wrap; }
-header.sitio .marca { font-size: .82rem; letter-spacing: .14em; text-transform: uppercase;
-                      border: 0; color: var(--tinta); line-height: 1.3; }
+header.sitio .envoltorio { padding-block: .8rem; display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+header.sitio .marca { display: inline-flex; align-items: center; gap: .6rem; border: 0; color: var(--tinta); }
+/* El nombre va como texto y no como el trazado del isologotipo: misma
+   tipografía, se puede seleccionar, lo lee un lector de pantalla, y ahorra los
+   8 KB de curvas que pesa la palabra dibujada. */
+header.sitio .marca-texto { display: block; line-height: 1.2; }
+header.sitio .marca b { display: block; font-weight: 500; font-size: 1.12rem;
+                        letter-spacing: -.01em; color: var(--marca); }
 header.sitio .marca em { display: block; font-style: normal; font-size: .62rem;
-                         letter-spacing: .08em; color: var(--tinta-2); }
+                         letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-2); }
+header.sitio .marca:hover b { color: var(--cursor); }
+
+.isotipo { display: block; width: 1.9rem; height: auto; flex: none; fill: var(--marca); }
+header.sitio .marca:hover .isotipo { fill: var(--cursor); }
 header.sitio nav { display: flex; gap: 1.25rem; font-size: .74rem; text-transform: uppercase; letter-spacing: .1em; margin-left: auto; }
 header.sitio nav a { border: 0; color: var(--tinta-2); }
 header.sitio nav a:hover { color: var(--cursor); }
@@ -138,8 +157,15 @@ h2 { font-weight: 500; font-size: 1.05rem; margin: 2.5rem 0 .75rem; text-transfo
 .listado li { padding: .55rem 0; border-bottom: 1px solid var(--linea); display: flex; gap: 1rem; justify-content: space-between; }
 .listado .anio { font-size: .78rem; color: var(--tinta-2); white-space: nowrap; }
 
-footer.sitio { border-top: 1px solid var(--linea); font-size: .74rem; color: var(--tinta-2); }
-footer.sitio .envoltorio { padding-block: 1.5rem; }
+footer.sitio { border-top: 1px solid var(--linea); font-size: .74rem; color: var(--tinta-2);
+               position: relative; overflow: hidden; }
+footer.sitio .envoltorio { padding-block: 1.5rem; position: relative; }
+
+/* Curvas de nivel: la sierra donde está el pueblo. Van detrás del texto y muy
+   bajas de tono — es textura de fondo, no un elemento que haya que mirar. */
+.ondas { position: absolute; inset: auto 0 0; width: 100%; height: 7rem;
+         color: var(--marca); opacity: .3; pointer-events: none; }
+.ondas-pie { bottom: -1.5rem; }
 
 /* --- LA PLACA: donde vive la memoria --- */
 .placa {
@@ -226,6 +252,49 @@ footer.sitio .envoltorio { padding-block: 1.5rem; }
 /* Con la memoria abierta la página de atrás no se mueve: el scroll estaría
    corriendo el mapa por debajo del vidrio. */
 body.con-memoria { overflow: hidden; }
+
+/* ============================================================
+   PANTALLA DE CARGA
+   Se dibuja el isotipo con el trazo y después se rellena. Todo
+   en línea: ni un pedido de red más, ni una línea de librería.
+   Se va en cuanto el sitio está, y una sola vez por visita.
+   ============================================================ */
+.cargando { position: fixed; inset: 0; z-index: 999; display: grid; place-items: center;
+            background-color: var(--fondo); background-image: var(--grano);
+            transition: opacity .45s ease, visibility .45s ease; }
+.cargando.se-va { opacity: 0; visibility: hidden; }
+html.sin-carga .cargando { display: none; }
+
+.cargando-marca { width: min(28vw, 190px); min-width: 110px;
+                  fill: var(--marca); fill-opacity: 0;
+                  stroke: var(--marca); stroke-width: 7;
+                  stroke-linecap: round; stroke-linejoin: round;
+                  /* pathLength="1" en el trazado: el dibujo deja de depender del
+                     largo real de la curva, que es un numero que habria que medir
+                     y que cambia si el logo cambia. */
+                  stroke-dasharray: 1; stroke-dashoffset: 1;
+                  animation: trazo 1.5s cubic-bezier(.65, 0, .25, 1) forwards,
+                             relleno .5s ease-out 1.25s forwards,
+                             respira 3.2s ease-in-out 1.9s infinite; }
+@keyframes trazo   { to { stroke-dashoffset: 0; } }
+@keyframes relleno { to { fill-opacity: 1; } }
+@keyframes respira { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.035); } }
+
+.cargando-puntos { position: absolute; bottom: 7vh; display: flex; gap: 7px; }
+.cargando-puntos i { width: 5px; height: 5px; border-radius: 50%; background: var(--marca);
+                     opacity: .25; animation: punto 1.2s ease-in-out infinite; }
+.cargando-puntos i:nth-child(2) { animation-delay: .16s; }
+.cargando-puntos i:nth-child(3) { animation-delay: .32s; }
+@keyframes punto { 0%, 100% { opacity: .2; transform: translateY(0); }
+                   50% { opacity: .8; transform: translateY(-3px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cargando-marca { animation: none; stroke-dashoffset: 0; fill-opacity: 1; }
+  .cargando-puntos i { animation: none; }
+}
+
+.visualmente-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden;
+                      clip-path: inset(50%); white-space: nowrap; }
 
 /* El mapa es el tronco de la navegación: desde cualquier página se vuelve a
    él, y se vuelve al lugar donde se lo dejó. Va arriba y pegajoso: aparece

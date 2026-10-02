@@ -1,0 +1,483 @@
+---
+/* El panel de carga.
+   -------------------------------------------------------------------------
+   Es una superficie distinta del sitio: no lleva el encabezado público ni el
+   pie, porque quien entra acá no está visitando el archivo, está trabajando.
+
+   La página es estática y pública —cualquiera puede abrir /panel/— y eso está
+   bien: sin sesión iniciada no puede escribir una sola fila. Lo que protege la
+   base es la RLS, no esconder la URL.
+
+   El formulario es un paso por pantalla. No es una decisión estética: una
+   memoria tiene foto, fecha, lugar, gente, origen y vínculos, y todo junto en
+   una pantalla son treinta campos que nadie llena dos veces. De a uno, cada
+   paso es una pregunta con una respuesta.
+
+   Y casi todos los pasos se pueden saltear, porque una memoria incompleta
+   sigue siendo una memoria. Lo único que el archivo exige es un título: algo
+   que nombre lo que se está guardando.                                      */
+import '../../styles/tokens.css';
+import Isotipo from '../../components/Isotipo.astro';
+import { tituloSitio } from '../../lib/sitio.js';
+---
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Cargar una memoria · {tituloSitio}</title>
+  <link rel="icon" href="/icono.svg" type="image/svg+xml" />
+</head>
+<body class="panel">
+
+  <header class="barra">
+    <span class="barra-marca"><Isotipo /> Cargar una memoria</span>
+    <span class="barra-der">
+      <span id="quien" class="quien"></span>
+      <button type="button" id="salir" class="enlace" hidden>Cerrar sesión</button>
+    </span>
+  </header>
+
+  <!-- ---------------------------------------------------------------- -->
+  <!-- Ingreso                                                           -->
+  <!-- ---------------------------------------------------------------- -->
+  <main id="ingreso" class="centro" hidden>
+    <form class="tarjeta angosta" id="formIngreso">
+      <h1>Entrar</h1>
+      <p class="ayuda">Con el correo y la contraseña que te dieron para el archivo.</p>
+      <label>Correo
+        <input type="email" id="email" autocomplete="username" required />
+      </label>
+      <label>Contraseña
+        <input type="password" id="clave" autocomplete="current-password" required />
+      </label>
+      <p class="error" id="errIngreso" hidden></p>
+      <button class="principal" type="submit">Entrar</button>
+    </form>
+  </main>
+
+  <!-- ---------------------------------------------------------------- -->
+  <!-- Bandeja                                                           -->
+  <!-- ---------------------------------------------------------------- -->
+  <main id="bandeja" class="ancho" hidden>
+    <div class="bandeja-cabeza">
+      <h1>Memorias</h1>
+      <button type="button" class="principal" id="nueva">Cargar una memoria</button>
+    </div>
+
+    <div class="filtros" role="tablist">
+      <button type="button" class="filtro activo" data-estado="pendiente">Sin revisar</button>
+      <button type="button" class="filtro" data-estado="aprobada">Publicadas</button>
+    </div>
+
+    <p class="error" id="errBandeja" hidden></p>
+    <ul class="lista" id="lista"></ul>
+    <p class="vacio" id="vacio" hidden></p>
+
+    <div class="publicar" id="zonaPublicar" hidden>
+      <div>
+        <strong>Publicar al sitio</strong>
+        <p class="ayuda">Lo aprobado aparece en el sitio unos minutos después.</p>
+      </div>
+      <button type="button" id="publicar">Publicar</button>
+    </div>
+  </main>
+
+  <!-- ---------------------------------------------------------------- -->
+  <!-- El asistente                                                      -->
+  <!-- ---------------------------------------------------------------- -->
+  <main id="asistente" class="ancho" hidden>
+
+    <nav class="pasos" id="pasos" aria-label="Pasos"></nav>
+
+    <!-- 1 · la foto -->
+    <section class="paso" data-paso="foto">
+      <h2>¿Tenés la foto?</h2>
+      <p class="ayuda">Se achica sola antes de subirse, así que podés usar el archivo original tal como vino.</p>
+
+      <label class="soltar" id="soltar">
+        <input type="file" id="archivo" accept="image/*" hidden />
+        <span id="soltarTexto">Elegir una imagen, o arrastrarla acá</span>
+        <img id="previa" alt="" hidden />
+      </label>
+      <p class="ayuda" id="pesoFoto" hidden></p>
+
+      <p class="saltear">
+        <button type="button" class="enlace" data-saltear>Esta memoria no tiene foto</button>
+        — un relato sin imagen también es una memoria.
+      </p>
+    </section>
+
+    <!-- 2 · qué pasó -->
+    <section class="paso" data-paso="que" hidden>
+      <h2>¿Qué es lo que estamos guardando?</h2>
+      <label>Un título
+        <input type="text" id="titulo" maxlength="160"
+               placeholder="Pedro y Patricia frente a la vieja terminal" />
+      </label>
+      <p class="ayuda">Lo único que el archivo pide sí o sí. Alcanza con nombrar lo que se ve.</p>
+
+      <label>Lo que se sabe
+        <textarea id="descripcion" rows="6"
+                  placeholder="Quién lo contó, qué estaba pasando, lo que haya."></textarea>
+      </label>
+      <p class="ayuda">Si te mandaron un relato escrito, pegalo entero acá. Es lo que después hace que el buscador lo encuentre.</p>
+    </section>
+
+    <!-- 3 · cuándo -->
+    <section class="paso" data-paso="cuando" hidden>
+      <h2>¿Cuándo fue?</h2>
+      <label>Escribilo como te lo dijeron
+        <input type="text" id="fecha" placeholder="1989 · 31/03/1989 · 1960 aprox · década del 60" />
+      </label>
+      <p class="lectura" id="lecturaFecha"></p>
+
+      <details class="guia">
+        <summary>Cómo se puede escribir</summary>
+        <table>
+          <tr><td><code>1966</code></td><td>ese año exacto</td></tr>
+          <tr><td><code>1960 aprox</code></td><td>alrededor de ese año</td></tr>
+          <tr><td><code>1985/86</code> · <code>1940-1948</code></td><td>entre esos dos años</td></tr>
+          <tr><td><code>31/03/1989</code></td><td>ese día</td></tr>
+          <tr><td><code>década del 60</code></td><td>esa década entera</td></tr>
+          <tr><td><code>pendiente</code></td><td>no se sabe</td></tr>
+        </table>
+      </details>
+
+      <p class="saltear">
+        <button type="button" class="enlace" data-saltear>No se sabe cuándo</button>
+        — es mejor dejarlo en blanco que poner un año inventado. El sitio muestra la duda.
+      </p>
+    </section>
+
+    <!-- 4 · dónde -->
+    <section class="paso" data-paso="donde" hidden>
+      <h2>¿Dónde ocurrió?</h2>
+      <p class="ayuda">Un lugar junta todas las memorias que pasaron ahí, de todos los años. Buscá primero: puede que ya exista.</p>
+
+      <input type="search" id="buscarLugar" placeholder="Buscar un lugar ya cargado" autocomplete="off" />
+      <ul class="sugerencias" id="sugLugar"></ul>
+
+      <div class="elegido" id="lugarElegido" hidden>
+        <span id="lugarNombre"></span>
+        <button type="button" class="enlace" id="quitarLugar">cambiar</button>
+      </div>
+
+      <details class="alta" id="altaLugar">
+        <summary>El lugar todavía no está: crearlo</summary>
+        <label>Cómo se llama
+          <input type="text" id="nuevoLugar" placeholder="Vieja terminal de ómnibus" />
+        </label>
+        <label>Qué es
+          <input type="text" id="nuevoLugarTipo" placeholder="plaza, escuela, comercio, chacra…" />
+        </label>
+        <p class="ayuda">Marcá el punto en el mapa, o pegá las coordenadas si ya las tenés.</p>
+        <div class="mapa-elegir" id="mapaElegir">
+          <div class="mapa-lienzo" id="mapaLienzo"></div>
+          <div class="mapa-pie">
+            <input type="text" id="coords" placeholder="-27.097560, -54.895361" />
+            <button type="button" id="crearLugar">Crear el lugar</button>
+          </div>
+        </div>
+      </details>
+
+      <p class="saltear">
+        <button type="button" class="enlace" data-saltear>No se sabe dónde</button>
+        — queda entre las memorias sin ubicación, que el sitio muestra igual.
+      </p>
+    </section>
+
+    <!-- 5 · quiénes -->
+    <section class="paso" data-paso="quienes" hidden>
+      <h2>¿Quiénes aparecen?</h2>
+      <p class="ayuda">Buscá por nombre o por apodo. Si la persona no está, se crea acá mismo sin salir del formulario.</p>
+
+      <input type="search" id="buscarPersona" placeholder="Buscar o escribir un nombre" autocomplete="off" />
+      <ul class="sugerencias" id="sugPersona"></ul>
+
+      <ul class="fichas" id="fichasPersonas"></ul>
+      <p class="ayuda" id="ayudaConfianza" hidden>
+        Marcá <em>segura</em> sólo si quien aportó la memoria la nombró. Si la reconociste vos, dejala en <em>probable</em>: el sitio dibuja la diferencia.
+      </p>
+
+      <p class="saltear">
+        <button type="button" class="enlace" data-saltear>No se sabe quiénes son</button>
+      </p>
+    </section>
+
+    <!-- 6 · vínculos -->
+    <section class="paso" data-paso="vinculos" hidden>
+      <h2>¿Esta memoria dice algo más?</h2>
+      <p class="aviso">
+        Que dos personas aparezcan juntas <strong>no</strong> dice que sean parientes: dice que
+        existe una memoria que las relaciona, que ya es bastante. El parentesco se carga acá
+        sólo si vos lo sabés.
+      </p>
+
+      <div class="bloque" id="bloquePareja" hidden>
+        <h3>Una pareja</h3>
+        <p class="ayuda">Si estas dos personas fueron pareja, marcalo y el archivo las va a dibujar juntas.</p>
+        <label class="casilla"><input type="checkbox" id="esPareja" /> <span id="textoPareja"></span></label>
+      </div>
+
+      <div class="bloque">
+        <h3>Un acontecimiento</h3>
+        <p class="ayuda">Un casamiento, una inundación, la inauguración de algo. Varias memorias pueden colgar del mismo.</p>
+        <input type="search" id="buscarAcont" placeholder="Buscar un acontecimiento" autocomplete="off" />
+        <ul class="sugerencias" id="sugAcont"></ul>
+        <div class="elegido" id="acontElegido" hidden>
+          <span id="acontNombre"></span>
+          <button type="button" class="enlace" id="quitarAcont">cambiar</button>
+        </div>
+        <details class="alta">
+          <summary>Crear uno nuevo</summary>
+          <label>Cómo se llama
+            <input type="text" id="nuevoAcont" placeholder="Casamiento de Pedro y Patricia" />
+          </label>
+          <button type="button" id="crearAcont">Crear el acontecimiento</button>
+        </details>
+      </div>
+    </section>
+
+    <!-- 7 · de dónde viene -->
+    <section class="paso" data-paso="origen" hidden>
+      <h2>¿Quién la aportó?</h2>
+      <p class="ayuda">El crédito va publicado en el sitio. No se saltea: es lo que sostiene que la gente siga mandando material.</p>
+      <label>Quién la mandó
+        <input type="text" id="aportante" placeholder="Familia Escarban" />
+      </label>
+      <label>Link al posteo original, si lo hay
+        <input type="url" id="fuente" placeholder="https://facebook.com/..." />
+      </label>
+      <label class="casilla">
+        <input type="checkbox" id="permiso" />
+        Quien la aportó sabe que se publica en el archivo.
+      </label>
+    </section>
+
+    <!-- 8 · revisar -->
+    <section class="paso" data-paso="revisar" hidden>
+      <h2>Antes de guardar</h2>
+      <dl class="resumen" id="resumen"></dl>
+      <p class="ayuda" id="faltan"></p>
+      <p class="error" id="errGuardar" hidden></p>
+      <p class="listo" id="listo" hidden></p>
+    </section>
+
+    <!-- barra de avance -->
+    <div class="pie">
+      <button type="button" id="atras" class="enlace">Atrás</button>
+      <span class="cuenta" id="cuenta"></span>
+      <button type="button" id="siguiente" class="principal">Siguiente</button>
+    </div>
+  </main>
+
+  <p class="sinconfig" id="sinconfig" hidden>
+    El panel no tiene configurada la conexión con la base.
+    Faltan <code>PUBLIC_SUPABASE_URL</code> y <code>PUBLIC_SUPABASE_KEY</code>.
+  </p>
+
+  <script>
+    import { arrancar } from '../../lib/panel/panel.js';
+    arrancar();
+  </script>
+
+  <style is:global>
+    /* El panel usa la paleta del sitio pero no su maquetación: es una
+       herramienta de trabajo, con campos grandes y una sola columna. */
+    body.panel { background-color: var(--fondo); background-image: var(--grano);
+                 color: var(--tinta); font-family: var(--texto); margin: 0;
+                 min-height: 100svh; display: flex; flex-direction: column; }
+
+    .barra { display: flex; align-items: center; justify-content: space-between;
+             gap: 1rem; padding: .7rem 1.2rem; border-bottom: 1px solid var(--linea);
+             background: var(--panel); position: sticky; top: 0; z-index: 5; }
+    .barra-marca { display: flex; align-items: center; gap: .55rem; font-weight: 500; }
+    .barra-marca svg { width: 1.6rem; height: 1.6rem; color: var(--marca); }
+    .barra-der { display: flex; align-items: center; gap: .9rem; font-size: .85rem; }
+    .quien { color: var(--tinta-2); }
+
+    .centro { flex: 1; display: grid; place-items: center; padding: 2rem 1.2rem; }
+    .ancho { flex: 1; width: 100%; max-width: 44rem; margin: 0 auto;
+             padding: 2rem 1.2rem 7rem; }
+    .angosta { max-width: 22rem; }
+
+    h1 { font-size: 1.5rem; font-weight: 500; margin: 0 0 .4rem; }
+    h2 { font-size: 1.35rem; font-weight: 500; margin: 0 0 .5rem; line-height: 1.25; }
+    h3 { font-size: 1rem; font-weight: 500; margin: 0 0 .3rem; }
+
+    .tarjeta { background: var(--panel); border: 1px solid var(--linea);
+               border-radius: .7rem; padding: 1.6rem; width: 100%; }
+
+    label { display: block; margin: 1rem 0 0; font-size: .9rem; color: var(--tinta-2); }
+    input[type=text], input[type=email], input[type=password], input[type=url],
+    input[type=search], textarea {
+      display: block; width: 100%; margin-top: .3rem; padding: .7rem .8rem;
+      font: inherit; font-size: 1rem; color: var(--tinta);
+      background: var(--placa); border: 1px solid var(--linea-viva);
+      border-radius: .45rem; }
+    input:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--marca); outline-offset: 1px; }
+    textarea { resize: vertical; line-height: 1.5; }
+
+    .casilla { display: flex; align-items: flex-start; gap: .55rem; margin-top: 1rem;
+               color: var(--tinta); font-size: .95rem; }
+    .casilla input { margin-top: .2rem; flex: none; }
+
+    button { font: inherit; cursor: pointer; }
+    .principal { background: var(--marca); color: #fff; border: 0;
+                 padding: .7rem 1.4rem; border-radius: .45rem; font-size: 1rem; }
+    .principal:disabled { opacity: .45; cursor: default; }
+    .enlace { background: 0; border: 0; color: var(--marca); padding: 0;
+              text-decoration: underline; text-underline-offset: 3px; font-size: inherit; }
+
+    .ayuda { color: var(--tinta-2); font-size: .85rem; line-height: 1.5; margin: .45rem 0 0; }
+    .error { color: var(--anomalia); font-size: .9rem; margin: .9rem 0 0; }
+    .listo { color: var(--tipo-persona); font-size: .95rem; margin: .9rem 0 0; }
+    .saltear { margin-top: 1.6rem; padding-top: 1.1rem; border-top: 1px solid var(--linea);
+               color: var(--tinta-2); font-size: .85rem; line-height: 1.6; }
+    .aviso { background: var(--panel); border-left: 3px solid var(--tipo-evento);
+             padding: .8rem 1rem; font-size: .88rem; line-height: 1.55;
+             color: var(--tinta-2); margin: 0 0 1.4rem; }
+
+    /* --- bandeja --- */
+    .bandeja-cabeza { display: flex; align-items: center; justify-content: space-between;
+                      gap: 1rem; flex-wrap: wrap; margin-bottom: 1.4rem; }
+    .filtros { display: flex; gap: 1.2rem; border-bottom: 1px solid var(--linea);
+               margin-bottom: 1rem; }
+    .filtro { background: 0; border: 0; border-bottom: 2px solid transparent;
+              padding: .5rem 0; color: var(--tinta-2); }
+    .filtro.activo { color: var(--tinta); border-bottom-color: var(--marca); }
+
+    .lista { list-style: none; margin: 0; padding: 0; }
+    .lista li { display: flex; align-items: center; gap: .9rem; padding: .8rem 0;
+                border-bottom: 1px solid var(--linea); }
+    .lista img { width: 3.2rem; height: 3.2rem; object-fit: cover; border-radius: .3rem;
+                 flex: none; background: var(--panel-2); }
+    .lista .sinfoto { width: 3.2rem; height: 3.2rem; border-radius: .3rem; flex: none;
+                      background: var(--panel-2); }
+    .lista b { font-weight: 500; display: block; }
+    .lista small { color: var(--tinta-2); }
+    .lista .crece { flex: 1; min-width: 0; }
+    .vacio { color: var(--tinta-2); padding: 2.5rem 0; text-align: center; }
+
+    .publicar { display: flex; align-items: center; justify-content: space-between;
+                gap: 1rem; flex-wrap: wrap; margin-top: 2.5rem; padding: 1.1rem 1.2rem;
+                background: var(--panel); border: 1px solid var(--linea); border-radius: .7rem; }
+    .publicar button { background: 0; border: 1px solid var(--marca); color: var(--marca);
+                       padding: .6rem 1.2rem; border-radius: .45rem; }
+
+    /* --- asistente --- */
+    .pasos { display: flex; gap: .3rem; margin-bottom: 1.8rem; }
+    .pasos span { height: 3px; flex: 1; background: var(--linea); border-radius: 2px; }
+    .pasos span.hecho { background: var(--marca); }
+    .pasos span.actual { background: var(--linea-viva); }
+
+    .paso { animation: entra .25s ease; }
+    @keyframes entra { from { opacity: 0; transform: translateY(6px); } }
+    @media (prefers-reduced-motion: reduce) { .paso { animation: none; } }
+
+    .pie { position: fixed; left: 0; right: 0; bottom: 0; display: flex;
+           align-items: center; justify-content: space-between; gap: 1rem;
+           padding: .9rem 1.2rem; background: var(--panel);
+           border-top: 1px solid var(--linea); }
+    .pie > * { flex: none; }
+    .cuenta { color: var(--tinta-2); font-size: .82rem; }
+
+    /* --- foto --- */
+    .soltar { display: grid; place-items: center; gap: .6rem; min-height: 13rem;
+              margin-top: 1rem; padding: 1.2rem; text-align: center; cursor: pointer;
+              border: 1px dashed var(--linea-viva); border-radius: .6rem;
+              background: var(--panel); color: var(--tinta-2); font-size: .9rem; }
+    .soltar.encima { border-color: var(--marca); background: var(--panel-2); }
+    .soltar img { max-width: 100%; max-height: 22rem; border-radius: .35rem; }
+
+    /* --- búsquedas --- */
+    .sugerencias { list-style: none; margin: .4rem 0 0; padding: 0; }
+    .sugerencias li { padding: .55rem .7rem; border: 1px solid var(--linea);
+                      border-bottom: 0; background: var(--placa); cursor: pointer; }
+    .sugerencias li:last-child { border-bottom: 1px solid var(--linea); }
+    .sugerencias li:hover, .sugerencias li[aria-selected=true] { background: var(--panel-2); }
+    .sugerencias small { color: var(--tinta-2); margin-left: .4rem; }
+
+    .elegido { display: flex; align-items: center; justify-content: space-between;
+               gap: 1rem; margin-top: .8rem; padding: .7rem .9rem; background: var(--panel);
+               border: 1px solid var(--linea-viva); border-radius: .45rem; }
+
+    .fichas { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .5rem; }
+    .fichas li { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
+                 padding: .6rem .8rem; background: var(--panel);
+                 border: 1px solid var(--linea); border-radius: .45rem; }
+    .fichas .crece { flex: 1; min-width: 8rem; }
+    .fichas select { font: inherit; font-size: .8rem; padding: .25rem .4rem;
+                     border: 1px solid var(--linea-viva); border-radius: .3rem;
+                     background: var(--placa); color: var(--tinta); }
+    .fichas .nueva { font-size: .72rem; color: var(--tipo-persona);
+                     text-transform: uppercase; letter-spacing: .08em; }
+
+    .alta { margin-top: 1.2rem; border: 1px solid var(--linea); border-radius: .5rem;
+            background: var(--panel); }
+    .alta > summary { padding: .7rem .9rem; cursor: pointer; font-size: .9rem; }
+    .alta[open] > summary { border-bottom: 1px solid var(--linea); }
+    .alta > :not(summary) { margin-inline: .9rem; }
+    .alta > :last-child { margin-bottom: .9rem; }
+    .alta button { margin-top: 1rem; background: var(--marca); color: #fff; border: 0;
+                   padding: .55rem 1.1rem; border-radius: .4rem; }
+
+    .guia { margin-top: 1.2rem; font-size: .85rem; color: var(--tinta-2); }
+    .guia summary { cursor: pointer; }
+    .guia table { border-collapse: collapse; margin-top: .6rem; }
+    .guia td { padding: .22rem .9rem .22rem 0; }
+    code { background: var(--panel-2); padding: .1rem .35rem; border-radius: .25rem;
+           font-family: ui-monospace, monospace; font-size: .92em; }
+
+    .lectura { margin-top: .6rem; font-size: .92rem; min-height: 1.4em; }
+    .lectura.si { color: var(--tipo-persona); }
+    .lectura.duda { color: var(--tipo-evento); }
+
+    .mapa-elegir { margin-top: .8rem; }
+    .mapa-lienzo { position: relative; aspect-ratio: var(--prop, 1);
+                   border: 1px solid var(--linea-viva); border-radius: .4rem;
+                   overflow: hidden; background: var(--panel-2); cursor: crosshair; }
+    .mapa-lienzo svg { width: 100%; height: 100%; display: block; }
+    /* El .svg del mapa trae la geometría pero no los colores: en el sitio los
+       pone el CSS de la página del mapa, así que acá hay que repetirlos o el
+       dibujo sale negro. Es la misma paleta, más floja: acá el mapa no es el
+       contenido, es una referencia para marcar un punto. */
+    .mapa-lienzo #fondo    { fill: #fbfdfc; }
+    .mapa-lienzo #verde    { fill: rgba(15, 143, 103, .13); }
+    .mapa-lienzo #agua     { fill: rgba(41, 171, 226, .24); stroke: rgba(41, 171, 226, .45); stroke-width: 1; }
+    .mapa-lienzo #cursos   { stroke: rgba(41, 171, 226, .55); stroke-width: 1.5; fill: none; }
+    .mapa-lienzo #manzanas { fill: rgba(24, 30, 27, .05); stroke: rgba(24, 30, 27, .15); stroke-width: .65; }
+    .mapa-lienzo #edificios{ fill: rgba(24, 30, 27, .12); }
+    .mapa-lienzo #caminos  { stroke: rgba(24, 30, 27, .2); stroke-width: .8; stroke-dasharray: 4 3; fill: none; }
+    .mapa-lienzo #calles   { stroke: rgba(24, 30, 27, .3); stroke-width: 1.2; fill: none; }
+    .mapa-lienzo #rutas    { stroke: rgba(24, 30, 27, .48); stroke-width: 2.4; fill: none; }
+    .mapa-lienzo .pin { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px;
+                        border-radius: 50%; background: var(--cursor);
+                        box-shadow: 0 0 0 3px rgba(255,255,255,.85); pointer-events: none; }
+    .mapa-pie { display: flex; gap: .6rem; margin-top: .7rem; flex-wrap: wrap; }
+    .mapa-pie input { flex: 1; min-width: 12rem; margin-top: 0; }
+    .mapa-pie button { margin-top: 0; background: var(--marca); color: #fff; border: 0;
+                       padding: .55rem 1.1rem; border-radius: .4rem; }
+
+    .bloque { margin-top: 1.8rem; }
+
+    .resumen { margin: 1.2rem 0 0; display: grid; grid-template-columns: auto 1fr;
+               gap: .55rem 1.1rem; font-size: .92rem; }
+    .resumen dt { color: var(--tinta-2); }
+    .resumen dd { margin: 0; }
+    .resumen .falta { color: var(--tipo-evento); }
+
+    .sinconfig { margin: 3rem auto; max-width: 30rem; text-align: center;
+                 color: var(--tinta-2); line-height: 1.6; }
+
+    @media (max-width: 30rem) {
+      .ancho { padding-inline: .9rem; }
+      .resumen { grid-template-columns: 1fr; gap: .15rem .9rem; }
+      .resumen dd { margin-bottom: .5rem; }
+    }
+  </style>
+</body>
+</html>

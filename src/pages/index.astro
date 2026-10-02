@@ -163,7 +163,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
 
   <section class="envoltorio portada-texto">
     <Ondas clase="ondas-portada" />
-    <h1>La historia de un pueblo, contada por quienes la vivieron</h1>
+    <h1>Aristóbulo es una historia que se cuenta todo el tiempo</h1>
     <p class="bajada">
       Un archivo hecho con las fotografías y los relatos de los vecinos de
       Aristóbulo del Valle, Salto Encantado y Cerro Moreno. Cada memoria se
@@ -235,15 +235,49 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         const svg = doc.documentElement;
         for (const hijo of Array.from(svg.childNodes))
           if (hijo.nodeType === 1 && hijo.nodeName !== 'metadata') base.appendChild(hijo);
-        base.classList.add('listo');
+        /* pathLength en el atributo: el dibujo deja de depender del largo real
+           de cada curva y, sobre todo, no hay que medirlo. */
+        for (const el of base.querySelectorAll('#rutas > *, #cursos > *'))
+          el.setAttribute('pathLength', '1');
+        base.classList.add('listo', 'trazando');
+        capa.classList.add('listo');
         dispatchEvent(new Event('mapa-listo'));
       })
-      .catch(() => { base.innerHTML = ''; dispatchEvent(new Event('mapa-listo')); });
+      .catch(() => {
+        /* Sin base no hay mapa, pero los marcadores tienen que aparecer igual. */
+        base.innerHTML = '';
+        capa.classList.add('listo');
+        dispatchEvent(new Event('mapa-listo'));
+      });
 
     /* ---- marcadores ---- */
     const marcas = [...capa.querySelectorAll('.marca-mapa')].map(el => ({
       el, rotulo: el.querySelector('.rotulo'), p: porSlug[el.dataset.slug],
     })).filter(m => m.p).sort((a, b) => b.p.n - a.p.n);
+    marcas.forEach((m, i) => m.el.style.setProperty('--orden', i));
+
+    /* Cada lugar tiene su propio zoom a partir del cual muestra la foto, y ese
+       número sale de cuán apretado está: la distancia al vecino más cercano.
+       Antes la forma la decidía una colisión calculada en cada cuadro, y por eso
+       no se sentía ninguna regla —dos marcadores al mismo zoom podían estar en
+       estados distintos sin nada visible que lo explicara—. Ahora es una sola
+       regla y se lee: al acercarse, las fotos van apareciendo de la más aislada
+       a la más apretada, siempre en el mismo orden y siempre en el mismo punto. */
+    function umbrales() {
+      for (const m of marcas) {
+        if (!m.p.foto) { m.p.kFoto = Infinity; continue; }
+        let cerca = Infinity;
+        for (const o of marcas) {
+          if (o === m) continue;
+          const d = Math.hypot(o.p.cx - m.p.cx, o.p.cy - m.p.cy);
+          if (d < cerca) cerca = d;
+        }
+        if (!isFinite(cerca)) { m.p.kFoto = 0; continue; }
+        /* Lo que la foto necesita en pantalla: su radio, el del vecino y aire. */
+        const necesita = m.p.d / 2 + 22;
+        m.p.kFoto = Math.max(0, necesita / (cerca * razon));
+      }
+    }
 
     /* El mapa es el tronco de la navegación: se vuelve a él donde se lo dejó,
        no al encuadre inicial. Se guarda en sessionStorage —dura lo que dura la
@@ -281,6 +315,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     function medirTodo() {
       medir();
       limitar();
+      umbrales();
       const r = lienzo.getBoundingClientRect();
       const arriba = Math.max(0, r.top + window.scrollY);
       document.documentElement.style.setProperty('--alto-hero',
@@ -305,9 +340,18 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         const grande = m.p.d / 2, chico = m.p.dPunto / 2;
         let radio = chico;
         if (m.p.foto) {
-          const pisa = circulos.some(q => Math.hypot(q.x - x, q.y - y) < q.r + grande - 2);
-          m.el.classList.toggle('chico', pisa);
-          radio = pisa ? chico : grande;
+          const conFoto = t.k >= m.p.kFoto;
+          m.el.classList.toggle('chico', !conFoto);
+          if (conFoto) radio = grande;
+          else {
+            /* El punto no espera quieto a su umbral: crece a medida que el zoom
+               se le acerca, y casi todo ese crecimiento ocurre justo antes de
+               abrirse. Eso es lo que convierte el cambio en algo anunciado en
+               vez de un salto: cuando la foto aparece, el punto ya venía
+               diciendo que iba a aparecer. */
+            const avance = m.p.kFoto > 0 ? Math.min(1, t.k / m.p.kFoto) : 1;
+            radio = chico + (grande - chico) * Math.pow(avance, 4) * .4;
+          }
         }
         m.el.style.setProperty('--d', (radio * 2) + 'px');
         circulos.push({ x, y, r: radio });
@@ -329,7 +373,6 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         m.rotulo.style.display = choca ? 'none' : '';
         if (!choca) puestos.push(caja);
       }
-      capa.classList.add('listo');
     }
 
     /* ---- zoom ---- */
@@ -765,8 +808,41 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     #mapa { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
     #mapa:active { cursor: grabbing; }
 
-    #base { opacity: 0; transition: opacity .6s ease; }
-    #base.listo { opacity: 1; }
+    /* El mapa se dibuja por capas, en el orden en que se dibuja un mapa:
+       primero el suelo, después el agua, después lo construido, y al final los
+       caminos. Son ocho opacidades escalonadas.
+
+       Dibujarlo ENTERO trazo por trazo como el isotipo no se puede: de los
+       4.411 elementos, 2.733 son áreas rellenas —manzanas, edificios, verde,
+       agua— que no tienen línea que dibujar, y animar las 1.444 restantes es
+       dos órdenes de magnitud más caro en pintura.
+
+       Lo que sí se dibuja son las rutas y los cursos de agua: 206 trazados, el
+       esqueleto del territorio y lo que explica dónde se asentó el pueblo.
+       Primero la geografía, después el pueblo. Se usa el atributo pathLength
+       en vez de getTotalLength para no medir ni una curva: medirlas obligaría
+       a 206 lecturas de layout sincrónicas. */
+    #base > g { opacity: 0; transition: opacity .55s ease; }
+    #base.listo > g { opacity: 1; }
+    #base.listo #fondo    { transition-delay: 0s; }
+    #base.listo #verde    { transition-delay: .09s; }
+    #base.listo #agua     { transition-delay: .18s; }
+    #base.listo #cursos   { transition-delay: .24s; }
+    #base.listo #manzanas { transition-delay: .33s; }
+    #base.listo #edificios{ transition-delay: .39s; }
+    #base.listo #caminos  { transition-delay: .48s; }
+    #base.listo #calles   { transition-delay: .54s; }
+    #base.listo #rutas    { transition-delay: .62s; }
+
+    /* El dibujo de lo que tiene línea. fill-mode both en las dos: si la base
+       nunca llega a cargarse, ninguna regla deja nada escondido. */
+    #base.trazando #cursos > * { stroke-dasharray: 1; animation: trazar 1.5s ease-out .25s both; }
+    #base.trazando #rutas  > * { stroke-dasharray: 1; animation: trazar 1.7s ease-out .6s both; }
+    @keyframes trazar { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+    @media (prefers-reduced-motion: reduce) {
+      #base.trazando #cursos > *, #base.trazando #rutas > * {
+        animation: none; stroke-dasharray: none; }
+    }
     /* Los trazos de la base no engordan al acercarse: una calle es una calle,
        no un dato que crece. Sin esto, a zoom 10 las calles son bandas. */
     #base path, #base polyline, #base line { vector-effect: non-scaling-stroke; }
@@ -787,15 +863,25 @@ const apellidosPortada = Object.entries(cuentaApellidos)
        Son HTML por encima del dibujo, no SVG: backdrop-filter se computa sobre
        un elemento SVG pero no pinta nada, y sin él no hay vidrio. No escalan
        con el zoom —son datos, no geografía—: el JS sólo les mueve la posición. */
-    .capa-marcas { position: absolute; inset: 0; pointer-events: none;
-                   opacity: 0; transition: opacity .45s ease; }
-    .capa-marcas.listo { opacity: 1; }
+    .capa-marcas { position: absolute; inset: 0; pointer-events: none; }
+    /* Entran cuando el mapa ya está, de a uno y empezando por el lugar con más
+       memorias: la foto crece desde el punto, que es de donde viene. */
+    .marca-mapa { opacity: 0; transition: opacity .4s ease; }
+    .capa-marcas.listo .marca-mapa { opacity: 1; transition-delay: calc(var(--orden, 0) * 55ms + .7s); }
+    .marca-mapa .lente { transform: scale(.55); }
+    .capa-marcas.listo .marca-mapa .lente {
+      transform: none;
+      transition: transform .5s cubic-bezier(.2, 1.3, .4, 1),
+                  box-shadow .25s ease, background .25s ease;
+      transition-delay: calc(var(--orden, 0) * 55ms + .7s), 0s, 0s; }
 
     .marca-mapa { --d: 44px; position: absolute; left: 0; top: 0;
              width: var(--d); height: var(--d); padding: 0; border: 0;
              background: none; cursor: pointer; pointer-events: auto;
-             transition: width .3s cubic-bezier(.22, 1, .36, 1),
-                         height .3s cubic-bezier(.22, 1, .36, 1); }
+             /* Corta: el radio cambia en cada cuadro del zoom, y una
+                transición larga iría siempre atrasada. */
+             transition: width .18s cubic-bezier(.22, 1, .36, 1),
+                         height .18s cubic-bezier(.22, 1, .36, 1); }
     .marca-mapa:focus { outline: none; }
     /* Cuando dos se enciman, el que muestra foto se queda con el clic: es el
        que el ojo ve, y sería raro que respondiera el punto de atrás. */

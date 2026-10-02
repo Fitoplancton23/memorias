@@ -261,8 +261,24 @@ body.con-memoria { overflow: hidden; }
    ============================================================ */
 .cargando { position: fixed; inset: 0; z-index: 999; display: grid; place-items: center;
             background-color: var(--fondo); background-image: var(--grano);
-            transition: opacity .45s ease, visibility .45s ease; }
+            transition: opacity .5s ease .12s, visibility .5s ease .12s; }
+/* La salida: el isotipo se abre y se funde, y detrás queda el mapa armándose.
+   No es un corte sino una entrega — el círculo del logo se agranda hasta salir
+   del cuadro y lo que aparece adentro es el pueblo. */
+/* La salida: el isotipo se abre y se desvanece, como si el círculo del logo
+   se convirtiera en el mapa que hay detrás. Los puntos se van primero, que es
+   lo que dice que ya no se está esperando nada. */
 .cargando.se-va { opacity: 0; visibility: hidden; }
+.cargando.se-va .cargando-marca { animation: marca-sale .55s cubic-bezier(.4, 0, .9, .4) forwards; }
+.cargando.se-va .cargando-puntos { opacity: 0; transition: opacity .18s ease; }
+@keyframes marca-sale { to { transform: scale(1.5); opacity: 0; } }
+.cargando.se-va .cargando-marca {
+  animation: none;
+  transform: scale(1.6);
+  opacity: 0;
+  transition: transform .62s cubic-bezier(.4, 0, .2, 1), opacity .45s ease .06s;
+}
+.cargando.se-va .cargando-puntos { opacity: 0; transition: opacity .18s ease; }
 html.sin-carga .cargando { display: none; }
 
 .cargando-marca { width: min(28vw, 190px); min-width: 110px;
@@ -290,6 +306,7 @@ html.sin-carga .cargando { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .cargando-marca { animation: none; stroke-dashoffset: 0; fill-opacity: 1; }
+  .cargando.se-va .cargando-marca { transform: none; transition: opacity .2s ease; }
   .cargando-puntos i { animation: none; }
 }
 

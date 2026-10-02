@@ -193,10 +193,10 @@ footer.sitio .envoltorio { padding-block: 1.5rem; }
    debajo tiene que apagarse el mapa entero.
    ============================================================ */
 :root {
-  --vidrio-leve:   rgba(255, 255, 255, .40);
-  --vidrio-medio:  rgba(255, 255, 255, .55);
-  --vidrio-denso:  rgba(255, 255, 255, .68);
-
+ --vidrio-leve:   rgba(255, 255, 255, .35);
+ --vidrio-denso:  rgba(255, 255, 255, .57);
+ --vidrio-medio:  rgba(255, 255, 255, .48);
+   
   --vidrio-borde:  rgba(255, 255, 255, .72);
   --vidrio-filo:   inset 0 1px 0 rgba(255, 255, 255, .95);
   --vidrio-sombra: 0 18px 44px -22px rgba(24, 30, 27, .42);

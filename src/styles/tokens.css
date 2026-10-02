@@ -193,18 +193,18 @@ footer.sitio .envoltorio { padding-block: 1.5rem; }
    debajo tiene que apagarse el mapa entero.
    ============================================================ */
 :root {
-  --vidrio-leve:   rgba(255, 255, 255, .50);
-  --vidrio-medio:  rgba(255, 255, 255, .68);
-  --vidrio-denso:  rgba(255, 255, 255, .82);
+  --vidrio-leve:   rgba(255, 255, 255, .40);
+  --vidrio-medio:  rgba(255, 255, 255, .55);
+  --vidrio-denso:  rgba(255, 255, 255, .68);
 
   --vidrio-borde:  rgba(255, 255, 255, .72);
   --vidrio-filo:   inset 0 1px 0 rgba(255, 255, 255, .95);
   --vidrio-sombra: 0 18px 44px -22px rgba(24, 30, 27, .42);
   --vidrio-sombra-alta: 0 32px 70px -28px rgba(24, 30, 27, .5);
 
-  --desenfoque:       blur(22px) saturate(1.6);
-  --desenfoque-suave: blur(14px) saturate(1.4);
-  --desenfoque-velo:  blur(16px) saturate(1.1);
+  --desenfoque:       blur(15px) saturate(1.6);
+  --desenfoque-suave: blur(10px) saturate(1.4);
+  --desenfoque-velo:  blur(11px) saturate(1.1);
 }
 
 /* El filo claro del borde superior es lo que separa un vidrio de un

@@ -157,6 +157,14 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       </svg>
     </button>
 
+    {/* La transición del mapa. No es el mapa animándose: es una capa aparte
+        por encima, que se disuelve. Debajo el mapa ya está entero y es
+        interactivo —pointer-events: none hace que eso sea literal desde el
+        primer instante—, y al terminar esta capa desaparece del documento. */}
+    <div class="transicion" id="transicion" aria-hidden="true">
+      <Ondas clase="ondas-transicion" />
+    </div>
+
     <p class="credito">Base cartográfica © colaboradores de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, ODbL</p>
   </div>
 
@@ -235,11 +243,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         const svg = doc.documentElement;
         for (const hijo of Array.from(svg.childNodes))
           if (hijo.nodeType === 1 && hijo.nodeName !== 'metadata') base.appendChild(hijo);
-        /* pathLength en el atributo: el dibujo deja de depender del largo real
-           de cada curva y, sobre todo, no hay que medirlo. */
-        for (const el of base.querySelectorAll('#rutas > *, #cursos > *'))
-          el.setAttribute('pathLength', '1');
-        base.classList.add('listo', 'trazando');
+        base.classList.add('listo');
         capa.classList.add('listo');
         dispatchEvent(new Event('mapa-listo'));
       })
@@ -729,6 +733,17 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     for (const ev of ['gesturestart', 'gesturechange', 'gestureend'])
       lienzo.addEventListener(ev, e => e.preventDefault());
 
+    /* La capa de transición arranca cuando el isotipo se va, no antes: lo que
+       se percibe es una sola secuencia. */
+    const transicion = document.getElementById('transicion');
+    if (transicion) {
+      addEventListener('carga-se-va', () => {
+        transicion.classList.add('corre');
+        setTimeout(() => transicion.remove(), 1600);
+      }, { once: true });
+      if (document.documentElement.classList.contains('sin-carga')) transicion.remove();
+    }
+
     /* ---- bajar al resto del archivo ---- */
     const bajar = document.getElementById('bajar');
     const texto = document.querySelector('.portada-texto');
@@ -809,40 +824,11 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     #mapa:active { cursor: grabbing; }
 
     /* El mapa se dibuja por capas, en el orden en que se dibuja un mapa:
-       primero el suelo, después el agua, después lo construido, y al final los
-       caminos. Son ocho opacidades escalonadas.
-
-       Dibujarlo ENTERO trazo por trazo como el isotipo no se puede: de los
-       4.411 elementos, 2.733 son áreas rellenas —manzanas, edificios, verde,
-       agua— que no tienen línea que dibujar, y animar las 1.444 restantes es
-       dos órdenes de magnitud más caro en pintura.
-
-       Lo que sí se dibuja son las rutas y los cursos de agua: 206 trazados, el
-       esqueleto del territorio y lo que explica dónde se asentó el pueblo.
-       Primero la geografía, después el pueblo. Se usa el atributo pathLength
-       en vez de getTotalLength para no medir ni una curva: medirlas obligaría
-       a 206 lecturas de layout sincrónicas. */
-    #base > g { opacity: 0; transition: opacity .55s ease; }
-    #base.listo > g { opacity: 1; }
-    #base.listo #fondo    { transition-delay: 0s; }
-    #base.listo #verde    { transition-delay: .09s; }
-    #base.listo #agua     { transition-delay: .18s; }
-    #base.listo #cursos   { transition-delay: .24s; }
-    #base.listo #manzanas { transition-delay: .33s; }
-    #base.listo #edificios{ transition-delay: .39s; }
-    #base.listo #caminos  { transition-delay: .48s; }
-    #base.listo #calles   { transition-delay: .54s; }
-    #base.listo #rutas    { transition-delay: .62s; }
-
-    /* El dibujo de lo que tiene línea. fill-mode both en las dos: si la base
-       nunca llega a cargarse, ninguna regla deja nada escondido. */
-    #base.trazando #cursos > * { stroke-dasharray: 1; animation: trazar 1.5s ease-out .25s both; }
-    #base.trazando #rutas  > * { stroke-dasharray: 1; animation: trazar 1.7s ease-out .6s both; }
-    @keyframes trazar { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
-    @media (prefers-reduced-motion: reduce) {
-      #base.trazando #cursos > *, #base.trazando #rutas > * {
-        animation: none; stroke-dasharray: none; }
-    }
+       El mapa NO tiene animación de entrada. Está completo y es interactivo
+       desde el primer instante en que existe; lo que se percibe como transición
+       lo hace una capa aparte por encima, que se disuelve. Así nunca se mueve,
+       escala ni esconde nada del mapa, que es lo que hacía que cualquier
+       intento anterior se sintiera mal: el mapa es el contenido, no el efecto. */
     /* Los trazos de la base no engordan al acercarse: una calle es una calle,
        no un dato que crece. Sin esto, a zoom 10 las calles son bandas. */
     #base path, #base polyline, #base line { vector-effect: non-scaling-stroke; }
@@ -926,6 +912,38 @@ const apellidosPortada = Object.entries(cuentaApellidos)
                      pointer-events: none; }
     .marca-mapa.vacio .rotulo { color: var(--tinta-2); }
     .marca-mapa:focus-visible .rotulo { color: var(--cursor); }
+
+    .transicion { position: absolute; inset: 0; z-index: 30; pointer-events: none;
+                  background-color: var(--fondo); background-image: var(--grano);
+                  /* Red de seguridad: si el JS nunca avisa que la carga se fue,
+                     la capa se disuelve sola y el mapa nunca queda tapado. */
+                  animation: velo-mapa .8s ease 5s forwards; }
+    /* Otro nombre de animación a propósito: si se repite el de la regla base,
+       el navegador no la reinicia —sólo le cambia la duración— y como ya pasaron
+       dos segundos del retardo de seguridad, la capa saltaba directo al final en
+       vez de disolverse. */
+    .transicion.corre { animation: velo-mapa-sale .95s cubic-bezier(.4, 0, .2, 1) .05s forwards; }
+    /* Si no hubo pantalla de carga tampoco hay transición: es un gesto de
+       primera impresión, no un peaje en cada visita. */
+    html.sin-carga .transicion { display: none; }
+
+    .ondas-transicion { position: absolute; left: -5%; width: 110%; height: 46%;
+                        top: 50%; bottom: auto; transform: translateY(-50%);
+                        opacity: .45; }
+    .transicion.corre .ondas-transicion {
+      animation: ondas-mapa 1.3s cubic-bezier(.3, 0, .2, 1) forwards; }
+
+    @keyframes velo-mapa { to { opacity: 0; } }
+    @keyframes velo-mapa-sale { from { opacity: 1; } to { opacity: 0; } }
+    @keyframes ondas-mapa {
+      from { opacity: .45; transform: translateY(-50%) scaleY(1); }
+      to   { opacity: 0;   transform: translateY(-130%) scaleY(1.7); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .transicion { animation: velo-mapa .3s ease forwards; }
+      .transicion.corre { animation: velo-mapa-sale .3s ease forwards; }
+      .transicion.corre .ondas-transicion { animation: none; opacity: 0; }
+    }
 
     /* --- chrome --- */
     .cifras-mapa { position: absolute; left: 1.9rem; top: 1.6rem; font-size: .78rem;

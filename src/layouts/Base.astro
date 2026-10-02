@@ -22,7 +22,14 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
   {/* Antes de pintar: si ya se vio la portada en esta visita, la pantalla de
       carga no existe. Así moverse por el sitio no pasa por ella cada vez. */}
   <script is:inline>
-    try { if (sessionStorage.getItem('memorias:visto')) document.documentElement.classList.add('sin-carga'); } catch (e) {}
+    /* Moverse por el sitio no pasa por la pantalla de carga; recargar sí. Sin
+       esa excepción, una vez vista en la visita no hay manera de volver a
+       verla, que es justo lo que hace falta mientras se la está ajustando. */
+    try {
+      var nav = performance.getEntriesByType('navigation')[0];
+      var recarga = nav && nav.type === 'reload';
+      if (!recarga && sessionStorage.getItem('memorias:visto')) document.documentElement.classList.add('sin-carga');
+    } catch (e) {}
   </script>
 </head>
 <body>
@@ -94,10 +101,17 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
         if (document.readyState === 'complete') ok();
         else addEventListener('load', ok, { once: true });
       });
-      Promise.race([Promise.all([esperar(1150), listo]), esperar(2600)]).then(() => {
+      /* El piso cubre lo que dura la animación —1,5s de trazo más el relleno
+         que termina en 1,75s— más un respiro. Con 1150 ms la pantalla se iba
+         antes de que el isotipo terminara de dibujarse: entraba y salía sin
+         que se llegara a ver. */
+      Promise.race([Promise.all([esperar(2050), listo]), esperar(3400)]).then(() => {
         capa.classList.add('se-va');
         try { sessionStorage.setItem('memorias:visto', '1'); } catch (e) {}
-        setTimeout(() => capa.remove(), 600);
+        /* El aviso sale cuando la pantalla ya se fue, no cuando empieza a irse:
+           si salen juntas, el isotipo y la capa se funden a la vez y en lugar
+           de dos tiempos se percibe uno solo. */
+        setTimeout(() => { capa.remove(); dispatchEvent(new Event("carga-se-va")); }, 750);
       });
     } else if (capa) {
       capa.remove();

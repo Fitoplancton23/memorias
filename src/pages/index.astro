@@ -40,6 +40,11 @@ const puntos = lugares
         slug: d.slug, titulo: d.titulo,
         anio: d.fecha?.ref ?? null, texto: d.fecha?.texto || '',
         foto: d.archivo || null,
+        /* Una memoria puede traer varias fotos del mismo momento. La portada
+           abre, pero las otras tienen que poder verse sin salir de la tarjeta. */
+        fotos: (d.archivos && d.archivos.length)
+          ? d.archivos
+          : (d.archivo ? [d.archivo] : []),
         descripcion: d.descripcion || '',
         gente: (d.personas || []).map(nombreDe).filter(Boolean),
         lugar: l.nombre,
@@ -115,10 +120,16 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     <div class="cifras-mapa vidrio">
       <b>{conMaterial}</b> lugares con memorias · <b>{totalDocs}</b> memorias
       {rango && <span> · {rango[0]}–{rango[1]}</span>}
-      {sinUbicar > 0 && (
-        <> · <a href="/memorias/?lugar=sin">{sinUbicar} sin ubicación conocida</a></>
-      )}
     </div>
+
+    {/* No es un dato más del encabezado: es una puerta a un montón de memorias
+        que el mapa no puede mostrar. Va aparte y abajo, donde no compite con
+        el recuento pero tampoco se pierde. */}
+    {sinUbicar > 0 && (
+      <a class="sin-ubicar vidrio" href="/memorias/?lugar=sin">
+        <b>{sinUbicar}</b> memorias sin ubicación conocida
+      </a>
+    )}
 
     <aside class="mapa-ficha vidrio" id="ficha" hidden></aside>
 
@@ -243,14 +254,26 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     /* El SVG no llena el contenedor: con preserveAspectRatio por defecto el
        viewBox entra completo y queda bordeado. Los marcadores son HTML sobre el
        contenedor, así que hay que sumar ese borde o quedan corridos. */
-    let razon = 1, offX = 0, offY = 0, kActual = 1;
+    let razon = 1, offX = 0, offY = 0, padX = 0, padY = 0, kActual = 1;
     function medir() {
       const c = svgEl.getBoundingClientRect(), l = lienzo.getBoundingClientRect();
       razon = Math.min(c.width / ANCHO, c.height / ALTO) || 1;
-      offX = (c.left - l.left) + (c.width - ANCHO * razon) / 2;
-      offY = (c.top - l.top) + (c.height - ALTO * razon) / 2;
+      /* Las bandas vacías que deja preserveAspectRatio al centrar el viewBox.
+         Importan dos veces: para colocar los marcadores y para decirle a d3
+         dónde empieza de verdad lo que se ve. */
+      padX = (c.width - ANCHO * razon) / 2;
+      padY = (c.height - ALTO * razon) / 2;
+      offX = (c.left - l.left) + padX;
+      offY = (c.top - l.top) + padY;
     }
-    medir();
+    function medirTodo() {
+      medir();
+      limitar();
+      const r = lienzo.getBoundingClientRect();
+      const arriba = Math.max(0, r.top + window.scrollY);
+      document.documentElement.style.setProperty('--alto-hero',
+        Math.max(320, window.innerHeight - arriba) + 'px');
+    }
 
     /* Una sola pasada coloca cada marcador, decide su forma y si entra su
        nombre. Va en orden de cantidad de memorias: el lugar con más material es
@@ -298,7 +321,28 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     }
 
     /* ---- zoom ---- */
-    const zm = zoom().scaleExtent([.8, 40])
+    /* El mapa no se puede correr más allá de sí mismo: ni alejando ni
+       arrastrando se llega a ver dónde se termina el dibujo. El mínimo de zoom
+       es el que hace que el mapa siga cubriendo el lienzo, y se recalcula al
+       cambiar el tamaño porque depende de la forma de la ventana. */
+    let kMin = .8;
+    function limitar() {
+      const c = svgEl.getBoundingClientRect();
+      /* d3 trabaja en unidades del viewBox sobre un SVG, así que el viewport
+         hay que declararlo en esas unidades y no en píxeles. */
+      const vw = (c.width || ANCHO) / razon, vh = (c.height || ALTO) / razon;
+      kMin = Math.max(vw / ANCHO, vh / ALTO);
+      /* El rectángulo que se ve NO empieza en el origen del viewBox: con las
+         bandas de centrado empieza en negativo. Declarárselo a d3 arrancando
+         en (0,0) le corre la restricción justo el ancho de la banda, y el mapa
+         terminaba pudiéndose despegar de su borde. */
+      const x0 = -padX / razon, y0 = -padY / razon;
+      zm.extent([[x0, y0], [x0 + vw, y0 + vh]])
+        .scaleExtent([kMin, 40])
+        .translateExtent([[0, 0], [ANCHO, ALTO]]);
+    }
+
+    const zm = zoom()
       .on('zoom', ev => {
         mundo.setAttribute('transform', ev.transform.toString());
         kActual = ev.transform.k;
@@ -308,6 +352,9 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         guardarEstado();
       });
     const sel = select(svgEl).call(zm);
+    /* Recién acá: medirTodo llama a limitar(), que configura zm. Llamarlo
+       antes de crear zm rompía el módulo entero y el mapa quedaba muerto. */
+    medirTodo();
 
     /* Todo en unidades del viewBox. El SVG escala entero al contenedor, así que
        mezclar píxeles de pantalla con unidades del mapa —que es lo que hacía la
@@ -321,7 +368,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       /* Un solo punto no tiene caja: se le da una ventana de barrio. */
       const m = ps.length === 1 ? 70 : 90;
       const bw = Math.max(x1 - x0, 1) + m * 2, bh = Math.max(y1 - y0, 1) + m * 2;
-      const k = Math.min(40, Math.max(.8, Math.min(ANCHO / bw, ALTO / bh)));
+      const k = Math.min(40, Math.max(kMin, Math.min(ANCHO / bw, ALTO / bh)));
       zm.transform(sel, zoomIdentity
         .translate(ANCHO / 2 - k * (x0 + x1) / 2, ALTO / 2 - k * (y0 + y1) / 2)
         .scale(k));
@@ -452,6 +499,14 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         (indice === lista.length - 1 ? ' disabled' : '') + '>›</button>';
       const sobreFoto = hay && !!d.foto;
 
+      /* Dos navegaciones distintas que no se pueden confundir: las flechas
+         recorren los AÑOS del lugar, los puntos recorren las FOTOS de esta
+         misma memoria. Es la separación de Apple entre pasar de página y
+         pasar de foto: la segunda son puntos y gesto, nunca otro par de
+         flechas que compita con el primero. */
+      const fotos = (d.fotos && d.fotos.length) ? d.fotos : (d.foto ? [d.foto] : []);
+      const varias = fotos.length > 1;
+
       tarjeta.innerHTML =
         '<div class="t-cab"><div>' +
           '<h2 id="t-titulo">' + esc(d.titulo) + '</h2>' +
@@ -460,9 +515,19 @@ const apellidosPortada = Object.entries(cuentaApellidos)
           '</p>' +
         '</div><button class="t-cerrar" aria-label="Cerrar">×</button></div>' +
         '<div class="t-vista' + (haciaDonde ? ' viene-' + haciaDonde : '') + '">' +
-          (d.foto
-            ? '<div class="t-fotos"><img src="' + esc(d.foto) + '" alt="" />' +
-              (sobreFoto ? flechaAnt + flechaSig : '') + '</div>'
+          (fotos.length
+            ? '<div class="t-fotos">' +
+                '<img class="t-foto" src="' + esc(fotos[0]) + '" alt="" />' +
+                (sobreFoto ? flechaAnt + flechaSig : '') +
+                (varias
+                  ? '<div class="t-puntos" aria-label="Fotografías de esta memoria">' +
+                    fotos.map((_, i) =>
+                      '<button type="button" data-p="' + i + '"' +
+                      (i === 0 ? ' class="actual"' : '') +
+                      ' aria-label="Foto ' + (i + 1) + ' de ' + fotos.length + '"></button>').join('') +
+                    '</div>'
+                  : '') +
+              '</div>'
             : '') +
           '<div class="t-cuerpo">' +
             (d.descripcion
@@ -485,6 +550,42 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         '</div>';
 
       tarjeta.querySelector('.t-cerrar').addEventListener('click', cerrarMemoria);
+
+      /* ---- las fotos de esta memoria ---- */
+      if (varias) {
+        const img = tarjeta.querySelector('.t-foto');
+        const zona = tarjeta.querySelector('.t-fotos');
+        const puntos = [...tarjeta.querySelectorAll('.t-puntos button')];
+        let iFoto = 0;
+
+        const verFoto = i => {
+          if (i < 0 || i >= fotos.length || i === iFoto) return;
+          iFoto = i;
+          img.classList.add('cambiando');
+          img.src = fotos[i];
+          img.onload = () => img.classList.remove('cambiando');
+          puntos.forEach((b, j) => b.classList.toggle('actual', j === i));
+        };
+
+        tarjeta.querySelector('.t-puntos').addEventListener('click', ev => {
+          const b = ev.target.closest('button[data-p]');
+          if (b) verFoto(+b.dataset.p);
+        });
+
+        /* Arrastrar de lado pasa de foto. El umbral evita que un clic con un
+           temblor de dos píxeles cambie la imagen sin querer. */
+        let x0 = null;
+        zona.addEventListener('pointerdown', ev => { x0 = ev.clientX; });
+        zona.addEventListener('pointercancel', () => { x0 = null; });
+        zona.addEventListener('pointerup', ev => {
+          if (x0 == null) return;
+          const dx = ev.clientX - x0;
+          x0 = null;
+          if (Math.abs(dx) < 40) return;
+          verFoto(iFoto + (dx < 0 ? 1 : -1));
+        });
+      }
+
       const ant = tarjeta.querySelector('.t-ant'), sig = tarjeta.querySelector('.t-sig');
       if (ant) ant.addEventListener('click', () => irA(indice - 1, 'izq'));
       if (sig) sig.addEventListener('click', () => irA(indice + 1, 'der'));
@@ -568,7 +669,10 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     /* Redimensionar no vuelve a encuadrar: la ventana que cambia de tamaño no
        es motivo para perder el lugar donde estabas mirando. */
     new ResizeObserver(() => {
-      medir();
+      medirTodo();
+      /* El mínimo de zoom pudo cambiar con la forma de la ventana: si la
+         transformación actual quedó por debajo, d3 la corrige al reaplicarla. */
+      zm.transform(sel, tActual);
       repartir(tActual);
       reubicarFicha();
     }).observe(svgEl);
@@ -589,8 +693,12 @@ const apellidosPortada = Object.entries(cuentaApellidos)
        apoyar el contraste. Acá el verde queda sólo donde hay monte. */
     /* A sangre: el envoltorio limita el texto a 72rem, pero un mapa metido en
        una columna deja de ser territorio y pasa a ser una ilustración. */
+    /* La altura es lo que queda de pantalla por debajo de lo que haya arriba
+       —encabezado, y las cintas de aviso cuando están—, no la pantalla entera:
+       con 100svh el alto del encabezado se sumaba y sobraba por abajo. El JS
+       mide y escribe --alto-hero; el 100svh queda de red por si no corre. */
     .mapa-lienzo { position: relative; width: 100vw; margin-left: calc(50% - 50vw);
-                   height: 100svh; min-height: 32rem; overflow: hidden; background: #fbfdfc; }
+                   height: var(--alto-hero, 100svh); overflow: hidden; background: #fbfdfc; }
     main.envoltorio { padding-top: 0; }
     #mapa { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
     #mapa:active { cursor: grabbing; }
@@ -627,6 +735,10 @@ const apellidosPortada = Object.entries(cuentaApellidos)
              transition: width .3s cubic-bezier(.22, 1, .36, 1),
                          height .3s cubic-bezier(.22, 1, .36, 1); }
     .marca-mapa:focus { outline: none; }
+    /* Cuando dos se enciman, el que muestra foto se queda con el clic: es el
+       que el ojo ve, y sería raro que respondiera el punto de atrás. */
+    .marca-mapa { z-index: 2; }
+    .marca-mapa.chico, .marca-mapa.vacio { z-index: 1; }
 
     /* La lente es el vidrio que rodea la foto: la despega del mapa y hace que
        el marcador pertenezca a la misma familia que las tarjetas. */
@@ -671,6 +783,18 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     .cifras-mapa { position: absolute; left: 1.9rem; top: 1.6rem; font-size: .78rem;
                    color: var(--tinta-2); border-radius: 10px; padding: .5rem .8rem; }
     .cifras-mapa b { font-weight: 500; color: var(--tinta); }
+    /* Es un cartel, no un control: no puede quedarse con el clic de un
+       marcador que caiga debajo. */
+    .cifras-mapa { pointer-events: none; }
+    .cifras-mapa a { pointer-events: auto; }
+
+    /* Las memorias sin ubicación son una puerta, no un dato del encabezado:
+       van abajo y al centro, donde el mapa no tiene nada que mostrar. */
+    .sin-ubicar { position: absolute; left: 50%; bottom: 1.5rem; transform: translateX(-50%);
+                  z-index: 10; border: 0; border-radius: 999px; padding: .5rem 1.05rem;
+                  font-size: .78rem; color: var(--tinta-2); white-space: nowrap; }
+    .sin-ubicar b { font-weight: 500; color: var(--tinta); }
+    .sin-ubicar:hover { color: var(--cursor); }
 
     .mapa-ctrl { position: absolute; right: 1.9rem; bottom: 1.6rem; display: grid; gap: .35rem; }
     .mapa-ctrl button { width: 32px; height: 32px; font-family: var(--texto); font-size: .95rem;
@@ -794,7 +918,22 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     /* Sobre la foto: a media altura y pegadas al borde, siempre visibles.
        El vidrio y la sombra las sostienen lo mismo sobre una foto clara que
        sobre una oscura, que es lo que un simple círculo blanco no hace. */
-    .t-fotos { position: relative; }
+    .t-fotos { position: relative; touch-action: pan-y; }
+    .t-foto { transition: opacity .18s ease; }
+    .t-foto.cambiando { opacity: .3; }
+
+    /* Los puntos van sobre la imagen, al pie y centrados: dicen cuántas fotos
+       hay y en cuál estás sin ocupar una fila propia ni pedir una etiqueta. */
+    .t-puntos { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%);
+                display: flex; gap: 7px; align-items: center; z-index: 2;
+                padding: 7px 10px; border-radius: 999px;
+                background: rgba(24, 30, 27, .3);
+                -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+    .t-puntos button { width: 7px; height: 7px; padding: 0; border: 0; border-radius: 50%;
+                       background: rgba(255, 255, 255, .5); cursor: pointer;
+                       transition: background .18s ease, transform .18s ease; }
+    .t-puntos button:hover { background: rgba(255, 255, 255, .8); }
+    .t-puntos .actual { background: #fff; transform: scale(1.25); }
     .t-fotos .t-flecha { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; }
     .t-fotos .t-ant { left: 12px; }
     .t-fotos .t-sig { right: 12px; }
@@ -851,6 +990,9 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       .mapa-ficha { left: 1rem; right: 1rem; top: auto; bottom: 1rem; width: auto; max-height: 45%; }
       .marca-mapa { left: 1rem; }
       .cifras-mapa { left: 1rem; }
+      /* En pantalla angosta el centro de abajo lo ocupa el crédito: la pieza
+         sube para no encimarse. */
+      .sin-ubicar { bottom: 3.1rem; font-size: .74rem; }
       .credito { left: 1rem; }
     }
   </style>

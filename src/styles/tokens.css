@@ -228,24 +228,22 @@ footer.sitio .envoltorio { padding-block: 1.5rem; }
 body.con-memoria { overflow: hidden; }
 
 /* El mapa es el tronco de la navegación: desde cualquier página se vuelve a
-   él, y se vuelve al lugar donde se lo dejó, no al encuadre inicial. La barra
-   es pegajosa porque la decisión de volver puede aparecer en cualquier punto
-   de la lectura, no sólo arriba de todo. Es una barra entera y no una flecha:
-   buena parte del público va a tener setenta años. */
+   él, y se vuelve al lugar donde se lo dejó. Es un botón flotante y no una
+   barra porque tiene que verse esté donde esté la lectura, y macizo y no de
+   vidrio porque sobre fondo claro el vidrio desaparece: esto es lo único de
+   la pantalla que siempre tiene que encontrarse. */
 .volver-mapa {
-  position: sticky; top: 0; z-index: 30;
-  display: flex; align-items: baseline; gap: .55rem;
-  padding: .7rem 1.4rem; border: 0;
-  border-bottom: 1px solid var(--linea);
-  background: var(--vidrio-medio);
-  -webkit-backdrop-filter: var(--desenfoque);
-  backdrop-filter: var(--desenfoque);
-  color: var(--tinta); font-size: .9rem;
+  position: fixed; left: 1.2rem; bottom: max(1.2rem, env(safe-area-inset-bottom)); z-index: 60;
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .8rem 1.25rem; border: 0; border-radius: 999px;
+  background: var(--tinta); color: var(--placa);
+  font-size: .9rem; line-height: 1;
+  box-shadow: 0 12px 30px -10px rgba(24, 30, 27, .6);
+  transition: background .18s ease, transform .18s ease;
 }
 .volver-mapa b { font-weight: 500; }
-.volver-mapa em { font-style: normal; font-size: .76rem; color: var(--tinta-2); }
-.volver-mapa:hover { color: var(--cursor); }
-.volver-mapa:hover em { color: var(--cursor); }
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .volver-mapa { background: #fff; }
-}
+.volver-mapa span { font-size: 1.05em; }
+.volver-mapa:hover { background: var(--cursor); color: var(--placa); transform: translateY(-1px); }
+.volver-mapa:focus-visible { outline: 2px solid var(--cursor); outline-offset: 3px; }
+/* Que el pie no quede debajo del botón. */
+.volver-mapa ~ footer.sitio { padding-bottom: 4.5rem; }

@@ -392,39 +392,106 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     }
 
     /* ---- la memoria, encima del mapa ---- */
-    let empujado = false;
+    let empujado = false, lista = [], indice = 0;
 
-    function abrirMemoria(slug) {
+    /* El recorrido es el del lugar por el que entraste. Una memoria puede estar
+       ligada a más de un lugar, y entonces "la siguiente" depende de desde
+       dónde la estés mirando: desde la escuela, la siguiente es la de la
+       escuela. Por eso manda la ficha abierta y no el último lugar que la
+       referencia. */
+    function recorridoDe(slug) {
       const d = porMemoria[slug];
-      if (!d) return;
+      const desde = (abierta && porSlug[abierta] && porSlug[abierta].docs.some(x => x.slug === slug))
+        ? abierta : d.lugarSlug;
+      const lugar = porSlug[desde];
+      return lugar ? lugar.docs.map(x => porMemoria[x.slug]).filter(Boolean) : [d];
+    }
+
+    function abrirMemoria(slug, haciaDonde) {
+      if (!porMemoria[slug]) return;
+      lista = recorridoDe(slug);
+      indice = Math.max(0, lista.findIndex(x => x.slug === slug));
+      pintarMemoria(haciaDonde);
+      velo.hidden = false;
+      document.body.classList.add('con-memoria');
+      /* Una sola entrada en el historial por sesión de lectura: así el botón
+         atrás cierra la memoria y vuelve al mapa en vez de recorrer una por una
+         todas las que se miraron. */
+      const url = '/memorias/' + encodeURIComponent(slug) + '/';
+      if (empujado) history.replaceState({ memoria: slug }, '', url);
+      else { history.pushState({ memoria: slug }, '', url); empujado = true; }
+    }
+
+    function irA(i, haciaDonde) {
+      if (i < 0 || i >= lista.length || i === indice) return;
+      indice = i;
+      pintarMemoria(haciaDonde);
+      const url = '/memorias/' + encodeURIComponent(lista[i].slug) + '/';
+      history.replaceState({ memoria: lista[i].slug }, '', url);
+    }
+
+    function pintarMemoria(haciaDonde) {
+      const d = lista[indice];
       const cuando = d.texto || d.anio || 'sin fecha';
+      const hay = lista.length > 1;
+
+      /* La tira de años es el recorrido entero a la vista: se lee de dónde a
+         dónde llega el material del lugar y en qué parte estás, y además se
+         salta a cualquier año de un toque. */
+      const tira = lista.map((m, i) =>
+        '<li><button type="button" data-i="' + i + '"' +
+        (i === indice ? ' class="actual" aria-current="true"' : '') + '>' +
+        esc(m.anio || 's/f') + '</button></li>').join('');
+
       tarjeta.innerHTML =
         '<div class="t-cab"><div>' +
           '<h2 id="t-titulo">' + esc(d.titulo) + '</h2>' +
-          '<p>' + esc(cuando) + (d.lugar ? ' · ' + esc(d.lugar) : '') + '</p>' +
+          '<p>' + esc(cuando) + (d.lugar ? ' · ' + esc(d.lugar) : '') +
+          (hay ? ' · <span class="t-cuenta">' + (indice + 1) + ' de ' + lista.length + '</span>' : '') +
+          '</p>' +
         '</div><button class="t-cerrar" aria-label="Cerrar">×</button></div>' +
-        (d.foto ? '<div class="t-fotos"><img src="' + esc(d.foto) + '" alt="" /></div>' : '') +
-        '<div class="t-cuerpo">' +
-          (d.descripcion
-            ? '<p>' + esc(d.descripcion) + '</p>'
-            : '<p class="t-dato">Esta memoria todavía no tiene relato. Si sabés algo de ella, se puede sumar.</p>') +
-          (d.gente && d.gente.length
-            ? '<p class="t-dato"><b>Aparecen:</b> ' + d.gente.map(esc).join(', ') + '</p>' : '') +
+        '<div class="t-vista' + (haciaDonde ? ' viene-' + haciaDonde : '') + '">' +
+          (d.foto ? '<div class="t-fotos"><img src="' + esc(d.foto) + '" alt="" /></div>' : '') +
+          '<div class="t-cuerpo">' +
+            (d.descripcion
+              ? '<p>' + esc(d.descripcion) + '</p>'
+              : '<p class="t-dato">Esta memoria todavía no tiene relato. Si sabés algo de ella, se puede sumar.</p>') +
+            (d.gente && d.gente.length
+              ? '<p class="t-dato"><b>Aparecen:</b> ' + d.gente.map(esc).join(', ') + '</p>' : '') +
+          '</div>' +
         '</div>' +
+        (hay
+          ? '<nav class="t-pasos" aria-label="Memorias de ' + esc(d.lugar || 'este lugar') + '">' +
+              '<button type="button" class="t-flecha t-ant" aria-label="Memoria anterior"' +
+              (indice === 0 ? ' disabled' : '') + '>‹</button>' +
+              '<ol class="t-anios">' + tira + '</ol>' +
+              '<button type="button" class="t-flecha t-sig" aria-label="Memoria siguiente"' +
+              (indice === lista.length - 1 ? ' disabled' : '') + '>›</button>' +
+            '</nav>'
+          : '') +
         '<div class="t-pie">' +
           '<a href="/memorias/' + encodeURIComponent(d.slug) + '/">Ver la memoria completa →</a>' +
           (d.lugarSlug ? '<a href="/lugares/' + encodeURIComponent(d.lugarSlug) + '/">Más de ' + esc(d.lugar) + '</a>' : '') +
         '</div>';
-      velo.hidden = false;
-      document.body.classList.add('con-memoria');
+
       tarjeta.querySelector('.t-cerrar').addEventListener('click', cerrarMemoria);
-      tarjeta.querySelector('.t-cerrar').focus();
-      /* Una sola entrada en el historial por sesión de lectura: así el botón
-         atrás cierra la memoria y vuelve al mapa en vez de recorrer una por una
-         todas las que se miraron. */
-      const url = '/memorias/' + encodeURIComponent(d.slug) + '/';
-      if (empujado) history.replaceState({ memoria: slug }, '', url);
-      else { history.pushState({ memoria: slug }, '', url); empujado = true; }
+      const ant = tarjeta.querySelector('.t-ant'), sig = tarjeta.querySelector('.t-sig');
+      if (ant) ant.addEventListener('click', () => irA(indice - 1, 'izq'));
+      if (sig) sig.addEventListener('click', () => irA(indice + 1, 'der'));
+      const anios = tarjeta.querySelector('.t-anios');
+      if (anios) anios.addEventListener('click', ev => {
+        const b = ev.target.closest('button[data-i]');
+        if (b) irA(+b.dataset.i, +b.dataset.i > indice ? 'der' : 'izq');
+      });
+
+      /* El foco sigue al control que te trajo acá: con el teclado no hay que
+         volver a buscar la flecha después de cada paso. */
+      const volverAlFoco = haciaDonde === 'der' ? sig : haciaDonde === 'izq' ? ant : null;
+      (volverAlFoco && !volverAlFoco.disabled ? volverAlFoco : tarjeta.querySelector('.t-cerrar')).focus();
+      /* El año actual tiene que quedar a la vista aunque el lugar tenga veinte. */
+      const act = tarjeta.querySelector('.t-anios .actual');
+      if (act) act.scrollIntoView({ block: 'nearest', inline: 'center' });
+      tarjeta.scrollTop = 0;
     }
 
     function cerrarMemoria() {
@@ -461,9 +528,15 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       empujado = false;
     });
     document.addEventListener('keydown', ev => {
-      if (ev.key !== 'Escape') return;
-      if (!velo.hidden) cerrarMemoria();
-      else if (!ficha.hidden) cerrarFicha();
+      if (ev.key === 'Escape') {
+        if (!velo.hidden) cerrarMemoria();
+        else if (!ficha.hidden) cerrarFicha();
+        return;
+      }
+      /* Con la memoria abierta, las flechas recorren el lugar en el tiempo. */
+      if (velo.hidden) return;
+      if (ev.key === 'ArrowRight') { ev.preventDefault(); irA(indice + 1, 'der'); }
+      if (ev.key === 'ArrowLeft')  { ev.preventDefault(); irA(indice - 1, 'izq'); }
     });
 
     /* ---- controles ---- */
@@ -644,7 +717,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       to   { opacity: 1; transform: none }
     }
     @media (prefers-reduced-motion: reduce) {
-      .velo, .tarjeta, .marca-mapa { animation: none; transition: none; }
+      .velo, .tarjeta, .marca-mapa, .t-vista { animation: none; transition: none; }
     }
 
     .t-cab { display: flex; gap: 1rem; align-items: flex-start;
@@ -665,6 +738,39 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     .t-cuerpo p { margin: 0 0 .7rem; font-size: .86rem; line-height: 1.55; }
     .t-dato { font-size: .76rem; color: var(--tinta-2); margin: 0 0 .35rem; }
     .t-dato b { font-weight: 500; color: var(--tinta); }
+    .t-cuenta { white-space: nowrap; }
+
+    /* El recorrido del lugar en el tiempo. La tira de años no es decoración:
+       dice de cuándo a cuándo llega el material de ese lugar y en qué parte
+       estás, y lleva a cualquier año de un toque. */
+    .t-pasos { display: flex; align-items: center; gap: .5rem;
+               padding: .7rem 1rem; border-top: .5px solid rgba(24, 30, 27, .1); }
+    .t-flecha { flex: none; width: 38px; height: 38px; border-radius: 50%;
+                border: .5px solid rgba(24, 30, 27, .14);
+                background: rgba(255, 255, 255, .6); cursor: pointer;
+                font-size: 1.35rem; line-height: 1; color: var(--tinta);
+                font-family: var(--texto); }
+    .t-flecha:hover:not(:disabled) { color: var(--cursor); border-color: var(--cursor); }
+    .t-flecha:disabled { opacity: .3; cursor: default; }
+
+    .t-anios { flex: 1; display: flex; gap: .3rem; list-style: none; margin: 0; padding: 0;
+               overflow-x: auto; scrollbar-width: none; }
+    .t-anios::-webkit-scrollbar { display: none; }
+    .t-anios button { flex: none; border: 0; background: none; cursor: pointer;
+                      font: 400 .76rem var(--texto); color: var(--tinta-2);
+                      padding: .3rem .55rem; border-radius: 999px; }
+    .t-anios button:hover { color: var(--cursor); }
+    .t-anios .actual { background: var(--tinta); color: var(--placa); font-weight: 500; }
+
+    /* Al pasar de una memoria a otra el contenido entra por el lado al que
+       fuiste: dice que te moviste en una dirección, no que cambió la pantalla. */
+    .t-vista { animation: pasa-quieto .01s both; }
+    .t-vista.viene-der { animation: pasa-der .26s cubic-bezier(.22, 1, .36, 1) both; }
+    .t-vista.viene-izq { animation: pasa-izq .26s cubic-bezier(.22, 1, .36, 1) both; }
+    @keyframes pasa-quieto { from { opacity: 1 } to { opacity: 1 } }
+    @keyframes pasa-der { from { opacity: 0; transform: translateX(22px) } to { opacity: 1; transform: none } }
+    @keyframes pasa-izq { from { opacity: 0; transform: translateX(-22px) } to { opacity: 1; transform: none } }
+
     .t-pie { display: flex; flex-wrap: wrap; gap: .5rem; padding: 0 1.3rem 1.2rem; }
     .t-pie a { font-size: .78rem; border: .5px solid rgba(24, 30, 27, .14); border-radius: 999px;
                padding: .32rem .8rem; background: rgba(255, 255, 255, .55); }

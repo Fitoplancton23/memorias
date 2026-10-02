@@ -721,11 +721,24 @@ const apellidosPortada = Object.entries(cuentaApellidos)
        El velo desenfoca el mapa y la ficha en lugar de taparlos: se sigue
        viendo dónde se estaba, que es la razón de no cambiar de página. */
     .velo { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center;
-            padding: 1.6rem; background: rgba(237, 249, 244, .4);
-            -webkit-backdrop-filter: var(--desenfoque-velo);
-            backdrop-filter: var(--desenfoque-velo);
+            /* El velo apenas separa: lo que tapa el mapa es la tarjeta, no el
+               fondo. Valores propios y no --desenfoque-velo, para poder dejarlo
+               liviano sin tocar un token que el resto del sitio comparte.
+               La tarjeta desenfoca 15px por su cuenta, así que el relato no
+               depende de este número: acá sólo se decide cuánto mapa se ve. */
+            padding: 1.6rem; background: rgba(237, 249, 244, .15);
+            -webkit-backdrop-filter: blur(5px) saturate(1.05);
+            backdrop-filter: blur(5px) saturate(1.05);
             animation: velo-entra .22s ease both; }
     .velo[hidden] { display: none; }
+
+    /* Con la memoria abierta, la ficha del lugar se va. Lo que se leía a través
+       del relato no era el mapa —que es casi blanco— sino la lista de abajo con
+       sus miniaturas. Y además sobra: la tarjeta ya dice de qué lugar es y el
+       carrusel reemplaza la lista. Sale sin cerrarse, así que al cerrar la
+       memoria vuelve donde estaba. */
+    body.con-memoria .mapa-ficha { opacity: 0; pointer-events: none; }
+    .mapa-ficha { transition: opacity .2s ease; }
     @keyframes velo-entra { from { opacity: 0 } to { opacity: 1 } }
 
     /* La memoria es la superficie más densa: debajo tiene que apagarse el

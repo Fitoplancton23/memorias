@@ -168,16 +168,31 @@ export async function subirFoto(blob, nombre) {
 }
 
 /* --- publicar ------------------------------------------------------------
-   El deploy hook de Cloudflare. Es una URL que dispara el build; no lleva
-   credencial propia, así que vive en una variable de entorno y no en el
-   código. Si no está configurada, el botón no aparece. */
-export const HOOK = import.meta.env.PUBLIC_DEPLOY_HOOK || '';
+   El deploy hook de Cloudflare no lleva autenticación: quien tenga la URL
+   dispara builds. Por eso no está acá. Vive en una tabla de la base que nadie
+   puede leer, y la dispara una función que antes pregunta si quien llama
+   tiene permiso de publicar. Desde el navegador sólo se ve el nombre de la
+   función.
 
-export async function publicar() {
-  if (!HOOK) throw new Error('No hay URL de publicación configurada.');
-  const r = await fetch(HOOK, { method: 'POST' });
-  if (!r.ok) throw new Error(`La publicación no arrancó (${r.status}).`);
+   La primera versión la leía de PUBLIC_DEPLOY_HOOK, que Astro escribe tal
+   cual dentro del .js que cualquiera puede bajar sin estar logueado. Era
+   publicar un secreto en una variable que se llama, justamente, pública. */
+
+async function rpc(funcion) {
+  const r = await pedir(rest + 'rpc/' + funcion, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+  });
+  const d = await r.json().catch(() => ({}));
+  /* Los mensajes vienen escritos en la función de Postgres, en castellano y
+     pensados para quien los va a leer. Se muestran tal cual. */
+  if (!r.ok) throw new Error(d.message || `No se pudo publicar (${r.status}).`);
+  return d;
 }
+
+export const publicar = () => rpc('publicar_sitio');
+export const estadoPublicacion = () => rpc('estado_publicacion');
 
 /* --- código corto --------------------------------------------------------
    El slug. Una vez usado no se cambia nunca, así que se calcula una sola vez

@@ -108,7 +108,7 @@ async function entrarAlPanel() {
     ver(err, true);
     return;
   }
-  ver($('#zonaPublicar'), !!admin.puede_publicar && !!api.HOOK);
+  ver($('#zonaPublicar'), !!admin.puede_publicar);
   ver($('#bandeja'), true);
   await Promise.all([precargar(), cargarBandeja('pendiente')]);
 }
@@ -181,16 +181,39 @@ async function cargarBandeja(estado) {
   }
 }
 
+/* El pedido a Cloudflare sale recién cuando la transacción de la base
+   termina, así que publicar_sitio() no puede saber si lo aceptaron. Por eso
+   después se pregunta cómo salió: sin eso, una dirección de publicación mal
+   escrita falla en silencio y el profe queda esperando algo que nunca
+   arrancó, que es la peor forma de fallar. */
 async function alPublicar() {
-  const b = $('#publicar');
+  const b = $('#publicar'), err = $('#errBandeja'), aviso = $('#avisoPublicar');
+  ver(err, false);
   b.disabled = true; b.textContent = 'Publicando…';
   try {
     await api.publicar();
-    b.textContent = 'Publicando el sitio…';
-    setTimeout(() => { b.disabled = false; b.textContent = 'Publicar'; }, 8000);
+    aviso.textContent = 'Pedido enviado. El sitio tarda un minuto o dos en reconstruirse.';
+    ver(aviso, true);
+
+    /* Seis segundos alcanzan: lo que se está comprobando es si Cloudflare
+       aceptó el pedido, no si el build terminó. */
+    setTimeout(async () => {
+      try {
+        const e = await api.estadoPublicacion();
+        if (e.estado === 'ok') {
+          aviso.textContent = 'Cloudflare aceptó el pedido. El sitio se está reconstruyendo.';
+        } else if (e.estado === 'error') {
+          ver(aviso, false);
+          err.textContent = e.mensaje || 'La publicación no arrancó.'; ver(err, true);
+        }
+        /* en_curso: se deja el aviso como está; no hay nada malo que informar */
+      } catch { /* preguntar cómo salió no puede romper nada */ }
+      b.disabled = false; b.textContent = 'Publicar';
+    }, 6000);
   } catch (x) {
     b.disabled = false; b.textContent = 'Publicar';
-    const err = $('#errBandeja'); err.textContent = x.message; ver(err, true);
+    ver(aviso, false);
+    err.textContent = x.message; ver(err, true);
   }
 }
 

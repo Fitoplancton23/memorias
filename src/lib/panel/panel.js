@@ -35,6 +35,9 @@ let paso = 0;
 let borrador = vacio();
 let cacheLugares = [], cachePersonas = [], cacheAconts = [], cacheAlias = {};
 let mapas = null, mapaActual = null;
+/* Quién entró. Hace falta para no ofrecerle acciones que la base le va a
+   rechazar: cargar y aprobar son dos permisos distintos. */
+let quienSoy = null;
 
 function vacio() {
   return {
@@ -97,6 +100,7 @@ async function alEntrar(e) {
 
 async function entrarAlPanel() {
   const admin = await api.soyAdmin();
+  quienSoy = admin;
   $('#quien').textContent = admin?.nombre || api.correo();
   ver($('#salir'), true);
 
@@ -145,6 +149,17 @@ async function cargarBandeja(estado) {
       ? 'No hay memorias esperando revisión.'
       : 'Todavía no hay memorias publicadas.';
 
+    /* Sin esto, quien no aprueba ve una lista que nunca se vacía y ninguna
+       explicación de por qué. */
+    const nota = $('#notaBandeja');
+    const soloCarga = estado === 'pendiente' && filas.length && !quienSoy?.puede_publicar;
+    if (nota) {
+      nota.textContent = soloCarga
+        ? 'Estas memorias quedan esperando revisión. Las publica quien tiene esa tarea a cargo.'
+        : '';
+      ver(nota, !!soloCarga);
+    }
+
     for (const m of filas) {
       const li = document.createElement('li');
       const img = m.foto_url
@@ -158,7 +173,11 @@ async function cargarBandeja(estado) {
         [m.fecha_texto || (m.anio ?? 'sin fecha')].join(' · ');
       li.append(img, txt);
 
-      if (estado === 'pendiente') {
+      /* Aprobar se ofrece sólo a quien puede. Mostrar el botón y que la base
+         lo rechace después es peor que no mostrarlo: quien carga se queda
+         creyendo que hizo algo mal, cuando lo que pasa es que ese trabajo no
+         es suyo. */
+      if (estado === 'pendiente' && quienSoy?.puede_publicar) {
         const ok = document.createElement('button');
         ok.className = 'enlace';
         ok.textContent = 'Publicar';

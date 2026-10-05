@@ -15,6 +15,14 @@ const CLAVE = import.meta.env.PUBLIC_SUPABASE_KEY || '';
 
 export const configurado = !!(URL_BASE && CLAVE);
 
+/* Cuál de las dos falta. Un panel que sólo dice "no está configurado" obliga a
+   adivinar entre un olvido, un error de tipeo en el nombre y un despliegue
+   viejo, y las tres se ven igual desde afuera. */
+export const faltan = [
+  URL_BASE ? null : 'PUBLIC_SUPABASE_URL',
+  CLAVE ? null : 'PUBLIC_SUPABASE_KEY',
+].filter(Boolean);
+
 const rest = URL_BASE + '/rest/v1/';
 const auth = URL_BASE + '/auth/v1/';
 const storage = URL_BASE + '/storage/v1/';

@@ -57,7 +57,12 @@ function vacio() {
 /* ------------------------------------------------------------------ */
 
 export async function arrancar() {
-  if (!api.configurado) { ver($('#sinconfig'), true); return; }
+  if (!api.configurado) {
+    const d = $('#faltanVars');
+    if (d) d.textContent = api.faltan.join(' y ');
+    ver($('#sinconfig'), true);
+    return;
+  }
 
   $('#formIngreso').addEventListener('submit', alEntrar);
   $('#salir').addEventListener('click', () => { api.salir(); location.reload(); });

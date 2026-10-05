@@ -276,8 +276,11 @@ import { tituloSitio } from '../../lib/sitio.js';
   </main>
 
   <p class="sinconfig" id="sinconfig" hidden>
-    El panel no tiene configurada la conexión con la base.
-    Faltan <code>PUBLIC_SUPABASE_URL</code> y <code>PUBLIC_SUPABASE_KEY</code>.
+    El panel no tiene configurada la conexión con la base.<br />
+    No llegó al build: <code id="faltanVars"></code>.<br />
+    <small>Si la variable está cargada en Cloudflare, fijate que esté en
+    <b>Production</b> y no sólo en Preview, y que el sitio se haya vuelto a
+    construir después de agregarla.</small>
   </p>
 
   <script>

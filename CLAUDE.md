@@ -34,8 +34,29 @@ parientes.** Dice que existe una memoria que las relaciona. Son cosas
 diferentes y el sistema no las mezcla: el parentesco vive en
 `nucleos_familiares` y `nucleo_hijos`; lo histórico, en `memoria_personas`.
 
-**Un lugar es una coordenada. Una memoria es un acontecimiento.** Un lugar
-contiene muchas memorias de muchos años. Nunca un marcador por memoria.
+**Un lugar es una entidad, no una coordenada.** Es un sitio con nombre —la
+Escuela Normal, la casa de Juan Potkova, la vieja terminal— y tiene una
+coordenada representativa que se fija una vez y sólo cambia si alguien la
+edita. Nunca se recalcula sola: un mapa cuyos marcadores se corren cada vez
+que entra una foto es un mapa en el que no se puede confiar.
+
+**Una memoria puede tener su propia ubicación, más precisa que la del lugar y
+distinta de ella.** El patio y el salón de actos son dos puntos dentro de la
+misma escuela, y no son dos lugares. Esa coordenada se guarda con toda la
+precisión disponible aunque hoy la pantalla todavía no haga nada espectacular
+con ella: mañana puede sostener recorridos, reconstrucciones o comparar una
+fotografía vieja con el espacio actual.
+
+**Nunca perder precisión disponible. Nunca inventar precisión que no
+tenemos.** Si sólo se sabe el lugar, la memoria no lleva punto, y eso no es un
+hueco: es el dato. Y una memoria puede tener punto sin tener lugar —alguien
+reconoce la esquina pero no sabe de quién era la casa—, que también es un
+estado válido y que antes se tiraba.
+
+**El mapa general muestra lugares.** Los puntos de las memorias existen dentro
+del lugar, al entrar y al acercarse, y nunca con el mismo lenguaje visual que
+un lugar. Un pin por foto en el mapa general convierte el archivo en una nube
+de puntos, que es exactamente lo que este proyecto no es.
 
 **La misma memoria se alcanza desde las tres puertas:** el mapa, el archivo de
 memorias, una persona y una familia. Todo lleva a todo, siempre a través de
@@ -53,6 +74,12 @@ entidades reales.
 
 Y el tiempo —¿cómo cambió el pueblo?— no es una cuarta puerta: es el orden
 natural del archivo de memorias.
+
+No son tres sistemas independientes: es **un solo archivo de memorias visto
+desde tres perspectivas**. Personas, familias, lugares, fechas y coordenadas se
+desprenden de las memorias, no compiten con ellas. Por eso el recorrido es de
+ida y vuelta —del árbol a la persona a sus memorias, del mapa al lugar a sus
+memorias— y por eso una sola memoria alimenta las tres vistas a la vez.
 
 El recorrido que el sistema tiene que permitir sin fricción:
 

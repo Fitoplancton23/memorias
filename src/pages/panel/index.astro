@@ -112,14 +112,18 @@ import { tituloSitio } from '../../lib/sitio.js';
 
     <!-- 1 · la foto -->
     <section class="paso" data-paso="foto">
-      <h2>¿Tenés la foto?</h2>
-      <p class="ayuda">Se achica sola antes de subirse, así que podés usar el archivo original tal como vino.</p>
+      <h2>¿Tenés las fotos?</h2>
+      <p class="ayuda">Podés elegir varias de una vez. Se achican solas antes de subirse,
+        así que usá los archivos originales tal como vinieron.</p>
 
       <label class="soltar" id="soltar">
-        <input type="file" id="archivo" accept="image/*" hidden />
-        <span id="soltarTexto">Elegir una imagen, o arrastrarla acá</span>
-        <img id="previa" alt="" hidden />
+        <input type="file" id="archivo" accept="image/*" multiple hidden />
+        <span id="soltarTexto">Elegir imágenes, o arrastrarlas acá</span>
       </label>
+
+      {/* La primera es la portada: la que se ve en la bandeja, en el mapa y en
+          las listas. Se puede cambiar sin volver a subir nada. */}
+      <ul class="fotos" id="fotos"></ul>
       <p class="ayuda" id="pesoFoto" hidden></p>
 
       <p class="saltear">
@@ -507,6 +511,28 @@ import { tituloSitio } from '../../lib/sitio.js';
               background: var(--panel); color: var(--tinta-2); font-size: .9rem; }
     .soltar.encima { border-color: var(--marca); background: var(--panel-2); }
     .soltar img { max-width: 100%; max-height: 22rem; border-radius: .35rem; }
+
+    /* Las fotos cargadas. La portada se marca con una cinta y no con el orden
+       a secas: en una grilla, "la primera" no se lee solo. */
+    .fotos { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .7rem;
+             grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); }
+    .fotos li { position: relative; border: 1px solid var(--linea); border-radius: .5rem;
+                overflow: hidden; background: var(--panel); }
+    .fotos img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+    .fotos .cinta { position: absolute; top: .4rem; left: .4rem; font-size: .68rem;
+                    text-transform: uppercase; letter-spacing: .08em;
+                    background: var(--marca); color: #fff; padding: .15rem .45rem;
+                    border-radius: .25rem; }
+    .fotos .mandos { display: flex; gap: .5rem; justify-content: space-between;
+                     padding: .4rem .55rem; font-size: .78rem; }
+    .fotos .mandos button { background: 0; border: 0; padding: 0; color: var(--marca);
+                            text-decoration: underline; text-underline-offset: 2px;
+                            font-size: inherit; cursor: pointer; }
+    .fotos .mandos button[disabled] { color: var(--tinta-2); text-decoration: none;
+                                      cursor: default; opacity: .5; }
+    .fotos li.subiendo { opacity: .5; }
+    .fotos li.fallo { border-color: var(--anomalia); }
+    .fotos .aviso-foto { padding: .4rem .55rem; font-size: .75rem; color: var(--anomalia); }
 
     /* --- búsquedas --- */
     .sugerencias { list-style: none; margin: .4rem 0 0; padding: 0; }

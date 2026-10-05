@@ -41,7 +41,8 @@ let quienSoy = null;
 
 function vacio() {
   return {
-    foto: null, fotoPrevia: null, sinFoto: false,
+    fotos: [],              /* { blob, ancho, alto, previa, pesoOriginal } */
+    sinFoto: false,
     titulo: '', descripcion: '',
     fechaTexto: '',
     lugar: null,
@@ -283,6 +284,9 @@ async function alPublicar() {
 /* ------------------------------------------------------------------ */
 
 function abrirAsistente() {
+  /* Las vistas previas son URLs de objeto: si no se liberan, cada memoria
+     cargada deja sus fotos en memoria hasta que se recargue la página. */
+  for (const x of borrador.fotos || []) URL.revokeObjectURL(x.previa);
   borrador = vacio();
   paso = 0;
   limpiarFormulario();
@@ -300,9 +304,9 @@ function limpiarFormulario() {
   $('#permiso').checked = false;
   $('#esPareja').checked = false;
   $('#archivo').value = '';
-  ver($('#previa'), false);
   ver($('#pesoFoto'), false);
-  $('#soltarTexto').hidden = false;
+  $('#fotos').innerHTML = '';
+  $('#soltarTexto').textContent = 'Elegir imágenes, o arrastrarlas acá';
   ver($('#lugarElegido'), false);
   ver($('#acontElegido'), false);
   $('#fichasPersonas').innerHTML = '';
@@ -340,7 +344,11 @@ function volverABandeja() {
 
 function saltear() {
   const id = PASOS[paso].id;
-  if (id === 'foto') { borrador.sinFoto = true; borrador.foto = null; }
+  if (id === 'foto') {
+    for (const f of borrador.fotos) URL.revokeObjectURL(f.previa);
+    borrador.sinFoto = true; borrador.fotos = [];
+    $("#fotos").innerHTML = ""; ver($("#pesoFoto"), false);
+  }
   if (id === 'cuando') { borrador.fechaTexto = ''; $('#fecha').value = ''; }
   if (id === 'donde') { borrador.lugar = null; ver($('#lugarElegido'), false); }
   if (id === 'quienes') { borrador.personas = []; $('#fichasPersonas').innerHTML = ''; }
@@ -379,36 +387,103 @@ async function alSiguiente() {
 function cablearFoto() {
   const zona = $('#soltar'), input = $('#archivo');
   zona.addEventListener('click', e => { if (e.target !== input) input.click(); });
-  input.addEventListener('change', () => input.files[0] && tomarFoto(input.files[0]));
+  input.addEventListener('change', () => {
+    tomarFotos([...input.files]);
+    /* Se limpia para que elegir el mismo archivo otra vez vuelva a disparar
+       el evento: sin esto, agregar y sacar la misma foto deja de funcionar. */
+    input.value = '';
+  });
   ['dragenter', 'dragover'].forEach(t => zona.addEventListener(t, e => {
     e.preventDefault(); zona.classList.add('encima');
   }));
   ['dragleave', 'drop'].forEach(t => zona.addEventListener(t, e => {
     e.preventDefault(); zona.classList.remove('encima');
   }));
-  zona.addEventListener('drop', e => {
-    const f = e.dataTransfer?.files?.[0];
-    if (f) tomarFoto(f);
-  });
+  zona.addEventListener('drop', e => tomarFotos([...(e.dataTransfer?.files || [])]));
 }
 
-async function tomarFoto(archivo) {
+/* Se achican de a una y no todas juntas: cinco fotos de celular en paralelo
+   son cinco lienzos grandes vivos a la vez, y en una máquina modesta eso es
+   justo donde el navegador se cae. De a una tarda lo mismo y no arriesga. */
+async function tomarFotos(archivos) {
+  const imagenes = archivos.filter(f => f.type.startsWith('image/'));
+  if (!imagenes.length) return;
+
   const peso = $('#pesoFoto');
-  peso.textContent = 'Preparando la imagen…'; ver(peso, true);
-  try {
-    const r = await api.achicar(archivo);
-    borrador.foto = r; borrador.sinFoto = false;
-    const previa = $('#previa');
-    if (borrador.fotoPrevia) URL.revokeObjectURL(borrador.fotoPrevia);
-    borrador.fotoPrevia = URL.createObjectURL(r.blob);
-    previa.src = borrador.fotoPrevia;
-    ver(previa, true);
-    $('#soltarTexto').hidden = true;
-    peso.textContent = `${r.ancho}×${r.alto} · de ${mb(archivo.size)} a ${mb(r.blob.size)}. `
-                     + 'Tocá la imagen para cambiarla.';
-  } catch (x) {
-    peso.textContent = x.message;
+  ver(peso, true);
+  borrador.sinFoto = false;
+
+  let ahorrado = 0, original = 0;
+  for (const [n, archivo] of imagenes.entries()) {
+    peso.textContent = imagenes.length > 1
+      ? `Preparando ${n + 1} de ${imagenes.length}…` : 'Preparando la imagen…';
+    try {
+      const r = await api.achicar(archivo);
+      borrador.fotos.push({ ...r, previa: URL.createObjectURL(r.blob), pesoOriginal: archivo.size });
+      original += archivo.size; ahorrado += r.blob.size;
+      pintarFotos();
+    } catch {
+      /* Una imagen rota no puede frenar a las otras cuatro. */
+      peso.textContent = `No se pudo leer «${archivo.name}». ¿Es un archivo de foto?`;
+    }
   }
+
+  if (borrador.fotos.length) {
+    peso.textContent = `${borrador.fotos.length} ${borrador.fotos.length === 1 ? 'foto' : 'fotos'}`
+      + ` · de ${mb(original)} a ${mb(ahorrado)}`
+      + (borrador.fotos.length > 1 ? '. La primera es la portada.' : '.');
+  }
+}
+
+function pintarFotos() {
+  const ul = $('#fotos');
+  ul.innerHTML = '';
+  borrador.fotos.forEach((f, n) => {
+    const li = document.createElement('li');
+
+    const img = document.createElement('img');
+    img.src = f.previa; img.alt = '';
+    li.append(img);
+
+    if (n === 0 && borrador.fotos.length > 1) {
+      const cinta = document.createElement('span');
+      cinta.className = 'cinta'; cinta.textContent = 'portada';
+      li.append(cinta);
+    }
+
+    const mandos = document.createElement('div');
+    mandos.className = 'mandos';
+
+    const portada = document.createElement('button');
+    portada.type = 'button';
+    portada.textContent = n === 0 ? 'es la portada' : 'hacer portada';
+    portada.disabled = n === 0;
+    portada.addEventListener('click', () => {
+      /* Mover al frente en vez de intercambiar: el resto conserva su orden,
+         que es el que eligió quien las subió. */
+      borrador.fotos.unshift(borrador.fotos.splice(n, 1)[0]);
+      pintarFotos();
+    });
+
+    const sacar = document.createElement('button');
+    sacar.type = 'button'; sacar.textContent = 'sacar';
+    sacar.addEventListener('click', () => {
+      URL.revokeObjectURL(borrador.fotos[n].previa);
+      borrador.fotos.splice(n, 1);
+      pintarFotos();
+      if (!borrador.fotos.length) { $('#pesoFoto').textContent = ''; ver($('#pesoFoto'), false); }
+    });
+
+    mandos.append(portada, sacar);
+    li.append(mandos);
+    ul.append(li);
+  });
+
+  /* El recuadro de soltar sigue existiendo para sumar más, pero cambia de
+     texto: ya no es "elegir", es "agregar". */
+  $('#soltarTexto').textContent = borrador.fotos.length
+    ? 'Agregar más imágenes, o arrastrarlas acá'
+    : 'Elegir imágenes, o arrastrarlas acá';
 }
 
 const mb = b => b > 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.round(b / 1024) + ' KB';
@@ -718,7 +793,8 @@ function pintarResumen() {
   const f = parseFecha(borrador.fechaTexto || '');
   const filas = [
     ['Título', borrador.titulo],
-    ['Foto', borrador.foto ? `sí, ${borrador.foto.ancho}×${borrador.foto.alto}` : ''],
+    ['Fotos', borrador.fotos.length
+      ? `${borrador.fotos.length} ${borrador.fotos.length === 1 ? 'foto' : 'fotos'}` : ''],
     ['Fecha', f.precision === 'desconocida' ? '' : legible(f)],
     ['Lugar', borrador.lugar?.nombre || ''],
     ['Personas', borrador.personas.map(p =>
@@ -748,12 +824,28 @@ async function guardar() {
   b.disabled = true; b.textContent = 'Guardando…';
 
   try {
-    /* 1 · la foto primero: si falla la subida, no queda una memoria sin ella. */
-    let fotoUrl = null;
-    if (borrador.foto) {
-      b.textContent = 'Subiendo la foto…';
-      fotoUrl = await api.subirFoto(borrador.foto.blob, api.codigo(borrador.titulo) || 'memoria');
+    /* 1 · las fotos primero: si falla la subida, no queda una memoria sin ellas.
+
+       Y se sube de a una guardando lo que entró: desde una conexión del pueblo,
+       que falle la cuarta de cinco es lo normal, y descartar las tres buenas
+       obligaría a repetir el formulario entero. Lo que entró, entró; de lo que
+       no, se avisa cuál. */
+    const subidas = [];
+    const fallaron = [];
+    const nombre = api.codigo(borrador.titulo) || 'memoria';
+    for (const [n, f] of borrador.fotos.entries()) {
+      b.textContent = borrador.fotos.length > 1
+        ? `Subiendo ${n + 1} de ${borrador.fotos.length}…` : 'Subiendo la foto…';
+      try {
+        subidas.push(await api.subirFoto(f.blob, nombre));
+      } catch {
+        fallaron.push(n + 1);
+      }
     }
+    if (borrador.fotos.length && !subidas.length)
+      throw new Error('No se pudo subir ninguna foto. Revisá la conexión y probá de nuevo.');
+
+    const fotoUrl = subidas[0] || null;
 
     /* 2 · la memoria. Siempre pendiente: quien carga no publica. */
     b.textContent = 'Guardando…';
@@ -789,6 +881,14 @@ async function guardar() {
         memoria_id: memoria.id, persona_id: p.id, confianza: p.confianza,
       })));
 
+    /* La portada va en memorias.foto_url y el resto en memoria_fotos, que es
+       como ya lo lee el build: fusiona las dos y saca repetidas. El orden es
+       el que se ve en el formulario. */
+    if (subidas.length > 1)
+      await api.insertar('memoria_fotos', subidas.slice(1).map((url, n) => ({
+        memoria_id: memoria.id, url, orden: n + 1,
+      })));
+
     if (borrador.acontecimiento)
       await api.insertar('memoria_acontecimientos', {
         memoria_id: memoria.id, acontecimiento_id: borrador.acontecimiento.id,
@@ -804,7 +904,11 @@ async function guardar() {
         es_demo: false,
       });
 
-    listo.textContent = 'Guardada. Queda esperando revisión; todavía no está en el sitio.';
+    listo.textContent = 'Guardada. Queda esperando revisión; todavía no está en el sitio.'
+      + (fallaron.length
+          ? ` Ojo: no se ${fallaron.length === 1 ? 'pudo subir la foto' : 'pudieron subir las fotos'} `
+            + `${fallaron.join(', ')}. El resto quedó guardado.`
+          : '');
     ver(listo, true);
     setTimeout(volverABandeja, 1400);
   } catch (x) {

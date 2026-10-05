@@ -83,7 +83,39 @@ export async function arrancar() {
   cablearAcontecimientos();
 
   if (api.haySesion()) await entrarAlPanel();
-  else ver($('#ingreso'), true);
+  else mostrarIngreso();
+}
+
+/* La puerta ocupa la pantalla entera: sin barra arriba, que ahí no tiene nada
+   que ofrecer todavía. */
+function mostrarIngreso() {
+  ver($('#barra'), false);
+  ver($('#ingreso'), true);
+  prepararEntrada();
+}
+
+/* La entrada del isotipo: de dónde sale y cuánto se agranda.
+   Se mide en vez de estimarse porque el punto de llegada depende del ancho de
+   la pantalla y del largo del nombre, y un número puesto a ojo deja el isotipo
+   corrido apenas cambia cualquiera de los dos. */
+function prepararEntrada() {
+  const puerta = document.getElementById('ingreso');
+  const iso = puerta?.querySelector('.ingreso-marca .isotipo');
+  if (!iso || puerta.dataset.entrada) return;
+  puerta.dataset.entrada = '1';
+
+  const r = iso.getBoundingClientRect();
+  /* El tamaño de partida sale del alto de la pantalla, como en la pantalla de
+     carga del sitio, y se acota para que no desborde en una ventana angosta. */
+  const grande = Math.min(innerHeight * .26, innerWidth * .4, 190);
+  const k = grande / r.width;
+  const dx = (innerWidth / 2) - (r.left + r.width / 2);
+  const dy = (innerHeight / 2) - (r.top + r.height / 2);
+
+  iso.style.setProperty('--dx', dx.toFixed(1) + 'px');
+  iso.style.setProperty('--dy', dy.toFixed(1) + 'px');
+  iso.style.setProperty('--k', k.toFixed(3));
+  puerta.classList.add('entra');
 }
 
 async function alEntrar(e) {
@@ -95,6 +127,7 @@ async function alEntrar(e) {
   try {
     await api.entrar($('#email').value.trim(), $('#clave').value);
     ver($('#ingreso'), false);
+    ver($('#barra'), true);
     await entrarAlPanel();
   } catch (x) {
     err.textContent = x.message; ver(err, true);
@@ -110,7 +143,7 @@ async function entrarAlPanel() {
   ver($('#salir'), true);
 
   if (!admin) {
-    ver($('#ingreso'), true);
+    mostrarIngreso();
     const err = $('#errIngreso');
     err.textContent = 'Esta cuenta existe pero todavía no está habilitada para cargar. '
                     + 'Hay que darla de alta como administradora.';

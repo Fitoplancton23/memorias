@@ -18,6 +18,7 @@
    que nombre lo que se está guardando.                                      */
 import '../../styles/tokens.css';
 import Isotipo from '../../components/Isotipo.astro';
+import Ondas from '../../components/Ondas.astro';
 import { tituloSitio } from '../../lib/sitio.js';
 ---
 <!doctype html>
@@ -31,7 +32,7 @@ import { tituloSitio } from '../../lib/sitio.js';
 </head>
 <body class="panel">
 
-  <header class="barra">
+  <header class="barra" id="barra">
     <span class="barra-marca"><Isotipo /> Cargar una memoria</span>
     <span class="barra-der">
       <span id="quien" class="quien"></span>
@@ -43,7 +44,23 @@ import { tituloSitio } from '../../lib/sitio.js';
   <!-- Ingreso                                                           -->
   <!-- ---------------------------------------------------------------- -->
   <main id="ingreso" class="centro" hidden>
-    <form class="tarjeta angosta" id="formIngreso">
+    {/* El fondo es la paleta, el grano y las curvas de nivel: nada que haya que
+        ir a buscar. Se probó con el mapa del pueblo detrás y no vale lo que
+        cuesta — son 57 KB comprimidos contra los 8 que pesa la página entera, y
+        como imagen de fondo queda aislado y el CSS ni siquiera puede pintarlo
+        con la paleta del archivo. */}
+    <Ondas clase="ondas-ingreso ondas-ingreso-alta" />
+    <Ondas clase="ondas-ingreso ondas-ingreso-baja" />
+
+    <div class="ingreso-marca">
+      <Isotipo dibujable />
+      <div>
+        <strong>Memorias</strong>
+        <span>Panel de administración</span>
+      </div>
+    </div>
+
+    <form class="tarjeta angosta vidrio" id="formIngreso">
       <h1>Entrar</h1>
       <p class="ayuda">Con el correo y la contraseña que te dieron para el archivo.</p>
       <label>Correo
@@ -303,7 +320,100 @@ import { tituloSitio } from '../../lib/sitio.js';
     .barra-der { display: flex; align-items: center; gap: .9rem; font-size: .85rem; }
     .quien { color: var(--tinta-2); }
 
-    .centro { flex: 1; display: grid; place-items: center; padding: 2rem 1.2rem; }
+    /* En columna y no en grilla: con place-items la marca y la tarjeta caen en
+       dos filas que se reparten el alto, y quedan separadas por media pantalla.
+       Son una sola pieza. */
+    .centro { flex: 1; display: flex; flex-direction: column;
+              align-items: center; justify-content: center;
+              padding: 2rem 1.2rem; position: relative; isolation: isolate; }
+
+    /* --- la puerta --- */
+    /* Mientras el mapa no llegó, el fondo es el color de marca con el grano:
+       nunca se ve un hueco ni un salto de color. */
+    /* El resplandor detrás de la tarjeta. Un degradado y nada más: separa la
+       puerta del fondo sin tapar la textura. */
+    .centro::before { content: ''; position: absolute; inset: 0; z-index: -2;
+      background: radial-gradient(58% 50% at 50% 50%,
+                  rgba(255, 255, 255, .9) 0%,
+                  rgba(255, 255, 255, .42) 44%,
+                  transparent 74%); }
+
+    /* Dos bandas de curvas de nivel, a distinta altura y escala. Es el mismo
+       componente del pie del sitio: la sierra donde está el pueblo. */
+    .ondas-ingreso { position: absolute; z-index: -1; left: -6%; width: 112%;
+                     color: var(--marca); pointer-events: none; }
+    .ondas-ingreso-alta { top: 2%; bottom: auto; height: 30%; opacity: .34;
+                          transform: scaleY(-1); }
+    .ondas-ingreso-baja { bottom: 0; top: auto; height: 36%; opacity: .42; }
+
+
+    .ingreso-marca { display: flex; align-items: center; justify-content: center;
+                     gap: .85rem; margin-bottom: 2rem; }
+    .ingreso-marca svg { width: 3.4rem; height: 3.4rem; color: var(--marca); flex: none; }
+
+    /* El isotipo entra dibujándose, como en la pantalla de carga del sitio, y
+       termina siendo el logo del título: es la misma marca llegando a su lugar,
+       no dos apariciones distintas de la misma figura.
+       El salto hasta el centro lo mide el JS una vez y lo deja en --dx/--dy/--k:
+       en CSS no hay forma de saber dónde va a quedar parado el isotipo, y
+       estimarlo a ojo lo deja corrido en cuanto cambia el ancho de la pantalla. */
+    /* El isotipo entra dibujándose, como en la pantalla de carga del sitio, y
+       termina siendo el logo del título: es la misma marca llegando a su lugar,
+       no dos apariciones distintas de la misma figura.
+
+       El salto hasta el centro lo mide el JS una vez y lo deja en --dx/--dy/--k.
+       En CSS no hay forma de saber dónde va a quedar parado el isotipo, porque
+       depende del ancho de la ventana y del largo del nombre. */
+    #ingreso.entra .isotipo {
+      fill: var(--marca); fill-opacity: 0;
+      stroke: var(--marca); stroke-width: 7;
+      stroke-linecap: round; stroke-linejoin: round;
+      stroke-dasharray: 1; stroke-dashoffset: 1;
+      /* El desplazamiento va primero y por eso NO lo afecta el scale que sigue:
+         son píxeles de la pantalla, no del sistema ya agrandado. Dividirlos por
+         la escala —que es lo que parece razonable— deja al isotipo a un tercio
+         del camino. */
+      transform: translate(var(--dx, 0), var(--dy, 0)) scale(var(--k, 1));
+      animation: trazo 1.1s cubic-bezier(.65, 0, .25, 1) forwards,
+                 relleno .45s ease-out .85s forwards,
+                 viaje .75s cubic-bezier(.4, 0, .2, 1) 1.15s forwards;
+    }
+    @keyframes viaje { to { transform: none; } }
+
+    /* El nombre y la tarjeta llegan cuando el isotipo ya está en su lugar. */
+    #ingreso.entra .ingreso-marca > div,
+    #ingreso.entra #formIngreso { opacity: 0; animation: asoma .5s ease 1.45s forwards; }
+    @keyframes asoma { to { opacity: 1; } }
+
+    /* Las curvas vuelven a la opacidad que tiene cada banda, no a 1: son
+       textura. Con backwards y un solo fotograma de inicio, el valor de llegada
+       es el del elemento y no hay que repetirlo acá. */
+    #ingreso.entra .ondas-ingreso { animation: asomaOndas .8s ease 1.45s backwards; }
+    @keyframes asomaOndas { from { opacity: 0; } }
+
+    /* Quien pidió menos movimiento ve la puerta ya armada. */
+    @media (prefers-reduced-motion: reduce) {
+      #ingreso.entra .isotipo { animation: none; transform: none;
+                                fill-opacity: 1; stroke: none; }
+      #ingreso.entra .ingreso-marca > div,
+      #ingreso.entra #formIngreso { animation: none; opacity: 1; }
+      #ingreso.entra .ondas-ingreso { animation: none; }
+    }
+
+    .ingreso-marca strong { display: block; font-size: 2.1rem; font-weight: 500;
+                            line-height: 1.05; letter-spacing: -.015em; }
+    .ingreso-marca span { display: block; font-size: .92rem; color: var(--tinta-2); }
+
+    /* Sobre el mapa, el panel opaco tapaba el dibujo entero. El vidrio deja ver
+       que la puerta está apoyada sobre el pueblo. */
+    .tarjeta.vidrio { background: var(--vidrio-medio); border-radius: 1.1rem;
+                      padding: 1.9rem; }
+    .tarjeta.vidrio input { background: rgba(255, 255, 255, .72);
+                            border-color: rgba(255, 255, 255, .9);
+                            border-radius: 2rem; padding: .8rem 1.1rem; }
+    .tarjeta.vidrio input:focus-visible { background: #fff; }
+    .tarjeta.vidrio .principal { border-radius: 2rem; padding: .75rem 1.7rem; }
+    .tarjeta.vidrio h1 { font-size: 1.7rem; }
     .ancho { flex: 1; width: 100%; max-width: 44rem; margin: 0 auto;
              padding: 2rem 1.2rem 7rem; }
     .angosta { max-width: 22rem; }

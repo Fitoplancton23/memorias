@@ -179,9 +179,13 @@ async function cargarBandeja(estado) {
   ver(err, false);
   lista.innerHTML = '';
   try {
-    const filas = await api.traer('memorias',
-      `select=id,slug,titulo,fecha_texto,anio,foto_url,estado&estado=eq.${estado}` +
-      '&order=creada_en.desc.nullslast&limit=200');
+    /* Lo último cargado primero. El orden se pide aparte y con red: si la base
+       todavía no tiene la columna de fecha de carga —db/15_fecha_de_carga.sql—
+       la lista sale desordenada en vez de salir rota. Una bandeja sin orden es
+       un inconveniente; una bandeja que no carga es una pared. */
+    const base = `select=id,slug,titulo,fecha_texto,anio,foto_url,estado&estado=eq.${estado}&limit=200`;
+    const filas = await api.traer('memorias', base + '&order=creada_en.desc')
+      .catch(() => api.traer('memorias', base));
     ver($('#vacio'), filas.length === 0);
     $('#vacio').textContent = estado === 'pendiente'
       ? 'No hay memorias esperando revisión.'

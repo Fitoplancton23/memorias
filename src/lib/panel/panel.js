@@ -39,6 +39,12 @@ let selLugar = null, selPunto = null;
 /* Quién entró. Hace falta para no ofrecerle acciones que la base le va a
    rechazar: cargar y aprobar son dos permisos distintos. */
 let quienSoy = null;
+/* Si db/18_consentimiento.sql todavía no se corrió, la columna del permiso no
+   existe y escribirla hace fallar el guardado entero. Se pregunta una vez al
+   entrar en vez de reintentar en cada error: el panel sigue andando y avisa
+   que el permiso no se está guardando, que es lo único que no se puede
+   dejar pasar en silencio. */
+let hayPermiso = true;
 
 function vacio() {
   return {
@@ -52,7 +58,10 @@ function vacio() {
     personas: [],          /* { id, nombre, apellido, confianza, nueva } */
     pareja: false,
     acontecimiento: null,
-    aportante: '', fuente: '', permiso: false,
+    aportante: '', fuente: '',
+    /* Tres estados, como `vive`: true autorizó, null todavía no se le
+       preguntó, false pidió que no se publique. */
+    permiso: null, quienAutorizo: '',
   };
 }
 
@@ -85,6 +94,7 @@ export async function arrancar() {
   cablearLugar();
   cablearPersonas();
   cablearAcontecimientos();
+  cablearPermiso();
 
   if (api.haySesion()) await entrarAlPanel();
   else mostrarIngreso();
@@ -156,6 +166,12 @@ async function entrarAlPanel() {
   }
   ver($('#zonaPublicar'), !!admin.puede_publicar);
   ver($('#bandeja'), true);
+
+  /* Antes de la bandeja, porque la bandeja la usa para decidir qué ofrece. */
+  hayPermiso = await api.traer('memorias', 'select=permiso_publicacion&limit=1')
+    .then(() => true).catch(() => false);
+  ver($('#sinPermiso'), !hayPermiso);
+
   await Promise.all([precargar(), cargarBandeja('pendiente')]);
 }
 
@@ -187,7 +203,9 @@ async function cargarBandeja(estado) {
        todavía no tiene la columna de fecha de carga —db/15_fecha_de_carga.sql—
        la lista sale desordenada en vez de salir rota. Una bandeja sin orden es
        un inconveniente; una bandeja que no carga es una pared. */
-    const base = `select=id,slug,titulo,fecha_texto,anio,foto_url,estado&estado=eq.${estado}&limit=200`;
+    const columnas = 'id,slug,titulo,fecha_texto,anio,foto_url,estado'
+                   + (hayPermiso ? ',permiso_publicacion,quien_autorizo,aportado_por' : '');
+    const base = `select=${columnas}&estado=eq.${estado}&limit=200`;
     const filas = await api.traer('memorias', base + '&order=creada_en.desc')
       .catch(() => api.traer('memorias', base));
     ver($('#vacio'), filas.length === 0);
@@ -223,27 +241,106 @@ async function cargarBandeja(estado) {
          lo rechace después es peor que no mostrarlo: quien carga se queda
          creyendo que hizo algo mal, cuando lo que pasa es que ese trabajo no
          es suyo. */
-      if (estado === 'pendiente' && quienSoy?.puede_publicar) {
-        const ok = document.createElement('button');
-        ok.className = 'enlace';
-        ok.textContent = 'Publicar';
-        ok.addEventListener('click', async () => {
-          ok.disabled = true; ok.textContent = 'Publicando…';
-          try {
-            await aprobarMemoria(m.id);
-            li.remove();
-          } catch (x) {
-            ok.disabled = false; ok.textContent = 'Publicar';
-            err.textContent = x.message; ver(err, true);
-          }
-        });
-        li.append(ok);
-      }
+      if (estado === 'pendiente' && quienSoy?.puede_publicar) acciones(li, m, err);
+
       lista.append(li);
     }
   } catch (x) {
     err.textContent = x.message; ver(err, true);
   }
+}
+
+/* Las acciones de una fila de la bandeja. Está aparte y se vuelve a pintar
+   sola porque el permiso cambia lo que se puede hacer: anotarlo tiene que
+   dejar el botón de publicar a la vista en el mismo lugar, sin recargar la
+   lista entera ni perder de vista la memoria que se estaba mirando. */
+function acciones(li, m, err) {
+  const zona = document.createElement('div');
+  zona.className = 'acciones';
+  li.append(zona);
+
+  const pintar = () => {
+    zona.innerHTML = '';
+
+    /* Lo mismo que con los permisos de la cuenta: no se ofrece una acción que
+       la base va a rechazar. El trigger frena la aprobación sin permiso
+       igual, pero enterarse después de apretar es enterarse de que algo salió
+       mal; enterarse antes es saber qué falta. */
+    if (hayPermiso && m.permiso_publicacion !== true) {
+      const n = document.createElement('small');
+      n.className = 'falta';
+      n.textContent = m.permiso_publicacion === false
+        ? 'Pidieron que no se publique'
+        : 'Falta el permiso de quien la aportó';
+      zona.append(n);
+
+      /* Y la forma de resolverlo, acá mismo. El permiso se consigue por
+         teléfono o en la vereda, días después de cargar la memoria: si para
+         anotarlo hubiera que editar la memoria entera —que todavía no se
+         puede— la compuerta sería una pared. */
+      const anotar = document.createElement('button');
+      anotar.className = 'enlace';
+      anotar.textContent = m.permiso_publicacion === false
+        ? 'Cambió de opinión' : 'Anotar el permiso';
+      anotar.addEventListener('click', () => formularioPermiso(zona, m, pintar, err));
+      zona.append(anotar);
+      return;
+    }
+
+    const ok = document.createElement('button');
+    ok.className = 'enlace';
+    ok.textContent = 'Publicar';
+    ok.addEventListener('click', async () => {
+      ok.disabled = true; ok.textContent = 'Publicando…';
+      try {
+        await aprobarMemoria(m.id);
+        li.remove();
+      } catch (x) {
+        ok.disabled = false; ok.textContent = 'Publicar';
+        err.textContent = x.message; ver(err, true);
+      }
+    });
+    zona.append(ok);
+  };
+
+  pintar();
+}
+
+/* Anotar el permiso es una sola pregunta —quién lo dio— y se contesta en la
+   misma fila. La fecha no se pide: la pone la base. */
+function formularioPermiso(zona, m, pintar, err) {
+  zona.innerHTML = '';
+  const caja = document.createElement('div');
+  caja.className = 'anotar-permiso';
+  const campo = Object.assign(document.createElement('input'), {
+    type: 'text', placeholder: 'Quién autorizó, y en qué carácter',
+    value: m.quien_autorizo || m.aportado_por || '',
+  });
+  const guardar = Object.assign(document.createElement('button'), { textContent: 'Guardar' });
+  const cancelar = Object.assign(document.createElement('button'),
+    { className: 'enlace', textContent: 'cancelar' });
+  caja.append(campo, guardar, cancelar);
+  zona.append(caja);
+  campo.focus();
+
+  cancelar.addEventListener('click', pintar);
+  const enviar = async () => {
+    guardar.disabled = true; guardar.textContent = 'Guardando…';
+    try {
+      const fila = await api.actualizar('memorias', m.id, {
+        permiso_publicacion: true,
+        quien_autorizo: campo.value.trim() || null,
+      });
+      m.permiso_publicacion = true;
+      m.quien_autorizo = fila?.quien_autorizo ?? campo.value.trim();
+      pintar();
+    } catch (x) {
+      guardar.disabled = false; guardar.textContent = 'Guardar';
+      err.textContent = x.message; ver(err, true);
+    }
+  };
+  guardar.addEventListener('click', enviar);
+  campo.addEventListener('keydown', e => { if (e.key === 'Enter') enviar(); });
 }
 
 /* El pedido a Cloudflare sale recién cuando la transacción de la base
@@ -268,6 +365,20 @@ async function aprobarMemoria(id) {
 
      Reaprobar a alguien ya aprobado no es un error: la base acepta el update
      igual, así que no hace falta distinguir el caso. */
+  /* El permiso se pregunta antes de tocar a nadie. El trigger de la base lo
+     frena igual, pero lo frena al final: las personas ya habrían quedado
+     aprobadas para una memoria que no se publica, que es justamente la fila
+     que la consulta de revisión de db/17_higiene.sql sale a buscar. Que la
+     compuerta exista no alcanza; tiene que cerrar antes de que algo se mueva. */
+  if (hayPermiso) {
+    const [m] = await api.traer('memorias',
+      `select=titulo,permiso_publicacion,es_demo&id=eq.${encodeURIComponent(id)}`);
+    if (m && !m.es_demo && m.permiso_publicacion !== true)
+      throw new Error(m.permiso_publicacion === false
+        ? `"${m.titulo}": pidieron que no se publique. El archivo la guarda, el sitio no la muestra.`
+        : `Falta el permiso de quien aportó "${m.titulo}". Anotalo en la fila y volvé a intentar.`);
+  }
+
   const vinculos = await api.traer('memoria_personas',
     `select=persona_id&memoria_id=eq.${encodeURIComponent(id)}`);
   for (const v of vinculos) {
@@ -329,7 +440,10 @@ function limpiarFormulario() {
                     'nuevoLugarTipo', 'coords', 'buscarPersona', 'buscarAcont',
                     'nuevoAcont', 'aportante', 'fuente'])
     if ($('#' + id)) $('#' + id).value = '';
-  $('#permiso').checked = false;
+  const noPregunte = $$('input[name=permiso]').find(r => r.value === '');
+  if (noPregunte) noPregunte.checked = true;
+  $('#quienAutorizo').value = '';
+  ver($('#cajaAutorizo'), false);
   $('#esPareja').checked = false;
   $('#archivo').value = '';
   ver($('#pesoFoto'), false);
@@ -407,7 +521,10 @@ async function alSiguiente() {
   if (id === 'origen') {
     borrador.aportante = $('#aportante').value.trim();
     borrador.fuente = $('#fuente').value.trim();
-    borrador.permiso = $('#permiso').checked;
+    const marcado = $$('input[name=permiso]').find(r => r.checked)?.value;
+    borrador.permiso = marcado === 'si' ? true : marcado === 'no' ? false : null;
+    borrador.quienAutorizo = borrador.permiso === true
+      ? ($('#quienAutorizo').value.trim() || borrador.aportante) : '';
   }
   if (id === 'revisar') { await guardar(); return; }
 
@@ -863,7 +980,28 @@ function elegirAcont(a) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Paso 8 · revisar y guardar                                          */
+/* Paso 8 · el permiso                                                  */
+/* ------------------------------------------------------------------ */
+/* Preguntar y no guardar la respuesta —que es lo que hacía este paso— es
+   peor que no preguntar: deja la sensación de que el permiso está cubierto.
+   Ahora la respuesta viaja a la base, y sin un sí anotado la base no publica. */
+
+function cablearPermiso() {
+  const caja = $('#cajaAutorizo'), campo = $('#quienAutorizo');
+  for (const r of $$('input[name=permiso]')) {
+    r.addEventListener('change', () => {
+      const si = r.checked && r.value === 'si';
+      ver(caja, si);
+      /* Quien autoriza suele ser quien mandó la memoria, así que ese nombre
+         viene puesto. Suele, no siempre: queda editable y se puede borrar. */
+      if (si && !campo.value) campo.value = $('#aportante').value.trim();
+      if (si) campo.focus();
+    });
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Paso 9 · revisar y guardar                                          */
 /* ------------------------------------------------------------------ */
 
 function pintarResumen() {
@@ -886,6 +1024,9 @@ function pintarResumen() {
     ['Pareja', borrador.pareja ? $('#textoPareja').textContent : ''],
     ['Acontecimiento', borrador.acontecimiento?.nombre || ''],
     ['Aportó', borrador.aportante],
+    ['Permiso', borrador.permiso === true
+      ? 'Sí' + (borrador.quienAutorizo ? ` — autorizó ${borrador.quienAutorizo}` : '')
+      : borrador.permiso === false ? 'Pidió que no se publique' : ''],
   ];
   const huecos = [];
   for (const [k, v] of filas) {
@@ -899,6 +1040,22 @@ function pintarResumen() {
     ? 'Lo que falta queda marcado como que falta, no inventado. La memoria se guarda igual '
       + 'y se puede completar cuando aparezca el dato.'
     : '';
+
+  /* El permiso es el único hueco que tiene una consecuencia, y se dice entera:
+     se guarda, no se publica, y se puede publicar después sin recargar nada. */
+  const av = $('#avisoPermiso');
+  av.textContent = borrador.permiso === true ? ''
+    : borrador.permiso === false
+      ? 'Pidió que no se publique. El archivo la guarda —queda el registro de '
+        + 'que lo pidió— y el sitio no la va a mostrar.'
+      : 'Sin el permiso anotado la memoria se guarda, pero no se puede publicar. '
+        + 'Cuando puedas preguntar, se anota y ahí sí.';
+  ver(av, !!av.textContent);
+
+  if (!hayPermiso)
+    av.textContent = 'OJO: falta correr db/18_consentimiento.sql en la base. '
+      + 'Esta memoria se va a guardar sin el permiso, y hay que volver a anotarlo.';
+  ver(av, !!av.textContent);
 }
 
 async function guardar() {
@@ -960,6 +1117,12 @@ async function guardar() {
       foto_url: fotoUrl,
       aportado_por: borrador.aportante || null,
       fuente: borrador.fuente || null,
+      /* La fecha del permiso no va: la pone la base con un trigger. Un permiso
+         fechado por el formulario no prueba nada. */
+      ...(hayPermiso ? {
+        permiso_publicacion: borrador.permiso,
+        quien_autorizo: borrador.quienAutorizo || null,
+      } : {}),
       estado: 'pendiente',
       es_demo: false,
       creado_por: api.quien(),

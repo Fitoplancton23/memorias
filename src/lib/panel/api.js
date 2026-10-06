@@ -104,6 +104,16 @@ async function fallo(r, que) {
   const t = await r.text().catch(() => '');
   if (r.status === 401 || r.status === 403)
     throw new Error(`Esta cuenta no tiene permiso para ${que}. Falta darla de alta como administradora.`);
+
+  /* P0001 es un `raise exception` escrito por nosotros en una función de la
+     base: está en castellano y dice qué hacer, así que se muestra tal cual.
+     Cualquier otro error se muestra crudo a propósito — un 42703 que diga
+     "column memorias.creada_en does not exist" es lo que permitió encontrar
+     esa falla; traducirlo a "no se pudo guardar" la habría escondido. */
+  let d = null;
+  try { d = JSON.parse(t); } catch { /* no es json: se muestra el texto */ }
+  if (d?.code === 'P0001' && d.message) throw new Error(d.message);
+
   throw new Error(`${que}: ${r.status} ${t.slice(0, 200)}`);
 }
 

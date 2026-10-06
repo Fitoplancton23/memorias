@@ -21,6 +21,25 @@ const ANIO = new Date().getFullYear();
    no saber si alguien vive no es lo mismo que saber que no vive. Ante la duda
    se oculta, porque el costo de los dos errores no es simétrico — esconder la
    fecha de un muerto no le hace nada a nadie; publicar la de alguien vivo sí. */
+/* El permiso de quien aportó la memoria. La base ya frena la aprobación sin
+   permiso (db/18_consentimiento.sql), pero esto cubre lo que quedó aprobado
+   antes de que el trigger existiera, y no depende de que nadie se acuerde de
+   revisarlo. A diferencia del estado, no se levanta ni en modo pendientes:
+   previsualizar el sitio con la foto de una familia que no autorizó nada es
+   exactamente lo que la compuerta evita.
+
+   Tres estados, como `vive`, y por la misma razón: no saber si autorizaron no
+   es lo mismo que saber que no. Los dos frenan la publicación, pero uno se
+   resuelve preguntando y el otro ya está contestado.
+
+   Si la columna todavía no existe —el sql no corrió— `undefined` no frena
+   nada: la compuerta aparece cuando aparece la columna, y hasta entonces el
+   panel avisa que el permiso no se está guardando. Frenar todo el sitio por
+   una migración que falta sería apagar el archivo para proteger una foto. */
+export const conPermiso = m => !!m.es_demo
+  || m.permiso_publicacion === undefined
+  || m.permiso_publicacion === true;
+
 export function pareceViva(p) {
   if (p.vive === true) return true;
   if (p.vive === false) return false;            /* alguien lo verificó */
@@ -82,6 +101,9 @@ export async function traerTablas({ incluirDemo = false, incluirPendientes = fal
      mientras se carga una memoria que todavía nadie miró. */
   const personaVisible = p => vivo(p)
     && (incluirPendientes || (p.estado || 'aprobada').toLowerCase() === 'aprobada');
+
+  const memoriaVisible = m => vivo(m) && conPermiso(m)
+    && (incluirPendientes || (m.estado || '').toLowerCase() === 'aprobada');
   /* Sin slug todavía (si no se corrió 06_ajustes.sql) el id sirve de
      identificador, pero las URLs quedan feas: el build avisa. */
   const sl = o => o?.slug || o?.id || '';
@@ -103,6 +125,16 @@ export async function traerTablas({ incluirDemo = false, incluirPendientes = fal
   if (frenadas)
     avisos.push(`${frenadas} persona(s) esperando revisión: no salen al sitio hasta que se
       apruebe la memoria que las nombra.`.replace(/\s+/g, " "));
+  /* Se cuenta lo que la compuerta del permiso dejó afuera de ESTE build, no
+     sólo lo aprobado: en modo pendientes también frena, y una memoria que
+     desaparece de la previsualización sin que nada lo diga es la clase de
+     silencio que la Regla 3 no permite. */
+  const sinPermiso = memorias.filter(m => vivo(m) && !conPermiso(m)
+    && (incluirPendientes || (m.estado || '').toLowerCase() === 'aprobada')).length;
+  if (sinPermiso)
+    avisos.push(`PRIVACIDAD: ${sinPermiso} memoria(s) sin permiso registrado de quien las
+      aportó. No salen al sitio ni a la previsualización. Ver la consulta de revisión al
+      final de db/18_consentimiento.sql.`.replace(/\s+/g, ' '));
   if (presuntas)
     avisos.push(`PRIVACIDAD: ${presuntas} persona(s) sin dato de si viven. Se presumen vivas por la regla de los 100 años y se les ocultan fechas y notas.`);
 
@@ -163,8 +195,7 @@ export async function traerTablas({ incluirDemo = false, incluirPendientes = fal
   for (const x of memAconts) {
     if (A[x.acontecimiento_id]) (acontsDe[x.memoria_id] ||= []).push(sl(A[x.acontecimiento_id]));
   }
-  const filasDocumentos = memorias.filter(vivo)
-    .filter(m => incluirPendientes || (m.estado || '').toLowerCase() === 'aprobada')
+  const filasDocumentos = memorias.filter(memoriaVisible)
     .map(m => ({
       slug: sl(m),
       tipo: m.foto_url ? 'foto' : 'relato',

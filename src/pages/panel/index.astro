@@ -89,6 +89,11 @@ import { tituloSitio } from '../../lib/sitio.js';
     </div>
 
     <p class="error" id="errBandeja" hidden></p>
+    <p class="aviso-permiso" id="sinPermiso" hidden>
+      La base todavía no tiene los campos del permiso: falta correr
+      <code>db/18_consentimiento.sql</code>. Se puede cargar igual, pero la
+      respuesta sobre el permiso no se va a guardar.
+    </p>
     <p class="ayuda" id="notaBandeja" hidden></p>
     <ul class="lista" id="lista"></ul>
     <p class="vacio" id="vacio" hidden></p>
@@ -311,9 +316,29 @@ import { tituloSitio } from '../../lib/sitio.js';
       <label>Link al posteo original, si lo hay
         <input type="url" id="fuente" placeholder="https://facebook.com/..." />
       </label>
-      <label class="casilla">
-        <input type="checkbox" id="permiso" />
-        Quien la aportó sabe que se publica en el archivo.
+      <fieldset class="permiso">
+        <legend>¿Sabe quien la aportó que esto se publica?</legend>
+        <p class="ayuda">Esta respuesta se guarda. Sin un sí anotado, la memoria
+          se carga y se conserva, pero el sitio no la muestra.</p>
+        <label class="casilla">
+          <input type="radio" name="permiso" value="si" />
+          Sí, sabe y está de acuerdo.
+        </label>
+        <label class="casilla">
+          <input type="radio" name="permiso" value="" checked />
+          Todavía no le pregunté.
+          <small>Queda guardada esperando el permiso.</small>
+        </label>
+        <label class="casilla">
+          <input type="radio" name="permiso" value="no" />
+          Pidió que no se publique.
+          <small>El archivo la guarda y el sitio no la muestra nunca.</small>
+        </label>
+      </fieldset>
+      <label id="cajaAutorizo" hidden>Quién autorizó
+        <input type="text" id="quienAutorizo" placeholder="Pedro Escarban, el hijo" />
+        <small>Quien autoriza casi nunca es quien aparece en la foto. Conviene
+          anotar también en qué carácter.</small>
       </label>
     </section>
 
@@ -322,6 +347,7 @@ import { tituloSitio } from '../../lib/sitio.js';
       <h2>Antes de guardar</h2>
       <dl class="resumen" id="resumen"></dl>
       <p class="ayuda" id="faltan"></p>
+      <p class="aviso-permiso" id="avisoPermiso" hidden></p>
       <p class="error" id="errGuardar" hidden></p>
       <p class="listo" id="listo" hidden></p>
     </section>
@@ -517,6 +543,15 @@ import { tituloSitio } from '../../lib/sitio.js';
     .lista b { font-weight: 500; display: block; }
     .lista small { color: var(--tinta-2); }
     .lista .crece { flex: 1; min-width: 0; }
+    .acciones { display: flex; align-items: center; gap: .7rem; flex: none;
+                flex-wrap: wrap; justify-content: flex-end; max-width: 60%; }
+    .acciones .falta { color: var(--tipo-evento); }
+    .anotar-permiso { display: flex; align-items: center; gap: .5rem; }
+    .anotar-permiso input { margin-top: 0; width: 15rem; max-width: 42vw; font-size: .88rem;
+                            padding: .4rem .55rem; }
+    .anotar-permiso button:not(.enlace) { background: var(--marca); color: #fff; border: 0;
+                                          padding: .42rem .9rem; border-radius: .35rem;
+                                          font-size: .88rem; }
     .vacio { color: var(--tinta-2); padding: 2.5rem 0; text-align: center; }
 
     .publicar { display: flex; align-items: center; justify-content: space-between;
@@ -672,6 +707,22 @@ import { tituloSitio } from '../../lib/sitio.js';
     .precision legend { padding: 0 .4rem; font-size: .85rem; color: var(--tinta-2); }
     .precision .casilla { margin-top: .5rem; font-size: .88rem; }
     .precision .casilla:first-of-type { margin-top: 0; }
+
+    /* El permiso usa la misma caja que la precisión del punto: las dos son
+       preguntas donde la respuesta "no sé" es una opción legítima y escrita. */
+    .permiso { margin: 1.2rem 0 0; padding: .9rem 1rem 1rem; border: 1px solid var(--linea);
+               border-radius: .5rem; background: var(--panel); }
+    .permiso legend { padding: 0 .4rem; font-size: .9rem; color: var(--tinta); }
+    .permiso .ayuda { margin: .2rem 0 .8rem; }
+    .permiso .casilla { margin-top: .7rem; flex-wrap: wrap; }
+    .permiso .casilla small { flex-basis: 100%; margin-left: 1.3rem;
+                              color: var(--tinta-2); font-size: .82rem; }
+    #cajaAutorizo small { display: block; margin-top: .35rem;
+                          color: var(--tinta-2); font-size: .82rem; }
+
+    .aviso-permiso { margin: .9rem 0 0; padding: .7rem .9rem; font-size: .9rem;
+                     line-height: 1.5; color: var(--tinta);
+                     border-left: 3px solid var(--marca); background: var(--panel); }
 
     .mapa-pie { display: flex; gap: .6rem; margin-top: .7rem; flex-wrap: wrap; }
     .mapa-pie input { flex: 1; min-width: 12rem; margin-top: 0; }

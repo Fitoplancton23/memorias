@@ -134,6 +134,13 @@ Matías cargue una memoria solo.
   lo mismo que saber que no vive. Ante la duda, se presume viva por la regla de
   los 100 años y se le ocultan fechas y notas. Cubierto por tests.
 - `estado = 'pendiente'` no sale al sitio. La compuerta está en la RLS.
+- **El permiso de quien aportó la memoria se registra, y sin un sí anotado la
+  memoria no se publica.** Tres estados, como `vive`: autorizó, todavía no se
+  le preguntó, pidió que no. El tercero es el canal de baja — una memoria no se
+  borra, queda con el permiso negado, porque borrarla perdería el registro de
+  que alguien pidió salir. La compuerta es un trigger de la base y no una
+  política de RLS: la clave secreta saltea la RLS, no un trigger. Cubierto por
+  tests.
 - Mientras haya datos de demostración mezclados, la cinta de aviso no se puede
   perder: una genealogía inventada de un pueblo real, sin avisar, es
   desinformación sobre familias que existen.

@@ -36,6 +36,12 @@ ninguno.
 
 ---
 
+> **Pendiente de volcar:** `db/18_consentimiento.sql` todavía no corrió, así
+> que el volcado de abajo no tiene `memorias.permiso_publicacion`,
+> `.quien_autorizo` ni `.permiso_en`, ni el trigger `memorias_permiso`. El
+> panel se da cuenta solo —pregunta si la columna existe al entrar— y avisa
+> que el permiso no se está guardando.
+
 ## Volcado · 2026-10-06
 
 | tabla | columnas |

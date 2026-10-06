@@ -127,6 +127,10 @@ const apellidosPortada = Object.entries(cuentaApellidos)
           visual que un lugar. */}
       <div class="puntos-memoria" id="puntosMemoria" aria-hidden="true"></div>
 
+      {/* Las líneas que unen un marcador corrido con su punto verdadero.
+          Van debajo de los marcadores y no reciben el mouse. */}
+      <svg class="guias" id="guias" aria-hidden="true"></svg>
+
       {puntos.map(p => (
         <button type="button" class={'marca-mapa' + (p.n ? '' : ' vacio')}
                 data-slug={p.slug} style={`--d:${p.d}px`}
@@ -234,6 +238,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
   <script>
     import { select } from 'd3-selection';
     import { zoom, zoomIdentity } from 'd3-zoom';
+    import { separar, AIRE, GUIA_DESDE } from '../lib/separar.js';
 
     const { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD } = window.__MAPA;
     const svgEl = document.getElementById('mapa');
@@ -420,11 +425,13 @@ const apellidosPortada = Object.entries(cuentaApellidos)
 
     function repartir(t) {
       focoVisible = null;
-      const puestos = [], circulos = [];
+      const cs = [];
+
+      /* Primero dónde va cada uno y de qué tamaño, sin pintar: la separación
+         necesita ver el conjunto antes de decidir. */
       for (const m of marcas) {
         const x = offX + (m.p.cx * t.k + t.x) * razon;
         const y = offY + (m.p.cy * t.k + t.y) * razon;
-        m.el.style.transform = 'translate(' + x + 'px,' + y + 'px) translate(-50%,-50%)';
 
         const grande = m.p.d / 2, chico = m.p.dPunto / 2;
         let radio = chico;
@@ -442,9 +449,26 @@ const apellidosPortada = Object.entries(cuentaApellidos)
             radio = chico + (grande - chico) * Math.pow(avance, 4) * .4;
           }
         }
-        m.el.style.setProperty('--d', (radio * 2) + 'px');
-        circulos.push({ x, y, r: radio });
-        if (m.p.slug === abierta) focoVisible = { x, y, r: radio };
+        cs.push({ m, x, y, x0: x, y0: y, r: radio, peso: 1 + (m.p.n || 0) });
+      }
+
+      separar(cs);
+
+      const puestos = [], circulos = [], guias = [];
+      for (const c of cs) {
+        const { m, x, y, r } = c;
+        m.el.style.transform = 'translate(' + x + 'px,' + y + 'px) translate(-50%,-50%)';
+        m.el.style.setProperty('--d', (r * 2) + 'px');
+        circulos.push({ x, y, r });
+        if (m.p.slug === abierta) focoVisible = { x, y, r };
+
+        /* La guía arranca en el borde del marcador, no en su centro: cruzarlo
+           por encima lo convertiría en un marcador tachado. */
+        const corrio = Math.hypot(x - c.x0, y - c.y0);
+        if (corrio > GUIA_DESDE) {
+          const ux = (c.x0 - x) / corrio, uy = (c.y0 - y) / corrio;
+          guias.push({ x1: x + ux * r, y1: y + uy * r, x2: c.x0, y2: c.y0 });
+        }
 
         /* El nombre va 5 px por encima del borde de la lente —lo dice el CSS—,
            así que la caja de choque puede ser la real. Se mide contra los otros
@@ -455,13 +479,38 @@ const apellidosPortada = Object.entries(cuentaApellidos)
            queda sólo donde no hay foto, que si no sería un punto anónimo. */
         if (!m.rotulo) continue;
         const w = (m.p.nombre.length * 6.6) / 2 + 6;
-        const alto = radio + 5;
+        const alto = r + 5;
         const caja = { a: x - w, b: x + w, c: y - alto - 15, d: y - alto };
         const choca = puestos.some(q => caja.a < q.b && caja.b > q.a && caja.c < q.d && caja.d > q.c)
           || circulos.some(q => caja.a < q.x + q.r && caja.b > q.x - q.r
                              && caja.c < q.y + q.r && caja.d > q.y - q.r);
         m.rotulo.style.display = choca ? 'none' : '';
         if (!choca) puestos.push(caja);
+      }
+
+      dibujarGuias(guias);
+    }
+
+    /* Las líneas se reusan en vez de recrearse: esto corre en cada cuadro del
+       zoom, y crear nodos ahí es la forma más fácil de que el mapa se trabe. */
+    const capaGuias = document.getElementById('guias');
+    function dibujarGuias(guias) {
+      while (capaGuias.children.length < guias.length * 2) {
+        capaGuias.append(
+          document.createElementNS('http://www.w3.org/2000/svg', 'line'),
+          document.createElementNS('http://www.w3.org/2000/svg', 'circle'));
+      }
+      const hijos = capaGuias.children;
+      for (let i = 0; i < hijos.length / 2; i++) {
+        const g = guias[i], linea = hijos[i * 2], punto = hijos[i * 2 + 1];
+        if (!g) { linea.style.display = 'none'; punto.style.display = 'none'; continue; }
+        linea.style.display = ''; punto.style.display = '';
+        linea.setAttribute('x1', g.x1.toFixed(1)); linea.setAttribute('y1', g.y1.toFixed(1));
+        linea.setAttribute('x2', g.x2.toFixed(1)); linea.setAttribute('y2', g.y2.toFixed(1));
+        /* Un punto chico donde está de verdad: sin esto la línea termina en
+           ninguna parte y no se entiende qué está señalando. */
+        punto.setAttribute('cx', g.x2.toFixed(1)); punto.setAttribute('cy', g.y2.toFixed(1));
+        punto.setAttribute('r', '1.5');
       }
     }
 
@@ -955,6 +1004,12 @@ const apellidosPortada = Object.entries(cuentaApellidos)
        un elemento SVG pero no pinta nada, y sin él no hay vidrio. No escalan
        con el zoom —son datos, no geografía—: el JS sólo les mueve la posición. */
     .capa-marcas { position: absolute; inset: 0; pointer-events: none; }
+    /* La guía de un marcador corrido. Fina y tenue: tiene que poder seguirse
+       hasta el punto verdadero sin competir con nada del mapa. */
+    .guias { position: absolute; inset: 0; width: 100%; height: 100%;
+             pointer-events: none; overflow: visible; }
+    .guias line { stroke: var(--tinta-2); stroke-width: 1; opacity: .4; }
+    .guias circle { fill: var(--tinta-2); opacity: .5; }
     /* Entran cuando el mapa ya está, de a uno y empezando por el lugar con más
        memorias: la foto crece desde el punto, que es de donde viene. */
     .marca-mapa { opacity: 0; transition: opacity .4s ease; }

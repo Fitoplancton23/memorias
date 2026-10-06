@@ -80,7 +80,10 @@ import { tituloSitio } from '../../lib/sitio.js';
   <main id="bandeja" class="ancho" hidden>
     <div class="bandeja-cabeza">
       <h1>Memorias</h1>
-      <button type="button" class="principal" id="nueva">Cargar una memoria</button>
+      <span class="cabeza-mandos">
+        <button type="button" class="enlace" id="irFichero">Personas y lugares</button>
+        <button type="button" class="principal" id="nueva">Cargar una memoria</button>
+      </span>
     </div>
 
     <div class="filtros" role="tablist">
@@ -106,6 +109,37 @@ import { tituloSitio } from '../../lib/sitio.js';
       </div>
       <button type="button" id="publicar">Publicar</button>
     </div>
+  </main>
+
+  <!-- ---------------------------------------------------------------- -->
+  <!-- Personas y lugares                                                -->
+  <!-- ---------------------------------------------------------------- -->
+  <!-- No es una tercera puerta del archivo: es el taller. Acá se corrige
+       lo que se cargó mal, que hasta ahora era lo único que seguía
+       necesitando que alguien tocara SQL. -->
+  <main id="fichero" class="ancho" hidden>
+    <div class="bandeja-cabeza">
+      <h1>Personas y lugares</h1>
+      <button type="button" class="enlace" id="volverMemorias">← Volver a las memorias</button>
+    </div>
+    <p class="ayuda">
+      Para corregir un nombre mal escrito, sumar un apodo o mover una coordenada.
+      La dirección pública no cambia aunque cambie el nombre: los enlaces que
+      alguien ya compartió siguen funcionando.
+    </p>
+
+    <div class="filtros" role="tablist">
+      <button type="button" class="ficha-tab activo" data-que="personas">Personas</button>
+      <button type="button" class="ficha-tab" data-que="lugares">Lugares</button>
+    </div>
+
+    <input type="search" id="buscarFicha" autocomplete="off"
+           placeholder="Buscar por nombre, apellido o apodo" />
+
+    <p class="error" id="errFichero" hidden></p>
+    <p class="ayuda" id="cuentaFichero"></p>
+    <ul class="lista fichas" id="listaFichero"></ul>
+    <p class="vacio" id="vacioFichero" hidden></p>
   </main>
 
   <!-- ---------------------------------------------------------------- -->
@@ -731,6 +765,38 @@ import { tituloSitio } from '../../lib/sitio.js';
 
     /* La cinta de "estás editando". Del color de la marca y arriba de todo:
        es lo único que distingue esta pantalla de la de cargar. */
+    .cabeza-mandos { display: flex; align-items: center; gap: 1.1rem; }
+
+    /* El taller. La lista se parece a la bandeja porque es la misma clase de
+       objeto —una fila con un nombre y una acción—, pero la fila se abre en
+       formulario en vez de llevar a otra pantalla: corregir un acento no
+       merece perder de vista dónde estabas. */
+    .ficha-tab { background: 0; border: 0; font: inherit; color: var(--tinta-2);
+                 padding: .45rem .1rem; cursor: pointer; border-bottom: 2px solid transparent; }
+    .ficha-tab.activo { color: var(--tinta); border-bottom-color: var(--marca); }
+    #buscarFicha { margin-top: 1rem; }
+    .fichas li { align-items: flex-start; }
+    .fichas .crece { padding-top: .15rem; }
+    .fichas .abierta { display: block; }
+    .ficha-form { width: 100%; }
+    .ficha-form .par { display: flex; gap: .7rem; flex-wrap: wrap; }
+    .ficha-form .par label { flex: 1; min-width: 9rem; }
+    .ficha-form label { display: block; margin-top: .7rem; font-size: .85rem;
+                        color: var(--tinta-2); }
+    .ficha-form input { margin-top: .25rem; }
+    .ficha-form .mandos { display: flex; align-items: center; gap: .9rem;
+                          margin-top: 1rem; }
+    .ficha-form .mandos button:not(.enlace) { background: var(--marca); color: #fff;
+                          border: 0; padding: .5rem 1.1rem; border-radius: .35rem; }
+    .ficha-alias { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
+    .ficha-alias .chip { display: inline-flex; align-items: center; gap: .35rem;
+                         font-size: .8rem; padding: .2rem .5rem; border-radius: 10px;
+                         border: 1px solid var(--linea-viva); color: var(--tinta-2); }
+    .ficha-alias .chip button { background: 0; border: 0; cursor: pointer;
+                                color: inherit; font-size: 1rem; line-height: 1; padding: 0; }
+    .ficha-mapa { margin-top: .9rem; }
+    .ficha-nota { margin: .5rem 0 0; font-size: .8rem; color: var(--tinta-2); }
+
     .editando { margin: 0 0 1.2rem; padding: .6rem .9rem; font-size: .88rem;
                 border-left: 3px solid var(--marca); background: var(--panel);
                 color: var(--tinta); line-height: 1.5; }

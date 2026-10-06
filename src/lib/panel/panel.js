@@ -13,6 +13,7 @@
 import * as api from './api.js';
 import { parseFecha } from '../../../scripts/fechas.mjs';
 import { montarSelector, leerCoordenadas } from './selector-mapa.js';
+import { cablearFichero, abrirFichero } from './fichero.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -104,6 +105,23 @@ export async function arrancar() {
   cablearAcontecimientos();
   cablearPermiso();
 
+  /* El taller recibe los caches por función y no por valor: `precargar()` los
+     reemplaza enteros, así que pasarlos de una dejaría al taller mirando los
+     de hace diez minutos. */
+  cablearFichero({
+    datos: {
+      personas: () => cachePersonas,
+      lugares: () => cacheLugares,
+      alias: () => cacheAlias,
+    },
+    refrescar: precargar,
+  });
+  $('#irFichero').addEventListener('click', abrirFichero);
+  $('#volverMemorias').addEventListener('click', () => {
+    ver($('#fichero'), false);
+    ver($('#bandeja'), true);
+  });
+
   if (api.haySesion()) await entrarAlPanel();
   else mostrarIngreso();
 }
@@ -188,7 +206,9 @@ async function entrarAlPanel() {
    una conexión mala que una consulta por cada tecla. */
 async function precargar() {
   const [lug, per, ali, aco] = await Promise.all([
-    api.traer('lugares', 'select=id,slug,nombre,tipo&order=nombre'),
+    /* lat y lng vienen desde acá porque el taller los edita. Son dos números
+       por lugar y los lugares son pocos: no cambia nada traerlos. */
+    api.traer('lugares', 'select=id,slug,nombre,tipo,lat,lng&order=nombre'),
     api.traer('personas', 'select=id,slug,nombre,apellido,apodo&order=apellido'),
     api.traer('persona_alias', 'select=persona_id,alias').catch(() => []),
     api.traer('acontecimientos', 'select=id,slug,nombre,anio&order=nombre').catch(() => []),

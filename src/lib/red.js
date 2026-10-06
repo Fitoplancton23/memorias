@@ -67,6 +67,9 @@ export function armarRed(personas, documentos, familias = [], lugares = [], acon
     id: p.slug, tipo: 'persona',
     nombre: [p.nombre, p.apellido].filter(Boolean).join(' ') || p.slug,
     apellido: p.apellido || '',
+    /* El apodo y los alias viajan al buscador. Sin esto, alguien que escribe
+       "el Negro" —que es como lo nombra el pueblo— no encuentra a nadie. */
+    otros: (p.apodo || '').split(';').map(x => x.trim()).filter(Boolean),
     nac: p.nacimiento?.texto || '', def: p.defuncion?.texto || '',
     docs: p.documentos.length, grupo: grupo[p.slug],
     r: 7 + Math.sqrt(p.documentos.length) * 3.4,

@@ -1,14 +1,86 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { personas, nombre, vida } from '../../lib/datos.js';
+import { plano, otrosNombres } from '../../lib/buscar.js';
+
 const orden = [...personas].sort((a, b) => nombre(a).localeCompare(nombre(b), 'es'));
+
+/* El texto por el que se busca se calcula acá, en el build, y viaja en el
+   HTML ya plegado. Son dos razones: no hay que recalcular tildes en cada
+   tecla con mil personas en la lista, y el filtro queda siendo una sola
+   comparación de cadenas. */
+const fichas = orden.map(p => ({
+  p,
+  otros: otrosNombres(p),
+  busca: plano([nombre(p), ...otrosNombres(p)].join(' ')),
+}));
 ---
-<Base titulo="Personas">
+<Base titulo="Personas" descripcion="Todas las personas del archivo, con sus apodos.">
   <p class="sobretitulo">Linajes</p>
   <h1>Personas</h1>
-  <ul class="listado">
-    {orden.map(p => (
-      <li><a href={`/personas/${p.slug}/`}>{nombre(p)}</a><span class="anio">{vida(p)}</span></li>
+
+  {/* La lista entera está impresa en el HTML: el filtro sólo esconde. Así
+      funciona sin JavaScript y Google la indexa completa, que es por donde
+      llega el vecino que googlea el apellido del abuelo. */}
+  <label class="buscador">
+    <span class="visually-hidden">Buscar una persona</span>
+    <input type="search" id="buscarPersona" autocomplete="off"
+           placeholder="Buscar por nombre, apellido o apodo" />
+  </label>
+  <p class="cuenta-personas" id="cuentaPersonas">{orden.length} personas</p>
+
+  <ul class="listado" id="listaPersonas">
+    {fichas.map(({ p, otros, busca }) => (
+      <li data-b={busca}>
+        <a href={`/personas/${p.slug}/`}>{nombre(p)}</a>
+        {otros.length > 0 && <span class="apodo">«{otros.join('», «')}»</span>}
+        <span class="anio">{vida(p)}</span>
+      </li>
     ))}
   </ul>
+
+  <p class="nada" id="nadaPersonas" hidden>No hay nadie con ese nombre en el archivo.</p>
+
+  <style>
+    .buscador { display: block; margin: 1.5rem 0 .6rem; }
+    .buscador input { width: 100%; font: inherit; padding: .7rem .9rem;
+                      border: 1px solid var(--linea-viva); border-radius: .4rem;
+                      background: var(--placa); color: var(--tinta); }
+    .buscador input:focus { outline: 2px solid var(--marca); outline-offset: 1px; }
+    .cuenta-personas { margin: 0 0 .4rem; font-size: .78rem; color: var(--tinta-2); }
+    /* El apodo entre el nombre y las fechas: es por donde lo va a reconocer
+       quien lo conoció, más que por el nombre del documento. */
+    .listado .apodo { font-size: .78rem; color: var(--tinta-2); flex: 1;
+                      margin-left: -.4rem; }
+    .nada { color: var(--tinta-2); font-size: .85rem; padding: 1.5rem 0; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden;
+                       clip: rect(0 0 0 0); white-space: nowrap; }
+  </style>
+
+  <script>
+    import { plano } from '../../lib/buscar.js';
+
+    const campo = document.getElementById('buscarPersona');
+    const filas = [...document.querySelectorAll('#listaPersonas li')];
+    const cuenta = document.getElementById('cuentaPersonas');
+    const nada = document.getElementById('nadaPersonas');
+    const total = filas.length;
+
+    campo.addEventListener('input', () => {
+      const partes = plano(campo.value).trim().split(/\s+/).filter(Boolean);
+      let visibles = 0;
+      for (const li of filas) {
+        /* Todas las palabras, repartidas entre el nombre y los apodos: así
+           "negro silveira" encuentra a Roberto Silveira, alias el Negro, que
+           es como alguien lo nombraría en voz alta. */
+        const si = partes.every(w => li.dataset.b.includes(w));
+        li.hidden = !si;
+        if (si) visibles++;
+      }
+      nada.hidden = visibles > 0;
+      cuenta.textContent = partes.length
+        ? `${visibles} de ${total} ${total === 1 ? 'persona' : 'personas'}`
+        : `${total} ${total === 1 ? 'persona' : 'personas'}`;
+    });
+  </script>
 </Base>

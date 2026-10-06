@@ -126,6 +126,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     import { select } from 'd3-selection';
     import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
     import { construirGrilla, GRILLA } from '../../lib/grilla.js';
+    import { calza, plano } from '../../lib/buscar.js';
 
     const RED = window.__RED;
     const MEMOS = window.__MEMOS || {};
@@ -806,22 +807,31 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       ficha.querySelector('.f-cerrar').addEventListener('click', () => { ficha.hidden = true; });
     }
 
-    /* ---------- buscar: por nombre, por apellido o por los dos ---------- */
+    /* ---------- buscar: por nombre, por apellido, por apodo ---------- */
+    /* La regla vive en src/lib/buscar.js y está cubierta por tests: pliega
+       tildes —se escribe de apuro desde el celular— y mira también los apodos
+       y los alias, que es como se busca a alguien en el pueblo. */
     function buscarTodo(q) {
-      const t = q.trim().toLowerCase();
+      const t = plano(q).trim();
       if (!t) return [];
       const partes = t.split(/\s+/);
-      const calza = txt => { const b = txt.toLowerCase(); return partes.every(p => b.includes(p)); };
-      const gente = personas.filter(p => calza(p.nombre))
-        .sort((a, b) => a.nombre.localeCompare(b.nombre)).slice(0, 8)
-        .map(p => ({ tipo: 'persona', id: p.id, titulo: p.nombre,
-                     pie: `${p.nac || '?'} – ${p.def || ''}${p.apellido ? ' · familia ' + p.apellido : ''}` }));
+      const calzaTexto = txt => { const b = plano(txt); return partes.every(p => b.includes(p)); };
+
+      const gente = personas.map(p => ({ p, m: calza(q, p) })).filter(x => x.m)
+        .sort((a, b) => a.p.nombre.localeCompare(b.p.nombre)).slice(0, 8)
+        .map(({ p, m }) => ({ tipo: 'persona', id: p.id, titulo: p.nombre,
+                     /* Cuando lo encontró el apodo, se dice: si no, alguien que
+                        buscó "el Negro" ve "Roberto Silveira" y no sabe si el
+                        archivo entendió lo que preguntó. */
+                     pie: m.por
+                       ? `«${m.por}» · ${p.apellido ? 'familia ' + p.apellido : 'persona'}`
+                       : `${p.nac || '?'} – ${p.def || ''}${p.apellido ? ' · familia ' + p.apellido : ''}` }));
       /* Un apellido es varias uniones. Como resultado de búsqueda, cuatro filas
          iguales que dicen "Familia Muller" no informan nada: se agrupan por
          apellido y se cuenta gente distinta, no uniones. */
       const porApellido = new Map();
       for (const f of familias) {
-        if (!calza(f.apellido)) continue;
+        if (!calzaTexto(f.apellido)) continue;
         if (!porApellido.has(f.apellido)) porApellido.set(f.apellido, new Set());
         const g = porApellido.get(f.apellido);
         for (const m of f.miembros) g.add(m);
@@ -834,7 +844,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
           titulo: 'Familia ' + apellido,
           pie: gs.size + (gs.size === 1 ? ' persona' : ' personas'),
         }));
-      const sitios = entorno.filter(n => calza(n.nombre)).slice(0, 4)
+      const sitios = entorno.filter(n => calzaTexto(n.nombre)).slice(0, 4)
         .map(n => ({ tipo: n.tipo, id: n.id, titulo: n.nombre,
                      pie: n.tipo === 'lugar' ? 'Lugar' : 'Acontecimiento' }));
       return [...casas, ...gente, ...sitios];

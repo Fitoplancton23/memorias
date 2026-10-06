@@ -11,7 +11,7 @@
     "dev": "npm run datos && astro dev",
     "build": "npm run datos && astro build",
     "preview": "astro preview",
-    "test": "node scripts/test-fechas.mjs && node scripts/test-linajes.mjs && node scripts/test-proyeccion.mjs && node scripts/test-linaje-layout.mjs && node scripts/test-red.mjs && node scripts/test-familias.mjs && node scripts/test-grilla.mjs && node scripts/test-privacidad.mjs && node scripts/test-separacion.mjs",
+    "test": "node scripts/test-fechas.mjs && node scripts/test-linajes.mjs && node scripts/test-proyeccion.mjs && node scripts/test-linaje-layout.mjs && node scripts/test-red.mjs && node scripts/test-familias.mjs && node scripts/test-grilla.mjs && node scripts/test-privacidad.mjs && node scripts/test-separacion.mjs && node scripts/test-buscar.mjs",
     "demo": "node scripts/generar-demo.mjs && node scripts/build-snapshot.mjs --demo",
     "dev:demo": "npm run demo && astro dev",
     "build:demo": "npm run demo && astro build",

@@ -260,11 +260,18 @@ async function cargarBandeja(estado) {
    persona visible sin su memoria —que no dice nada de nadie— en vez de una
    memoria publicada con gente que el sitio no va a mostrar. */
 async function aprobarMemoria(id) {
+  /* Sin red de por medio: si algo de esto falla, tiene que fallar la aprobación
+     entera. Tragarse el error —que fue mi primera versión— deja a una persona
+     escondida con su memoria publicada, que es exactamente lo contrario de lo
+     que el orden pretende garantizar. Al propagarse, la memoria queda
+     pendiente, el panel lo dice, y el botón vuelve a estar disponible.
+
+     Reaprobar a alguien ya aprobado no es un error: la base acepta el update
+     igual, así que no hace falta distinguir el caso. */
   const vinculos = await api.traer('memoria_personas',
-    `select=persona_id&memoria_id=eq.${encodeURIComponent(id)}`).catch(() => []);
+    `select=persona_id&memoria_id=eq.${encodeURIComponent(id)}`);
   for (const v of vinculos) {
-    await api.actualizar('personas', v.persona_id, { estado: 'aprobada' })
-      .catch(() => { /* una persona ya aprobada, o sin permiso: no frena la memoria */ });
+    await api.actualizar('personas', v.persona_id, { estado: 'aprobada' });
   }
   await api.actualizar('memorias', id, { estado: 'aprobada' });
 }

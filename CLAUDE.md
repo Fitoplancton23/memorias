@@ -58,6 +58,13 @@ del lugar, al entrar y al acercarse, y nunca con el mismo lenguaje visual que
 un lugar. Un pin por foto en el mapa general convierte el archivo en una nube
 de puntos, que es exactamente lo que este proyecto no es.
 
+**Ningún marcador queda detrás de otro.** Dos lugares a quince metros caen en
+el mismo píxel cuando el mapa está alejado, y el tapado deja de existir en
+pantalla sin que nada lo diga. Se separan lo mínimo necesario al dibujar —la
+coordenada guardada no se toca— y, donde el corrimiento se nota, una línea fina
+va hasta el punto verdadero: el mapa no finge que el lugar está ahí, dice que
+lo corrió. Cubierto por tests.
+
 **La misma memoria se alcanza desde las tres puertas:** el mapa, el archivo de
 memorias, una persona y una familia. Todo lleva a todo, siempre a través de
 entidades reales.
@@ -114,6 +121,16 @@ Buena parte del público va a tener setenta años.
 - **No** sacrificar legibilidad genealógica para reducir cruces.
 - **No** mostrar cientos de conexiones con la misma intensidad.
 - **No** inventar datos que el archivo no tiene. Si falta, se dice que falta.
+
+---
+
+## Lo que el archivo no sabe, lo sabe la gente
+
+Cada memoria lleva una puerta para aportar un dato —quién es el de la
+izquierda, en qué año fue, de quién era esa casa— por WhatsApp o por correo,
+con el mensaje ya escrito y el enlace de la memoria adentro. El sitio es
+estático y no tiene servidor: los canales son los que la gente ya usa, y eso
+también es una decisión, no una limitación.
 
 ---
 

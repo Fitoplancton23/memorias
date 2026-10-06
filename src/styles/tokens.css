@@ -160,6 +160,25 @@ h2 { font-weight: 500; font-size: 1.05rem; margin: 2.5rem 0 .75rem; text-transfo
 footer.sitio { border-top: 1px solid var(--linea); font-size: .74rem; color: var(--tinta-2);
                position: relative; overflow: hidden; }
 footer.sitio .envoltorio { padding-block: 1.5rem; position: relative; }
+footer.sitio p { margin: 0; }
+
+/* El crédito del estudio. Separado por una línea del ancho del texto —no de la
+   página— para que se lea como una firma al pie y no como otra sección. */
+.pie-credito { display: flex; align-items: center; gap: .75rem;
+               margin-top: 1.1rem; padding-top: 1.1rem;
+               border-top: 1px solid var(--linea); }
+.pie-credito p { line-height: 1.6; }
+.pie-credito b { font-weight: 500; color: var(--tinta); }
+.pie-credito a { color: inherit; text-decoration-color: var(--linea);
+                 text-underline-offset: 2px; }
+.pie-credito a:hover { color: var(--marca); text-decoration-color: currentColor; }
+/* El logotipo al tamaño de dos renglones, que es lo que mide el bloque de
+   texto que acompaña: así la firma se lee como una unidad. */
+.pie-logo { height: 1.55rem; flex: none; color: var(--tinta); opacity: .85; }
+
+@media (max-width: 30rem) {
+  .pie-credito { flex-direction: column; align-items: flex-start; gap: .6rem; }
+}
 
 /* Curvas de nivel: la sierra donde está el pueblo. Van detrás del texto y muy
    bajas de tono — es textura de fondo, no un elemento que haya que mirar. */

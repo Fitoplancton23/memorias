@@ -1,9 +1,10 @@
 ---
 import '../styles/tokens.css';
 import { demo, sinAprobar } from '../lib/datos.js';
-import { sitio, tituloSitio, parajes } from '../lib/sitio.js';
+import { sitio, tituloSitio, parajes, estudio } from '../lib/sitio.js';
 import Isotipo from '../components/Isotipo.astro';
 import Ondas from '../components/Ondas.astro';
+import Conecta from '../components/Conecta.astro';
 const { titulo, descripcion, suelto = false } = Astro.props;
 const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
 ---
@@ -77,7 +78,20 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
     <footer class="sitio">
       <Ondas clase="ondas-pie" />
       <div class="envoltorio">
-        Archivo comunitario de {sitio.lugar}, {sitio.provincia} · Material aportado por vecinas y vecinos.
+        <p class="pie-archivo">
+          Archivo comunitario de {sitio.lugar}, {sitio.provincia} · Material aportado por vecinas y vecinos.
+        </p>
+
+        {/* El crédito del estudio va separado del archivo y abajo: son dos
+            cosas distintas y leerlas juntas las confunde. El archivo es del
+            pueblo; el sitio lo hizo alguien. */}
+        <div class="pie-credito">
+          <Conecta clase="pie-logo" />
+          <p>
+            Creado por <b>{estudio.nombre}</b> — {estudio.autor}.<br />
+            Contacto: <a href={`mailto:${estudio.correo}`}>{estudio.correo}</a>
+          </p>
+        </div>
       </div>
     </footer>
   )}

@@ -1,0 +1,76 @@
+---
+/* "Puedo aportar un dato".
+   -------------------------------------------------------------------------
+   El archivo lo arma una persona sola, y lo que sabe del pueblo no cabe en una
+   cabeza: quien mira una foto vieja casi siempre sabe algo que no está escrito
+   —quién es el de la izquierda, en qué año fue, de quién era esa casa—. Sin
+   una puerta a mano, ese dato se pierde en el momento exacto en que existió.
+
+   El sitio es estático y no tiene servidor, así que no hay formulario que
+   reciba nada. Y está bien que no lo haya: un formulario propio sería un
+   servidor más que mantener, una casilla más que revisar y un lugar más donde
+   se pierden mensajes. Los dos canales son los que la gente ya usa todos los
+   días, y el mensaje sale escrito —con el título y el enlace de la memoria—
+   para que del otro lado nadie tenga que adivinar de qué foto le hablan.
+
+   WhatsApp va primero a propósito. En el pueblo es el canal, y para alguien de
+   setenta años escribir un correo es un trámite y mandar un mensaje no.       */
+import { estudio } from '../lib/sitio.js';
+
+const { titulo = '', url = '', clase = '' } = Astro.props;
+
+const sobreQue = titulo ? `la memoria «${titulo}»` : 'el archivo de memorias';
+const cuerpo = titulo
+  ? `Hola, quiero aportar un dato sobre ${sobreQue}.\n${url}\n\nLo que sé es: `
+  : `Hola, quiero aportar algo al archivo de memorias de Aristóbulo del Valle.\n\n`;
+
+const wa = `https://wa.me/${estudio.whatsapp}?text=${encodeURIComponent(cuerpo)}`;
+/* El asunto va aparte del cuerpo: así el correo llega ya clasificado aunque
+   la persona borre todo lo demás antes de escribir. */
+const asunto = titulo ? `Un dato sobre «${titulo}»` : 'Un aporte al archivo de memorias';
+const mail = `mailto:${estudio.correo}?subject=${encodeURIComponent(asunto)}`
+           + `&body=${encodeURIComponent(cuerpo)}`;
+---
+
+<aside class={`aportar ${clase}`}>
+  <p class="aportar-que">
+    {titulo
+      ? <>¿Reconocés a alguien, sabés el año o de quién era el lugar?</>
+      : <>¿Tenés una foto, un relato o un dato del pueblo?</>}
+  </p>
+  <p class="aportar-como">
+    Lo que falta se completa con lo que la gente sabe. Escribinos y lo sumamos
+    al archivo con tu crédito.
+  </p>
+  <div class="aportar-botones">
+    <a class="aportar-wa" href={wa} target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+        <path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.48 1.34 5l-1.42 5.2 5.32-1.4a9.9 9.9 0 0 0 4.72 1.2h.01c5.5 0 9.96-4.46 9.96-9.96 0-2.66-1.04-5.16-2.92-7.04A9.9 9.9 0 0 0 12.04 2Zm0 1.84c2.17 0 4.2.85 5.74 2.38a8.07 8.07 0 0 1 2.38 5.74c0 4.48-3.64 8.12-8.12 8.12a8.1 8.1 0 0 1-4.13-1.13l-.3-.18-3.07.81.82-3-.19-.31a8.07 8.07 0 0 1-1.24-4.31c0-4.48 3.64-8.12 8.11-8.12Zm-2.3 4.1c-.17 0-.45.07-.69.33-.24.26-.9.88-.9 2.15 0 1.26.92 2.48 1.05 2.65.13.17 1.78 2.83 4.38 3.86 2.16.85 2.6.68 3.07.64.47-.04 1.5-.61 1.72-1.21.21-.6.21-1.11.15-1.21-.06-.11-.24-.17-.5-.3-.26-.13-1.5-.74-1.74-.83-.23-.09-.4-.13-.56.13-.17.26-.65.82-.79.99-.15.17-.29.19-.55.06-.26-.13-1.07-.4-2.04-1.26-.76-.67-1.26-1.5-1.41-1.76-.15-.26-.02-.4.11-.53.11-.12.26-.3.39-.45.13-.15.17-.26.26-.43.09-.17.04-.32-.02-.45-.06-.13-.55-1.37-.78-1.87-.19-.42-.38-.42-.56-.43-.14 0-.3-.01-.46-.01Z"/>
+      </svg>
+      WhatsApp
+    </a>
+    <a class="aportar-mail" href={mail}>Por correo</a>
+  </div>
+</aside>
+
+<style>
+  .aportar { margin-top: 2.5rem; padding: 1.2rem 1.3rem 1.3rem;
+             background: var(--panel); border: 1px solid var(--linea);
+             border-radius: .4rem; }
+  .aportar-que { margin: 0; font-size: 1rem; color: var(--tinta); line-height: 1.45; }
+  .aportar-como { margin: .4rem 0 0; font-size: .82rem; color: var(--tinta-2);
+                  line-height: 1.55; max-width: 44ch; }
+  .aportar-botones { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; }
+  .aportar-botones a { display: inline-flex; align-items: center; gap: .45rem;
+                       font-size: .86rem; padding: .55rem 1rem; border-radius: .35rem;
+                       border: 1px solid var(--linea-viva); text-decoration: none;
+                       color: var(--tinta); background: var(--placa, #fff); }
+  .aportar-botones a:hover { border-color: var(--marca); color: var(--marca); }
+  .aportar-botones svg { width: 1.05em; height: 1.05em; flex: none; }
+  /* WhatsApp primero y con más peso: es el canal que la gente del pueblo usa
+     todos los días, y el correo el que usa cuando no le queda otra.
+     El selector lleva el padre para ganarle en especificidad a la regla de
+     arriba, que es lo mismo que haría un !important pero sin la deuda. */
+  .aportar-botones .aportar-wa { border-color: var(--marca); color: var(--marca); }
+  .aportar-botones .aportar-wa:hover { background: var(--marca); color: #fff; }
+</style>

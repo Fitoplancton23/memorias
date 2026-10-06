@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import Aportar from '../../components/Aportar.astro';
 import { P, L, A, D, nombre, fecha, documentos } from '../../lib/datos.js';
 export async function getStaticPaths() {
   const { documentos } = await import('../../lib/datos.js');
@@ -81,6 +82,10 @@ const comoSeLee = f => {
       {d.fuente_url && <><a href={d.fuente_url}>Publicación original</a>.</>}
     </p>
   )}
+
+  {/* Va acá y no al final: el momento en que alguien reconoce algo es mirando
+      la foto y leyendo lo que falta, no después de recorrer dos listas más. */}
+  <Aportar titulo={d.titulo} url={Astro.url.href} />
 
   {mismoLugar.length > 0 && (<>
     <h2>Lo mismo, en otro momento</h2>

@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import Aportar from '../../components/Aportar.astro';
 import LineaDeTiempo from '../../components/LineaDeTiempo.astro';
 import { documentos, personas, lugares, acontecimientos } from '../../lib/datos.js';
 
@@ -134,6 +135,10 @@ const listaLugares = lugares
   </ul>
 
   <p class="nada" id="nada" hidden>Ninguna memoria cumple esos filtros.</p>
+
+  {/* La versión general, sin memoria: quien llegó al archivo entero y tiene
+      algo para dar no debería tener que entrar a una memoria para ofrecerlo. */}
+  <Aportar />
 
   {/* El tiempo no es una cuarta puerta: es una lectura del mismo archivo.
       Va después de la rejilla porque lo que la gente viene a ver son las

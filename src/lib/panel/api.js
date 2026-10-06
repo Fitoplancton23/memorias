@@ -146,6 +146,16 @@ export async function actualizar(tabla, id, campos) {
   return (await r.json())[0];
 }
 
+/* Borrar lleva el filtro escrito por quien llama y no un id, porque las tablas
+   de vínculos no tienen id: la fila es el par. PostgREST rechaza un DELETE sin
+   filtro, que es la red que hace falta — un borrado sin `where` acá sería
+   vaciar la tabla de un clic. */
+export async function borrar(tabla, consulta) {
+  if (!consulta) throw new Error('Un borrado sin filtro no se hace.');
+  const r = await pedir(`${rest}${tabla}?${consulta}`, { method: 'DELETE' });
+  if (!r.ok) await fallo(r, `borrar de ${tabla}`);
+}
+
 export async function soyAdmin() {
   if (!haySesion()) return null;
   const f = await traer('administradores', 'select=*').catch(() => []);

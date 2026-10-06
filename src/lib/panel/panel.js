@@ -48,7 +48,15 @@ let hayPermiso = true;
 
 function vacio() {
   return {
-    fotos: [],              /* { blob, ancho, alto, previa, pesoOriginal } */
+    /* Cuando tiene id, el asistente está editando una memoria que ya existe.
+       Es el único interruptor: todo lo demás —los nueve pasos, el resumen, las
+       validaciones— es igual, porque editar y cargar son la misma pregunta
+       hecha dos veces. */
+    id: null,
+    slug: null,             /* no se cambia nunca: es la dirección pública */
+    estado: 'pendiente',
+    fotos: [],              /* nuevas: { blob, ancho, alto, previa, pesoOriginal }
+                               ya subidas: { url, previa, ya: true, fotoId } */
     sinFoto: false,
     titulo: '', descripcion: '',
     fechaTexto: '',
@@ -241,7 +249,7 @@ async function cargarBandeja(estado) {
          lo rechace después es peor que no mostrarlo: quien carga se queda
          creyendo que hizo algo mal, cuando lo que pasa es que ese trabajo no
          es suyo. */
-      if (estado === 'pendiente' && quienSoy?.puede_publicar) acciones(li, m, err);
+      acciones(li, m, err);
 
       lista.append(li);
     }
@@ -259,33 +267,83 @@ function acciones(li, m, err) {
   zona.className = 'acciones';
   li.append(zona);
 
+  const publicada = m.estado === 'aprobada';
+  const puede = !!quienSoy?.puede_publicar;
+
   const pintar = () => {
     zona.innerHTML = '';
+    const faltaPermiso = hayPermiso && m.permiso_publicacion !== true;
 
-    /* Lo mismo que con los permisos de la cuenta: no se ofrece una acción que
-       la base va a rechazar. El trigger frena la aprobación sin permiso
-       igual, pero enterarse después de apretar es enterarse de que algo salió
-       mal; enterarse antes es saber qué falta. */
-    if (hayPermiso && m.permiso_publicacion !== true) {
+    /* El permiso se puede anotar desde las dos listas, no sólo desde las sin
+       revisar. Las que quedaron publicadas antes de que la columna existiera
+       no se pueden ni siquiera editar hasta que esté anotado —el trigger frena
+       cualquier cambio que las deje publicadas—, así que sin esto la única
+       salida sería despublicarlas. */
+    if (faltaPermiso && puede) {
       const n = document.createElement('small');
       n.className = 'falta';
       n.textContent = m.permiso_publicacion === false
         ? 'Pidieron que no se publique'
         : 'Falta el permiso de quien la aportó';
-      zona.append(n);
-
-      /* Y la forma de resolverlo, acá mismo. El permiso se consigue por
-         teléfono o en la vereda, días después de cargar la memoria: si para
-         anotarlo hubiera que editar la memoria entera —que todavía no se
-         puede— la compuerta sería una pared. */
       const anotar = document.createElement('button');
       anotar.className = 'enlace';
       anotar.textContent = m.permiso_publicacion === false
         ? 'Cambió de opinión' : 'Anotar el permiso';
+      /* El permiso se consigue por teléfono o en la vereda, días después de
+         cargar la memoria: obligar a abrir el formulario entero para anotar
+         una sola respuesta es la clase de fricción que hace que no se anote. */
       anotar.addEventListener('click', () => formularioPermiso(zona, m, pintar, err));
-      zona.append(anotar);
+      zona.append(n, anotar);
+    }
+
+    /* Editar está siempre, salvo donde la base lo va a rechazar: un error en el
+       año o un nombre mal escrito tiene que poder arreglarse ahora, no en la
+       próxima sesión de SQL de otra persona.
+
+       En una memoria publicada se ofrece sólo a quien publica, porque la
+       política de la base pide ese permiso para guardar algo que siga
+       publicado. A quien no lo tiene no se le muestra un botón que la base le
+       va a rechazar. */
+    /* Y en una publicada sin permiso no se ofrece editar: el trigger de la
+       base rechaza cualquier cambio que la deje publicada, así que el
+       formulario entero terminaría en un error al guardar. Primero el
+       permiso, que está acá al lado. */
+    if ((!publicada || puede) && !(publicada && faltaPermiso)) {
+      const ed = document.createElement('button');
+      ed.className = 'enlace';
+      ed.textContent = 'Editar';
+      ed.addEventListener('click', () => abrirEdicion(m.id, err));
+      zona.append(ed);
+    }
+
+    if (publicada) {
+      if (!puede) return;
+      /* Bajar del sitio sin borrar nada. Es lo que se hace cuando algo salió
+         mal y hay que mirarlo con calma: la memoria vuelve a la bandeja de sin
+         revisar, que es donde se trabaja. */
+      const baja = document.createElement('button');
+      baja.className = 'enlace';
+      baja.textContent = 'Despublicar';
+      baja.addEventListener('click', async () => {
+        baja.disabled = true; baja.textContent = 'Bajando…';
+        try {
+          await api.actualizar('memorias', m.id, { estado: 'pendiente' });
+          li.remove();
+        } catch (x) {
+          baja.disabled = false; baja.textContent = 'Despublicar';
+          err.textContent = x.message; ver(err, true);
+        }
+      });
+      zona.append(baja);
       return;
     }
+
+    if (!puede) return;
+
+    /* Publicar no se ofrece sin permiso: el aviso y el botón para anotarlo ya
+       están arriba. Mostrar igual el botón y que la base lo rechace es peor
+       que no mostrarlo — quien carga se queda creyendo que hizo algo mal. */
+    if (faltaPermiso) return;
 
     const ok = document.createElement('button');
     ok.className = 'enlace';
@@ -431,8 +489,143 @@ function abrirAsistente() {
   limpiarFormulario();
   ver($('#bandeja'), false);
   ver($('#asistente'), true);
+  ver($('#editando'), false);
   pintarPasos();
   irA(0);
+}
+
+/* ------------------------------------------------------------------ */
+/* Editar una memoria que ya existe                                    */
+/* ------------------------------------------------------------------ */
+/* El asistente es el mismo. Esto es sólo el camino de vuelta: de la base al
+   borrador, y del borrador a los campos. Que sea el mismo formulario no es
+   ahorro de código, es la única forma de que lo que se ve al editar sea lo
+   mismo que se vio al cargar — dos formularios distintos para la misma memoria
+   terminan permitiendo cosas distintas, y la diferencia se descubre tarde.
+
+   Lo único que no se toca es el slug. Es la dirección pública de la memoria:
+   si cambia, los enlaces que alguien compartió dejan de funcionar, y en un
+   archivo que se difunde por WhatsApp eso es perder la memoria. */
+
+async function abrirEdicion(id, err) {
+  try {
+    const [m] = await api.traer('memorias',
+      `select=*&id=eq.${encodeURIComponent(id)}`);
+    if (!m) throw new Error('Esa memoria ya no está.');
+
+    /* Sin `.catch`, y es importante: guardar reemplaza estas tres listas
+       enteras por lo que haya en el formulario. Si una lectura falla y se la
+       tapa con un arreglo vacío, el formulario abre sin esos vínculos y el
+       guardado los borra — una lectura fallida convertida en pérdida de datos,
+       en silencio. Que falle la apertura es molesto; que borre, no se arregla. */
+    const [vinculos, fotos, aconts] = await Promise.all([
+      api.traer('memoria_personas',
+        `select=persona_id,confianza&memoria_id=eq.${encodeURIComponent(id)}`),
+      api.traer('memoria_fotos',
+        `select=id,url,orden&memoria_id=eq.${encodeURIComponent(id)}&order=orden`),
+      api.traer('memoria_acontecimientos',
+        `select=acontecimiento_id&memoria_id=eq.${encodeURIComponent(id)}`),
+    ]);
+
+    for (const x of borrador.fotos || []) URL.revokeObjectURL(x.previa);
+    borrador = vacio();
+    borrador.id = m.id;
+    borrador.slug = m.slug;
+    borrador.estado = m.estado;
+    borrador.titulo = m.titulo || '';
+    borrador.descripcion = m.descripcion || '';
+    borrador.fechaTexto = m.fecha_texto || (m.anio != null ? String(m.anio) : '');
+    borrador.lugar = cacheLugares.find(l => l.id === m.lugar_id) || null;
+    borrador.punto = (m.lat != null && m.lng != null) ? { lat: +m.lat, lng: +m.lng } : null;
+    borrador.precisionPunto = m.precision_punto || (borrador.punto ? 'exacta' : null);
+    borrador.aportante = m.aportado_por || '';
+    borrador.fuente = m.fuente || '';
+    borrador.permiso = hayPermiso ? (m.permiso_publicacion ?? null) : null;
+    borrador.quienAutorizo = m.quien_autorizo || '';
+
+    /* La portada está en memorias.foto_url y el resto en memoria_fotos: en el
+       formulario son una sola lista, igual que al cargar. `previa` apunta a la
+       imagen ya subida, y `ya` es lo que después evita volver a subirla. */
+    if (m.foto_url)
+      borrador.fotos.push({ url: m.foto_url, previa: m.foto_url, ya: true, fotoId: null });
+    for (const f of fotos)
+      if (f.url !== m.foto_url)
+        borrador.fotos.push({ url: f.url, previa: f.url, ya: true, fotoId: f.id });
+    borrador.sinFoto = !borrador.fotos.length;
+
+    borrador.personas = vinculos.map(v => {
+      const p = cachePersonas.find(x => x.id === v.persona_id);
+      return p ? { ...p, confianza: v.confianza || 'confirmada' } : null;
+    }).filter(Boolean);
+    /* Las que estaban y ya no están en la base de personas —borradas a mano,
+       por ejemplo— no se inventan: se avisa, y el resto se edita igual. */
+    borrador.faltaron = vinculos.length - borrador.personas.length;
+
+    borrador.acontecimiento = aconts.length
+      ? (cacheAconts.find(a => a.id === aconts[0].acontecimiento_id) || null) : null;
+
+    paso = 0;
+    limpiarFormulario();
+    pintarFormulario();
+    pintarCintaEdicion();
+    ver($('#bandeja'), false);
+    ver($('#asistente'), true);
+    pintarPasos();
+    irA(0);
+  } catch (x) {
+    if (err) { err.textContent = x.message; ver(err, true); }
+  }
+}
+
+function pintarCintaEdicion() {
+  const c = $('#editando');
+  if (!borrador.id) { ver(c, false); return; }
+  c.innerHTML = '';
+  const t = document.createElement('b');
+  t.textContent = `Editando «${borrador.titulo}»`;
+  const nota = document.createElement('small');
+  nota.textContent = borrador.estado === 'aprobada'
+    ? 'Está publicada. Lo que guardes sale al sitio en la próxima publicación. '
+      + 'La dirección de la memoria no cambia aunque cambie el título.'
+    : 'Está esperando revisión. La dirección de la memoria no cambia aunque cambie el título.';
+  c.append(t, nota);
+
+  /* Si alguna persona vinculada ya no está en la base, se dice. Guardar
+     reemplaza la lista entera, así que esos vínculos se van a perder: que se
+     pierdan en silencio sería borrar un dato sin que nadie se entere. */
+  if (borrador.faltaron) {
+    const ojo = document.createElement('small');
+    ojo.textContent = `Ojo: ${borrador.faltaron} persona(s) que esta memoria nombraba `
+      + 'ya no están en el archivo. Si guardás, esos vínculos se pierden.';
+    c.append(ojo);
+  }
+  ver(c, true);
+}
+
+/* El camino inverso de limpiarFormulario: del borrador a los campos. */
+function pintarFormulario() {
+  $('#titulo').value = borrador.titulo;
+  $('#descripcion').value = borrador.descripcion;
+  $('#fecha').value = borrador.fechaTexto;
+  $('#fecha').dispatchEvent(new Event('input'));   /* para que se lea la fecha */
+  $('#aportante').value = borrador.aportante;
+  $('#fuente').value = borrador.fuente;
+
+  const valor = borrador.permiso === true ? 'si' : borrador.permiso === false ? 'no' : '';
+  const r = $$('input[name=permiso]').find(x => x.value === valor);
+  if (r) r.checked = true;
+  $('#quienAutorizo').value = borrador.quienAutorizo;
+  ver($('#cajaAutorizo'), borrador.permiso === true);
+
+  if (borrador.lugar) elegirLugar(borrador.lugar);
+  if (borrador.acontecimiento) elegirAcont(borrador.acontecimiento);
+  pintarFotos();
+  pintarPersonas();
+
+  if (borrador.fotos.length)
+    $('#pesoFoto').textContent = `${borrador.fotos.length} ${borrador.fotos.length === 1 ? 'foto' : 'fotos'}`
+      + (borrador.fotos.length > 1 ? '. La primera es la portada.' : '.');
+  ver($('#pesoFoto'), !!borrador.fotos.length);
 }
 
 function limpiarFormulario() {
@@ -472,7 +665,8 @@ function irA(n) {
   });
   $('#cuenta').textContent = `${n + 1} de ${PASOS.length} · ${PASOS[n].titulo}`;
   $('#atras').textContent = n === 0 ? 'Cancelar' : 'Atrás';
-  $('#siguiente').textContent = n === PASOS.length - 1 ? 'Guardar la memoria' : 'Siguiente';
+  $('#siguiente').textContent = n < PASOS.length - 1 ? 'Siguiente'
+    : borrador.id ? 'Guardar los cambios' : 'Guardar la memoria';
   if (PASOS[n].id === 'punto') prepararPunto();
   if (PASOS[n].id === 'vinculos') prepararVinculos();
   if (PASOS[n].id === 'revisar') pintarResumen();
@@ -928,8 +1122,14 @@ function pintarPersonas() {
 function prepararVinculos() {
   /* La pareja sólo se ofrece con exactamente dos personas. Con tres o más no
      hay una pareja que marcar, y ofrecerla sería invitar a inventar una. */
-  const dos = borrador.personas.length === 2;
+  /* Editando no se ofrece: marcar la pareja crea una fila en
+     nucleos_familiares, y volver a pasar por este paso la crearía de nuevo.
+     Además el parentesco no es de la memoria —la memoria dice que estuvieron
+     juntos, el núcleo dice que fueron pareja—, así que editar una foto no es
+     el lugar donde se corrige una familia. */
+  const dos = borrador.personas.length === 2 && !borrador.id;
   ver($('#bloquePareja'), dos);
+  ver($('#parejaEditando'), !!borrador.id && borrador.personas.length === 2);
   if (dos) {
     const [a, b] = borrador.personas.map(p => [p.nombre, p.apellido].filter(Boolean).join(' '));
     $('#textoPareja').textContent = `${a} y ${b} fueron pareja`;
@@ -1069,37 +1269,34 @@ async function guardar() {
        Y se sube de a una guardando lo que entró: desde una conexión del pueblo,
        que falle la cuarta de cinco es lo normal, y descartar las tres buenas
        obligaría a repetir el formulario entero. Lo que entró, entró; de lo que
-       no, se avisa cuál. */
-    const subidas = [];
+       no, se avisa cuál.
+
+       Editando, las que ya estaban no se vuelven a subir: su URL ya existe. */
+    const urls = [];
     const fallaron = [];
     const nombre = api.codigo(borrador.titulo) || 'memoria';
+    const nuevas = borrador.fotos.filter(f => !f.ya).length;
+    let subidas = 0;
     for (const [n, f] of borrador.fotos.entries()) {
-      b.textContent = borrador.fotos.length > 1
-        ? `Subiendo ${n + 1} de ${borrador.fotos.length}…` : 'Subiendo la foto…';
+      if (f.ya) { urls.push(f.url); continue; }
+      subidas++;
+      b.textContent = nuevas > 1 ? `Subiendo ${subidas} de ${nuevas}…` : 'Subiendo la foto…';
       try {
-        subidas.push(await api.subirFoto(f.blob, nombre));
+        urls.push(await api.subirFoto(f.blob, nombre));
       } catch {
         fallaron.push(n + 1);
       }
     }
-    if (borrador.fotos.length && !subidas.length)
+    if (borrador.fotos.length && !urls.length)
       throw new Error('No se pudo subir ninguna foto. Revisá la conexión y probá de nuevo.');
 
-    const fotoUrl = subidas[0] || null;
-
-    /* 2 · la memoria. Siempre pendiente: quien carga no publica. */
     b.textContent = 'Guardando…';
     const f = parseFecha(borrador.fechaTexto || '');
-    /* El código corto de la memoria se chequea contra la base, no contra una
-       lista en memoria: las memorias no se precargan —son muchas y crecen— así
-       que la única forma de no pisar una es preguntar. Dos fotos tituladas
-       igual son más comunes de lo que parece. */
-    const base = api.codigo(borrador.titulo) || 'memoria';
-    const parecidos = await api.traer('memorias',
-      `select=slug&slug=like.${encodeURIComponent(base)}*`).catch(() => []);
 
-    const memoria = await api.insertar('memorias', {
-      slug: unico(base, parecidos),
+    /* Los campos que describen la memoria son los mismos al crear y al editar.
+       El estado, el slug y quién la cargó no están acá a propósito: son de la
+       fila, no de lo que la memoria dice. */
+    const campos = {
       titulo: borrador.titulo,
       descripcion: borrador.descripcion || null,
       fecha_texto: borrador.fechaTexto || null,
@@ -1114,7 +1311,7 @@ async function guardar() {
       lat: borrador.punto?.lat ?? null,
       lng: borrador.punto?.lng ?? null,
       precision_punto: borrador.punto ? (borrador.precisionPunto || 'exacta') : null,
-      foto_url: fotoUrl,
+      foto_url: urls[0] || null,
       aportado_por: borrador.aportante || null,
       fuente: borrador.fuente || null,
       /* La fecha del permiso no va: la pone la base con un trigger. Un permiso
@@ -1123,57 +1320,112 @@ async function guardar() {
         permiso_publicacion: borrador.permiso,
         quien_autorizo: borrador.quienAutorizo || null,
       } : {}),
-      estado: 'pendiente',
-      es_demo: false,
-      creado_por: api.quien(),
-    });
+    };
 
-    /* 3 · los vínculos */
-    if (borrador.personas.length)
-      await api.insertar('memoria_personas', borrador.personas.map(p => ({
-        memoria_id: memoria.id, persona_id: p.id, confianza: p.confianza,
-      })));
+    const id = borrador.id
+      ? await guardarCambios(campos)
+      : await crearMemoria(campos);
 
-    /* La portada va en memorias.foto_url y el resto en memoria_fotos, que es
-       como ya lo lee el build: fusiona las dos y saca repetidas. El orden es
-       el que se ve en el formulario. */
-    if (subidas.length > 1)
-      await api.insertar('memoria_fotos', subidas.slice(1).map((url, n) => ({
-        memoria_id: memoria.id, url, orden: n + 1,
-        /* Ya los calculó el achicado; guardarlos evita que el sitio tenga que
-           medir la imagen para reservarle el lugar. */
-        ancho: borrador.fotos[n + 1]?.ancho ?? null,
-        alto: borrador.fotos[n + 1]?.alto ?? null,
-      })));
+    /* 2 · los vínculos. Editando se reemplazan en vez de agregarse: el
+       formulario muestra la lista entera, así que lo que quedó en pantalla es
+       lo que la memoria dice. Sacar a alguien tiene que poder sacarlo. */
+    await guardarVinculos(id, urls);
 
-    if (borrador.acontecimiento)
-      await api.insertar('memoria_acontecimientos', {
-        memoria_id: memoria.id, acontecimiento_id: borrador.acontecimiento.id,
-      });
-
-    /* El parentesco es aparte del hecho histórico, y por eso va a su propia
-       tabla: la memoria dice que estuvieron juntos, el núcleo dice que fueron
-       pareja. Son dos afirmaciones distintas y el sistema no las mezcla. */
-    if (borrador.pareja && borrador.personas.length === 2)
-      await api.insertar('nucleos_familiares', {
-        persona_a_id: borrador.personas[0].id,
-        persona_b_id: borrador.personas[1].id,
-        es_demo: false,
-      });
-
-    listo.textContent = 'Guardada. Queda esperando revisión; todavía no está en el sitio.'
+    listo.textContent = (borrador.id
+        ? (borrador.estado === 'aprobada'
+            ? 'Guardada. El cambio sale al sitio en la próxima publicación.'
+            : 'Guardada. Sigue esperando revisión.')
+        : 'Guardada. Queda esperando revisión; todavía no está en el sitio.')
       + (fallaron.length
           ? ` Ojo: no se ${fallaron.length === 1 ? 'pudo subir la foto' : 'pudieron subir las fotos'} `
             + `${fallaron.join(', ')}. El resto quedó guardado.`
           : '');
     ver(listo, true);
-    setTimeout(volverABandeja, 1400);
+    setTimeout(volverABandeja, 1600);
   } catch (x) {
     err.textContent = x.message; ver(err, true);
   } finally {
     b.disabled = false;
-    b.textContent = 'Guardar la memoria';
+    b.textContent = borrador.id ? 'Guardar los cambios' : 'Guardar la memoria';
   }
+}
+
+/* Una memoria nueva. Siempre pendiente: quien carga no publica. */
+async function crearMemoria(campos) {
+  /* El código corto de la memoria se chequea contra la base, no contra una
+     lista en memoria: las memorias no se precargan —son muchas y crecen— así
+     que la única forma de no pisar una es preguntar. Dos fotos tituladas
+     igual son más comunes de lo que parece. */
+  const base = api.codigo(campos.titulo) || 'memoria';
+  const parecidos = await api.traer('memorias',
+    `select=slug&slug=like.${encodeURIComponent(base)}*`).catch(() => []);
+
+  const memoria = await api.insertar('memorias', {
+    ...campos,
+    slug: unico(base, parecidos),
+    estado: 'pendiente',
+    es_demo: false,
+    creado_por: api.quien(),
+  });
+  return memoria.id;
+}
+
+/* Una que ya existe. El slug no se toca aunque haya cambiado el título: es la
+   dirección pública, y en un archivo que se comparte por WhatsApp cambiarla es
+   romper los enlaces que alguien ya mandó. El estado tampoco: publicar y
+   despublicar se hacen desde la bandeja, que es donde se ve lo que eso
+   significa. */
+async function guardarCambios(campos) {
+  await api.actualizar('memorias', borrador.id, campos);
+  return borrador.id;
+}
+
+/* Personas, fotos y acontecimiento. Se reemplazan enteros —se borra lo que
+   había y se escribe lo que hay— porque el formulario muestra la lista
+   completa: lo que quedó en pantalla es lo que la memoria dice, y una
+   diferencia entre las dos cosas sería una fila fantasma que nadie ve.
+
+   Al crear no hay nada que borrar, y el borrado se saltea. */
+async function guardarVinculos(id, urls) {
+  const filtro = `memoria_id=eq.${encodeURIComponent(id)}`;
+
+  if (borrador.id) await api.borrar('memoria_personas', filtro);
+  if (borrador.personas.length)
+    await api.insertar('memoria_personas', borrador.personas.map(p => ({
+      memoria_id: id, persona_id: p.id, confianza: p.confianza,
+    })));
+
+  /* La portada va en memorias.foto_url y el resto en memoria_fotos, que es
+     como ya lo lee el build: fusiona las dos y saca repetidas. El orden es
+     el que se ve en el formulario. */
+  if (borrador.id) await api.borrar('memoria_fotos', filtro);
+  if (urls.length > 1)
+    await api.insertar('memoria_fotos', urls.slice(1).map((url, n) => ({
+      memoria_id: id, url, orden: n + 1,
+      /* Ya los calculó el achicado; guardarlos evita que el sitio tenga que
+         medir la imagen para reservarle el lugar. Editando, de las que ya
+         estaban no se sabe el tamaño sin bajarlas: van en null, que es lo que
+         había antes de que esto existiera. */
+      ancho: borrador.fotos[n + 1]?.ancho ?? null,
+      alto: borrador.fotos[n + 1]?.alto ?? null,
+    })));
+
+  if (borrador.id) await api.borrar('memoria_acontecimientos', filtro);
+  if (borrador.acontecimiento)
+    await api.insertar('memoria_acontecimientos', {
+      memoria_id: id, acontecimiento_id: borrador.acontecimiento.id,
+    });
+
+  /* El parentesco es aparte del hecho histórico, y por eso va a su propia
+     tabla: la memoria dice que estuvieron juntos, el núcleo dice que fueron
+     pareja. Son dos afirmaciones distintas y el sistema no las mezcla. Por lo
+     mismo, editar una memoria no toca los núcleos. */
+  if (!borrador.id && borrador.pareja && borrador.personas.length === 2)
+    await api.insertar('nucleos_familiares', {
+      persona_a_id: borrador.personas[0].id,
+      persona_b_id: borrador.personas[1].id,
+      es_demo: false,
+    });
 }
 
 /* ------------------------------------------------------------------ */

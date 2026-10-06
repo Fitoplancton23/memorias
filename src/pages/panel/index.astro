@@ -113,6 +113,10 @@ import { tituloSitio } from '../../lib/sitio.js';
   <!-- ---------------------------------------------------------------- -->
   <main id="asistente" class="ancho" hidden>
 
+    <!-- Editando, hay que saberlo desde el primer paso: el formulario es el
+         mismo y sin esto no se distingue de cargar una memoria nueva. -->
+    <p class="editando" id="editando" hidden></p>
+
     <nav class="pasos" id="pasos" aria-label="Pasos"></nav>
 
     <!-- 1 · la foto -->
@@ -286,6 +290,11 @@ import { tituloSitio } from '../../lib/sitio.js';
         <p class="ayuda">Si estas dos personas fueron pareja, marcalo y el archivo las va a dibujar juntas.</p>
         <label class="casilla"><input type="checkbox" id="esPareja" /> <span id="textoPareja"></span></label>
       </div>
+
+      <p class="ayuda" id="parejaEditando" hidden>
+        El parentesco no se edita desde acá. La memoria dice que estuvieron
+        juntos; que hayan sido pareja es otra afirmación y vive en otro lado.
+      </p>
 
       <div class="bloque">
         <h3>Un acontecimiento</h3>
@@ -719,6 +728,14 @@ import { tituloSitio } from '../../lib/sitio.js';
                               color: var(--tinta-2); font-size: .82rem; }
     #cajaAutorizo small { display: block; margin-top: .35rem;
                           color: var(--tinta-2); font-size: .82rem; }
+
+    /* La cinta de "estás editando". Del color de la marca y arriba de todo:
+       es lo único que distingue esta pantalla de la de cargar. */
+    .editando { margin: 0 0 1.2rem; padding: .6rem .9rem; font-size: .88rem;
+                border-left: 3px solid var(--marca); background: var(--panel);
+                color: var(--tinta); line-height: 1.5; }
+    .editando b { font-weight: 500; }
+    .editando small { display: block; color: var(--tinta-2); font-size: .8rem; }
 
     .aviso-permiso { margin: .9rem 0 0; padding: .7rem .9rem; font-size: .9rem;
                      line-height: 1.5; color: var(--tinta);

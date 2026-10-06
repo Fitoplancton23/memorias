@@ -1050,8 +1050,8 @@ function pintarResumen() {
         + 'que lo pidió— y el sitio no la va a mostrar.'
       : 'Sin el permiso anotado la memoria se guarda, pero no se puede publicar. '
         + 'Cuando puedas preguntar, se anota y ahí sí.';
-  ver(av, !!av.textContent);
-
+  /* Y si la columna todavía no existe, eso tapa a cualquier otro aviso: la
+     respuesta no se va a guardar, diga lo que diga el formulario. */
   if (!hayPermiso)
     av.textContent = 'OJO: falta correr db/18_consentimiento.sql en la base. '
       + 'Esta memoria se va a guardar sin el permiso, y hay que volver a anotarlo.';

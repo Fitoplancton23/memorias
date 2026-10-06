@@ -22,6 +22,15 @@ const nombreDe = s => {
   if (!p) return null;
   return [p.nombre, p.apellido].filter(Boolean).join(' ') || p.apodo || null;
 };
+/* Cuántos metros mide una unidad del dibujo. Es lo que después deja saber a
+   cuántos metros por píxel se está mirando, que es lo que decide si mostrar los
+   puntos de una memoria tiene sentido o si todos caerían encima del lugar. */
+const M_POR_UNIDAD = (() => {
+  const [minlat, minlon, maxlat, maxlon] = mapa.bounds;
+  const anchoM = (maxlon - minlon) * 111320 * Math.cos(((minlat + maxlat) / 2) * Math.PI / 180);
+  return anchoM / ANCHO;
+})();
+
 const puntos = lugares
   .filter(l => l.lat != null && l.lng != null)
   .map(l => {
@@ -49,6 +58,14 @@ const puntos = lugares
         descripcion: d.descripcion || '',
         gente: (d.personas || []).map(nombreDe).filter(Boolean),
         lugar: l.nombre,
+        /* Regla 4: el punto propio de la memoria, ya proyectado al dibujo. Se
+           calcula acá, en el build, y no en el navegador: es una cuenta por
+           memoria que no cambia nunca. */
+        punto: d.punto ? (() => {
+          const q = aNormalizado(d.punto.lat, d.punto.lng, mapa);
+          return { cx: +(q.x * ANCHO).toFixed(1), cy: +(q.y * ALTO).toFixed(1),
+                   precision: d.punto.precision };
+        })() : null,
       })),
     };
   })
@@ -105,6 +122,11 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         pone la posición en píxeles a partir de la transformación del zoom.
         Arrancan invisibles porque hasta esa primera pasada no saben dónde van. */}
     <div class="capa-marcas" id="marcas">
+      {/* Los puntos de las memorias del lugar abierto. Regla 4: existen dentro
+          del lugar, al entrar y al acercarse, y nunca con el mismo lenguaje
+          visual que un lugar. */}
+      <div class="puntos-memoria" id="puntosMemoria" aria-hidden="true"></div>
+
       {puntos.map(p => (
         <button type="button" class={'marca-mapa' + (p.n ? '' : ' vacio')}
                 data-slug={p.slug} style={`--d:${p.d}px`}
@@ -205,15 +227,15 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     )}
   </section>
 
-  <script define:vars={{ PUNTOS: puntos, ANCHO, ALTO }}>
-    window.__MAPA = { PUNTOS, ANCHO, ALTO };
+  <script define:vars={{ PUNTOS: puntos, ANCHO, ALTO, M_POR_UNIDAD }}>
+    window.__MAPA = { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD };
   </script>
 
   <script>
     import { select } from 'd3-selection';
     import { zoom, zoomIdentity } from 'd3-zoom';
 
-    const { PUNTOS, ANCHO, ALTO } = window.__MAPA;
+    const { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD } = window.__MAPA;
     const svgEl = document.getElementById('mapa');
     const mundo = document.getElementById('mundo');
     const base = document.getElementById('base');
@@ -334,7 +356,70 @@ const apellidosPortada = Object.entries(cuentaApellidos)
        que el archivo dejó de tener—, pero sí se repliega. Lo decide el espacio
        real que hay, no un umbral de zoom: así un paraje aislado conserva su
        foto de lejos y el casco se va abriendo al acercarse. */
+    /* Los puntos de las memorias del lugar abierto.
+       --------------------------------------------------------------------
+       Aparecen con dos condiciones y las dos importan. Que el lugar esté
+       abierto: son detalle de adentro, no información del mapa general. Y que
+       la escala sea fina: a quince metros por píxel, el patio y el salón de
+       actos caen sobre el mismo píxel y dibujarlos sería mentir sobre lo que
+       se está viendo.
+
+       El umbral es 1,5 metros por píxel. A esa escala, dos memorias separadas
+       por quince metros —el ancho de un patio— quedan a diez píxeles: se ven
+       como dos cosas distintas. Más lejos que eso se amontonarían encima del
+       marcador del lugar y no agregarían nada.
+
+       La incertidumbre se dibuja, no se esconde: un punto exacto es un disco
+       chico y nítido, uno aproximado es un halo punteado y más grande. Es el
+       mismo lenguaje que ya usa la línea de tiempo, donde la duda se codifica
+       como extensión. */
+    const UMBRAL_PUNTOS = 1.5;   /* metros por píxel */
+    let focoVisible = null;
+
+    function dibujarPuntos(t) {
+      const caja = document.getElementById('puntosMemoria');
+      if (!caja) return;
+      const p = abierta ? porSlug[abierta] : null;
+      const mPorPx = M_POR_UNIDAD / (razon * t.k);
+      const conPunto = p ? p.docs.filter(d => d.punto) : [];
+
+      if (!p || !conPunto.length || mPorPx > UMBRAL_PUNTOS) {
+        if (caja.childElementCount) caja.replaceChildren();
+        caja.dataset.lugar = '';
+        lienzo.classList.remove('con-puntos');
+        return;
+      }
+
+      /* Se rearma sólo si cambió el lugar; en cada movimiento basta mover. */
+      if (caja.dataset.lugar !== p.slug) {
+        caja.dataset.lugar = p.slug;
+        caja.replaceChildren(...conPunto.map(d => {
+          const el = document.createElement('a');
+          el.className = 'punto-memoria' +
+            (d.punto.precision === 'aproximada' ? ' aproximado' : '');
+          el.href = '/memorias/' + encodeURIComponent(d.slug) + '/';
+          el.dataset.mem = d.slug;
+          el.title = d.titulo + (d.punto.precision === 'aproximada'
+            ? ' · ubicación aproximada' : '');
+          const n = document.createElement('span');
+          n.className = 'punto-nombre';
+          n.textContent = d.titulo;
+          el.append(n);
+          return el;
+        }));
+      }
+
+      lienzo.classList.add('con-puntos');
+      [...caja.children].forEach((el, i) => {
+        const d = conPunto[i];
+        const x = offX + (d.punto.cx * t.k + t.x) * razon;
+        const y = offY + (d.punto.cy * t.k + t.y) * razon;
+        el.style.transform = 'translate(' + x + 'px,' + y + 'px) translate(-50%,-50%)';
+      });
+    }
+
     function repartir(t) {
+      focoVisible = null;
       const puestos = [], circulos = [];
       for (const m of marcas) {
         const x = offX + (m.p.cx * t.k + t.x) * razon;
@@ -359,6 +444,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         }
         m.el.style.setProperty('--d', (radio * 2) + 'px');
         circulos.push({ x, y, r: radio });
+        if (m.p.slug === abierta) focoVisible = { x, y, r: radio };
 
         /* El nombre va 5 px por encima del borde de la lente —lo dice el CSS—,
            así que la caja de choque puede ser la real. Se mide contra los otros
@@ -407,6 +493,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         kActual = ev.transform.k;
         tActual = ev.transform;
         repartir(ev.transform);
+        dibujarPuntos(ev.transform);
         reubicarFicha();
         guardarEstado();
       });
@@ -474,6 +561,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       ficha.hidden = true;
       abierta = null;
       lienzo.classList.remove('con-ficha');
+      dibujarPuntos(tActual);
       guardarEstado();
       for (const m of marcas) m.el.classList.remove('foco');
     }
@@ -501,6 +589,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       ficha.querySelector('.f-cerrar').addEventListener('click', cerrarFicha);
       abierta = slug;
       lienzo.classList.add('con-ficha');
+      dibujarPuntos(tActual);
       reubicarFicha();
       guardarEstado();
     }
@@ -876,6 +965,41 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       transition: transform .5s cubic-bezier(.2, 1.3, .4, 1),
                   box-shadow .25s ease, background .25s ease;
       transition-delay: calc(var(--orden, 0) * 55ms + .7s), 0s, 0s; }
+
+    /* --- los puntos de una memoria, dentro del lugar ---------------------
+       Un lugar es una lente de vidrio con su foto. Un punto es una marca plana
+       y chica, sin imagen: si compartieran lenguaje nadie sabría qué está
+       mirando, y el mapa volvería a ser una nube de puntos, que es justamente
+       lo que la Regla 4 evita.
+
+       La incertidumbre se dibuja. El punto exacto es un disco nítido; el
+       aproximado es un aro punteado y más grande, porque lo que no se sabe es
+       cuál de todos esos metros. Mismo criterio que la línea de tiempo, donde
+       la duda se codifica como extensión. */
+    .puntos-memoria { position: absolute; inset: 0; z-index: 12; pointer-events: none; }
+    .punto-memoria { position: absolute; left: 0; top: 0; width: 13px; height: 13px;
+                     border-radius: 50%; pointer-events: auto; cursor: pointer;
+                     background: var(--cursor);
+                     box-shadow: 0 0 0 2.5px rgba(255, 255, 255, .95),
+                                 0 2px 6px -1px rgba(24, 30, 27, .4);
+                     animation: punto-aparece .3s ease backwards; }
+    .punto-memoria.aproximado { width: 26px; height: 26px; background: none;
+                                border: 2px dashed var(--cursor);
+                                box-shadow: none; }
+    @keyframes punto-aparece { from { opacity: 0; scale: .4; } }
+    @media (prefers-reduced-motion: reduce) { .punto-memoria { animation: none; } }
+
+    .punto-nombre { position: absolute; left: 50%; top: calc(100% + 6px);
+                    transform: translateX(-50%); white-space: nowrap;
+                    font-size: .72rem; color: var(--tinta); padding: .1rem .4rem;
+                    background: rgba(255, 255, 255, .9); border-radius: .25rem;
+                    opacity: 0; transition: opacity .15s ease; pointer-events: none; }
+    .punto-memoria:hover .punto-nombre,
+    .punto-memoria:focus-visible .punto-nombre { opacity: 1; }
+
+    /* Con los puntos a la vista, el lugar se retira: deja de competir y pasa a
+       ser el continente de lo que se está mirando. */
+    .con-puntos .marca-mapa.foco .lente { opacity: .3; }
 
     .marca-mapa { --d: 44px; position: absolute; left: 0; top: 0;
              width: var(--d); height: var(--d); padding: 0; border: 0;

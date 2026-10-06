@@ -12,7 +12,7 @@
 
 import * as api from './api.js';
 import { parseFecha } from '../../../scripts/fechas.mjs';
-import { aLatLon } from '../proyeccion.js';
+import { montarSelector, leerCoordenadas } from './selector-mapa.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -25,6 +25,7 @@ const PASOS = [
   { id: 'que',      titulo: 'Qué pasó' },
   { id: 'cuando',   titulo: 'Cuándo' },
   { id: 'donde',    titulo: 'Dónde' },
+  { id: 'punto',    titulo: 'Dónde exactamente' },
   { id: 'quienes',  titulo: 'Quiénes' },
   { id: 'vinculos', titulo: 'Vínculos' },
   { id: 'origen',   titulo: 'Quién la aportó' },
@@ -34,7 +35,7 @@ const PASOS = [
 let paso = 0;
 let borrador = vacio();
 let cacheLugares = [], cachePersonas = [], cacheAconts = [], cacheAlias = {};
-let mapas = null, mapaActual = null;
+let selLugar = null, selPunto = null;
 /* Quién entró. Hace falta para no ofrecerle acciones que la base le va a
    rechazar: cargar y aprobar son dos permisos distintos. */
 let quienSoy = null;
@@ -46,6 +47,8 @@ function vacio() {
     titulo: '', descripcion: '',
     fechaTexto: '',
     lugar: null,
+    punto: null,            /* { lat, lng } dentro del lugar, más preciso que él */
+    precisionPunto: 'exacta',
     personas: [],          /* { id, nombre, apellido, confianza, nueva } */
     pareja: false,
     acontecimiento: null,
@@ -331,6 +334,7 @@ function irA(n) {
   $('#cuenta').textContent = `${n + 1} de ${PASOS.length} · ${PASOS[n].titulo}`;
   $('#atras').textContent = n === 0 ? 'Cancelar' : 'Atrás';
   $('#siguiente').textContent = n === PASOS.length - 1 ? 'Guardar la memoria' : 'Siguiente';
+  if (PASOS[n].id === 'punto') prepararPunto();
   if (PASOS[n].id === 'vinculos') prepararVinculos();
   if (PASOS[n].id === 'revisar') pintarResumen();
   scrollTo({ top: 0, behavior: 'smooth' });
@@ -351,6 +355,11 @@ function saltear() {
   }
   if (id === 'cuando') { borrador.fechaTexto = ''; $('#fecha').value = ''; }
   if (id === 'donde') { borrador.lugar = null; ver($('#lugarElegido'), false); }
+  if (id === 'punto') {
+    borrador.punto = null; borrador.precisionPunto = null;
+    selPunto?.marcar(null); $('#coordsPunto').textContent = '';
+    ver($('#precisionPunto'), false);
+  }
   if (id === 'quienes') { borrador.personas = []; $('#fichasPersonas').innerHTML = ''; }
   irA(paso + 1);
 }
@@ -553,49 +562,88 @@ function elegirLugar(l) {
 }
 
 async function prepararMapa() {
-  const lienzo = $('#mapaLienzo');
-  if (lienzo.dataset.listo) return;
-  lienzo.dataset.listo = '1';
+  const caja = $('#mapaLienzo');
+  if (caja.dataset.listo) return;
+  caja.dataset.listo = '1';
   try {
-    if (!mapas) mapas = (await (await fetch('/mapa/mapa.json')).json()).mapas;
-    /* El casco urbano: es donde cae casi todo, y el ejido entero haría que
-       marcar una esquina sea imposible. */
-    mapaActual = mapas.find(m => m.nombre === 'casco') || mapas[0];
-    lienzo.innerHTML = await (await fetch(`/mapa/${mapaActual.nombre}.svg`)).text();
-    const svg = lienzo.querySelector('svg');
-    if (svg) {
-      svg.removeAttribute('width'); svg.removeAttribute('height');
-      /* El recuadro toma la proporción del mapa. Con un cuadrado fijo el
-         dibujo se recorta, y el punto que marca el profe cae en otro lado:
-         la conversión a latitud y longitud supone que se ve el mapa entero. */
-      const [vx, vy] = mapaActual.viewBox;
-      lienzo.style.setProperty('--prop', vx + ' / ' + vy);
-    }
-    /* La posición se mide contra el sistema de coordenadas del propio svg y
-       no contra el recuadro que lo contiene. Un svg se centra adentro de su
-       caja cuando las proporciones no coinciden, y entonces las dos franjas
-       vacías corren la cuenta: el profe marca la terminal y el punto queda
-       a cien metros. getScreenCTM da la transformación real, incluido ese
-       centrado, así que la inversa acierta siempre.                        */
-    lienzo.addEventListener('click', e => {
-      const svg = lienzo.querySelector('svg');
-      if (!svg) return;
-      const [vx, vy] = mapaActual.viewBox;
-      const punto = new DOMPoint(e.clientX, e.clientY)
-        .matrixTransform(svg.getScreenCTM().inverse());
-      const x = punto.x / vx, y = punto.y / vy;
-      if (x < 0 || x > 1 || y < 0 || y > 1) return;   /* clic en el margen */
-      const { lat, lon } = aLatLon(x, y, mapaActual);
-      $('#coords').value = lat.toFixed(6) + ', ' + lon.toFixed(6);
-      let pin = lienzo.querySelector('.pin');
-      if (!pin) { pin = document.createElement('div'); pin.className = 'pin'; lienzo.append(pin); }
-      const caja = svg.getBoundingClientRect(), base = lienzo.getBoundingClientRect();
-      pin.style.left = (caja.left - base.left + x * caja.width) + 'px';
-      pin.style.top  = (caja.top - base.top + y * caja.height) + 'px';
+    selLugar = await montarSelector(caja, {
+      onElegir: (lat, lng) => {
+        $('#coords').value = lat.toFixed(6) + ', ' + lng.toFixed(6);
+        $('#escalaLugar').textContent = escala(caja, selLugar.mapa);
+      },
+    });
+    $('#escalaLugar').textContent = escala(caja, selLugar.mapa);
+    caja.addEventListener('wheel', () =>
+      requestAnimationFrame(() => { $('#escalaLugar').textContent = escala(caja, selLugar.mapa); }),
+      { passive: true });
+    $('#verTodoLugar').addEventListener('click', () => {
+      selLugar.verTodo();
+      $('#escalaLugar').textContent = escala(caja, selLugar.mapa);
     });
   } catch {
-    lienzo.innerHTML = '<p class="ayuda" style="padding:1rem">No se pudo cargar el mapa. '
-                     + 'Podés pegar las coordenadas a mano.</p>';
+    caja.innerHTML = '<p class="ayuda" style="padding:1rem">No se pudo cargar el mapa. '
+                   + 'Podés pegar las coordenadas a mano.</p>';
+  }
+}
+
+/* Cuánto mide un píxel en metros, al acercamiento actual. Es el dato que le
+   dice al admin si lo que está marcando puede distinguir un patio de un salón
+   o si todavía está marcando "la manzana". Sin eso, acercarse es a ciegas. */
+function escala(caja, mapa) {
+  const k = +(caja.dataset.aumentos || 1);
+  const [minlat, minlon, , maxlon] = mapa.bounds;
+  const anchoM = (maxlon - minlon) * 111320 * Math.cos(minlat * Math.PI / 180);
+  const px = caja.getBoundingClientRect().width * k;
+  if (!px) return '';
+  const m = anchoM / px;
+  return m < 1 ? `${Math.round(m * 100)} cm por píxel` : `${m.toFixed(1)} m por píxel`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Paso 4b · el punto exacto                                           */
+/* ------------------------------------------------------------------ */
+
+async function prepararPunto() {
+  const caja = $('#mapaPunto');
+
+  /* El texto cambia según haya lugar o no, porque son dos preguntas
+     distintas: "dónde dentro de la escuela" y "dónde fue esto". */
+  $('#puntoAyuda').textContent = borrador.lugar
+    ? 'El patio y el salón de actos son dos puntos dentro de la misma escuela, '
+      + 'y no son dos lugares. Acercá el mapa y marcá dónde se tomó la foto.'
+    : 'No elegiste un lugar, pero si sabés dónde fue, marcalo igual. '
+      + 'Reconocer la esquina sin saber de quién era la casa también es un dato.';
+
+  $$('#precisionPunto input').forEach(r => r.addEventListener('change', () => {
+    borrador.precisionPunto = $('#precisionPunto input:checked').value;
+  }));
+
+  if (caja.dataset.listo) return;
+  caja.dataset.listo = '1';
+
+  const refiere = borrador.lugar?.lat != null
+    ? { lat: borrador.lugar.lat, lng: borrador.lugar.lng, nombre: borrador.lugar.nombre }
+    : null;
+
+  try {
+    selPunto = await montarSelector(caja, {
+      referencia: refiere,
+      /* Arrancar acercado sobre el lugar: si el mapa abre entero, el admin
+         tiene que encontrar la escuela de nuevo cada vez. */
+      acercar: refiere ? 16 : 1,
+      onElegir: (lat, lng) => {
+        borrador.punto = { lat, lng };
+        $('#coordsPunto').textContent = `${lat.toFixed(7)}, ${lng.toFixed(7)}`
+          + ' · ' + escala(caja, selPunto.mapa);
+        ver($('#precisionPunto'), true);
+      },
+    });
+    const refrescar = () => { $('#escalaPunto').textContent = escala(caja, selPunto.mapa); };
+    refrescar();
+    caja.addEventListener('wheel', () => requestAnimationFrame(refrescar), { passive: true });
+    $('#verTodoPunto').addEventListener('click', () => { selPunto.verTodo(); refrescar(); });
+  } catch {
+    caja.innerHTML = '<p class="ayuda" style="padding:1rem">No se pudo cargar el mapa.</p>';
   }
 }
 
@@ -605,12 +653,11 @@ async function crearLugar() {
   if (!nombre) { $('#nuevoLugar').focus(); return; }
 
   let lat = null, lng = null;
-  const c = $('#coords').value.trim();
-  if (c) {
-    const m = c.match(/(-?\d+[.,]?\d*)\s*[,;\s]\s*(-?\d+[.,]?\d*)/);
-    if (!m) { avisar(b, 'Las coordenadas no se entienden'); return; }
-    lat = parseFloat(m[1].replace(',', '.'));
-    lng = parseFloat(m[2].replace(',', '.'));
+  const texto = $('#coords').value.trim();
+  if (texto) {
+    const p = leerCoordenadas(texto);
+    if (!p) { avisar(b, 'Las coordenadas no se entienden'); return; }
+    ({ lat, lng } = p);
   }
 
   b.disabled = true; b.textContent = 'Creando…';
@@ -797,6 +844,10 @@ function pintarResumen() {
       ? `${borrador.fotos.length} ${borrador.fotos.length === 1 ? 'foto' : 'fotos'}` : ''],
     ['Fecha', f.precision === 'desconocida' ? '' : legible(f)],
     ['Lugar', borrador.lugar?.nombre || ''],
+    ['Punto exacto', borrador.punto
+      ? `${borrador.punto.lat.toFixed(6)}, ${borrador.punto.lng.toFixed(6)}`
+        + (borrador.precisionPunto === 'aproximada' ? ' (aproximado)' : '')
+      : ''],
     ['Personas', borrador.personas.map(p =>
       [p.nombre, p.apellido].filter(Boolean).join(' ') +
       (p.confianza === 'probable' ? ' (probable)' : '')).join(', ')],
@@ -868,6 +919,12 @@ async function guardar() {
       anio_hasta: f.hasta !== f.ref ? f.hasta : null,
       precision_fecha: f.precision,
       lugar_id: borrador.lugar?.id || null,
+      /* El punto va con toda la precisión que tenga. Y si no hay punto, van
+         los tres campos en null: una precisión declarada sobre un punto que no
+         existe sería inventar precisión. */
+      lat: borrador.punto?.lat ?? null,
+      lng: borrador.punto?.lng ?? null,
+      precision_punto: borrador.punto ? (borrador.precisionPunto || 'exacta') : null,
       foto_url: fotoUrl,
       aportado_por: borrador.aportante || null,
       fuente: borrador.fuente || null,

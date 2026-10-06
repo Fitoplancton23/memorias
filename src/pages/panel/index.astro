@@ -197,7 +197,13 @@ import { tituloSitio } from '../../lib/sitio.js';
         </label>
         <p class="ayuda">Marcá el punto en el mapa, o pegá las coordenadas si ya las tenés.</p>
         <div class="mapa-elegir" id="mapaElegir">
-          <div class="mapa-lienzo" id="mapaLienzo"></div>
+          <div class="mapa-caja">
+            <div class="mapa-lienzo" id="mapaLienzo"></div>
+            <div class="mapa-barra">
+              <span class="escala" id="escalaLugar"></span>
+              <button type="button" class="enlace" id="verTodoLugar">ver todo</button>
+            </div>
+          </div>
           <div class="mapa-pie">
             <input type="text" id="coords" placeholder="-27.097560, -54.895361" />
             <button type="button" id="crearLugar">Crear el lugar</button>
@@ -208,6 +214,38 @@ import { tituloSitio } from '../../lib/sitio.js';
       <p class="saltear">
         <button type="button" class="enlace" data-saltear>No se sabe dónde</button>
         — queda entre las memorias sin ubicación, que el sitio muestra igual.
+      </p>
+    </section>
+
+    <!-- 4b · el punto exacto -->
+    <section class="paso" data-paso="punto" hidden>
+      <h2>¿Sabés dónde exactamente?</h2>
+      <p class="ayuda" id="puntoAyuda">
+        El patio y el salón de actos son dos puntos dentro de la misma escuela,
+        y no son dos lugares. Acercá el mapa y marcá dónde se tomó la foto.
+      </p>
+
+      <div class="mapa-caja">
+        <div class="mapa-lienzo mapa-grande" id="mapaPunto"></div>
+        <div class="mapa-barra">
+          <span class="escala" id="escalaPunto"></span>
+          <button type="button" class="enlace" id="verTodoPunto">ver todo</button>
+        </div>
+      </div>
+
+      <p class="coords" id="coordsPunto"></p>
+
+      <fieldset class="precision" id="precisionPunto" hidden>
+        <legend>¿Qué tan seguro es ese punto?</legend>
+        <label class="casilla"><input type="radio" name="prec" value="exacta" checked />
+          <span><strong>Exacta</strong> — sé que fue justo ahí.</span></label>
+        <label class="casilla"><input type="radio" name="prec" value="aproximada" />
+          <span><strong>Aproximada</strong> — es por esa zona, no exactamente ese punto.</span></label>
+      </fieldset>
+
+      <p class="saltear">
+        <button type="button" class="enlace" data-saltear>No se sabe dónde exactamente</button>
+        — la memoria queda en el lugar, sin punto propio. Es un dato, no un hueco.
       </p>
     </section>
 
@@ -598,6 +636,43 @@ import { tituloSitio } from '../../lib/sitio.js';
     .mapa-lienzo .pin { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px;
                         border-radius: 50%; background: var(--cursor);
                         box-shadow: 0 0 0 3px rgba(255,255,255,.85); pointer-events: none; }
+    .mapa-caja { position: relative; }
+    .mapa-grande { max-height: min(60vh, 34rem); }
+    .mapa-lienzo { touch-action: none; cursor: crosshair; }
+    .mapa-lienzo svg { cursor: crosshair; }
+
+    /* La barra del mapa: a cuántos aumentos está y cómo volver. Sin esto,
+       acercarse mucho es un laberinto del que no se sabe salir. */
+    /* Dos pastillas en las esquinas y no una banda que cruza el mapa: lo que
+       hay abajo del todo es el dibujo, y taparlo de lado a lado es taparlo
+       justo donde se está por marcar. */
+    .mapa-barra { position: absolute; left: .5rem; bottom: .5rem; right: .5rem;
+                  display: flex; align-items: center; justify-content: space-between;
+                  gap: .8rem; font-size: .74rem; pointer-events: none; }
+    .mapa-barra > * { background: rgba(255, 255, 255, .88); border-radius: 1rem;
+                      padding: .2rem .65rem; -webkit-backdrop-filter: blur(6px);
+                      backdrop-filter: blur(6px); }
+    .mapa-barra button { pointer-events: auto; color: var(--marca); border: 0;
+                         text-decoration: underline; text-underline-offset: 2px; }
+    .escala { color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+    .escala:empty { display: none; }
+
+    /* El punto que se está eligiendo y el lugar al que pertenece no pueden
+       verse igual: son dos cosas distintas y hay que saber cuál se marcó. */
+    .mapa-lienzo .marca-pin { fill: var(--cursor); stroke: #fff; stroke-width: 2;
+                              vector-effect: non-scaling-stroke; }
+    .mapa-lienzo .marca-ref { fill: none; stroke: var(--tipo-lugar); stroke-width: 2.5;
+                              stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+
+    .coords { margin: .7rem 0 0; font-size: .85rem; color: var(--tinta-2);
+              font-variant-numeric: tabular-nums; min-height: 1.3em; }
+
+    .precision { margin: 1.1rem 0 0; padding: .9rem 1rem; border: 1px solid var(--linea);
+                 border-radius: .5rem; background: var(--panel); }
+    .precision legend { padding: 0 .4rem; font-size: .85rem; color: var(--tinta-2); }
+    .precision .casilla { margin-top: .5rem; font-size: .88rem; }
+    .precision .casilla:first-of-type { margin-top: 0; }
+
     .mapa-pie { display: flex; gap: .6rem; margin-top: .7rem; flex-wrap: wrap; }
     .mapa-pie input { flex: 1; min-width: 12rem; margin-top: 0; }
     .mapa-pie button { margin-top: 0; background: var(--marca); color: #fff; border: 0;

@@ -167,7 +167,12 @@ const documentos = tabla('documentos').filter(publicado).map(r => ({
   /* Una memoria puede tener varias fotos: el Gran Premio del 49 tiene tres.
      `archivo` es la portada —la que va en listados y mapa— y `archivos` el
      rollo completo, en orden. */
-  archivos: (r.archivos || r.archivo || '').split(';').map(x => x.trim()).filter(Boolean)
+  archivos: (r.archivos || r.archivo || '').split(';').map(x => x.trim()).filter(Boolean),
+  /* El punto propio de la memoria. Null cuando no se sabe, que no es un hueco:
+     es el dato. Sin punto, la memoria hereda la posición de su lugar. */
+  punto: (r.lat !== '' && r.lat != null && r.lng !== '' && r.lng != null)
+    ? { lat: +r.lat, lng: +r.lng, precision: r.precision_punto || 'exacta' }
+    : null,
 }));
 
 /* ---------- Grafo familiar (planilla plana -> relaciones) ---------- */

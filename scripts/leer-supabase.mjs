@@ -169,6 +169,12 @@ export async function traerTablas({ incluirDemo = false, incluirPendientes = fal
         .filter((v, i, a) => v && a.indexOf(v) === i).join('; '),
       licencia: '',
       estado: '',
+      /* Regla 4: el punto de la memoria, más preciso que el del lugar y
+         distinto de él. Viaja aparte de lugares porque son dos datos: el lugar
+         dice a qué pertenece, el punto dice dónde se tomó. */
+      lat: m.lat ?? '',
+      lng: m.lng ?? '',
+      precision_punto: m.precision_punto || '',
     }));
 
   /* ---- lugares y acontecimientos ---- */

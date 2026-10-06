@@ -124,6 +124,20 @@ Buena parte del público va a tener setenta años.
 
 ---
 
+## Se busca por apodo
+
+En el pueblo nadie se busca por el nombre del documento: se busca por el
+apodo —"el Negro", "la Tana"— y se escribe sin acentos, de apuro, desde el
+celular. El buscador pliega tildes —la ñ también, porque se está buscando y
+no escribiendo— y mira el nombre, el apellido y todos los apodos y alias por
+igual. Cuando encuentra por un apodo, lo dice: un resultado que no se puede
+explicar es un resultado en el que no se puede confiar. Cubierto por tests.
+
+Un buscador que no encuentra falla en silencio: devuelve vacío, y vacío se
+lee como "esa persona no está en el archivo".
+
+---
+
 ## Lo que el archivo no sabe, lo sabe la gente
 
 Cada memoria lleva una puerta para aportar un dato —quién es el de la

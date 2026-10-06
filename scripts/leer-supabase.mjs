@@ -76,12 +76,18 @@ export async function traerTablas({ incluirDemo = false, incluirPendientes = fal
   ]);
 
   const vivo = f => incluirDemo || !f.es_demo;
+  /* La compuerta de moderación también cubre a las personas. Las que ya
+     estaban cargadas tienen estado 'aprobada' por defecto, así que esto no
+     esconde nada de lo relevado: lo que frena son las que crea el panel
+     mientras se carga una memoria que todavía nadie miró. */
+  const personaVisible = p => vivo(p)
+    && (incluirPendientes || (p.estado || 'aprobada').toLowerCase() === 'aprobada');
   /* Sin slug todavía (si no se corrió 06_ajustes.sql) el id sirve de
      identificador, pero las URLs quedan feas: el build avisa. */
   const sl = o => o?.slug || o?.id || '';
   const porId = (xs, f = vivo) => Object.fromEntries(xs.filter(f).map(o => [o.id, o]));
 
-  const L = porId(lugares), P = porId(personas), A = porId(acontecimientos);
+  const L = porId(lugares), P = porId(personas, personaVisible), A = porId(acontecimientos);
   const avisos = [];
   if (personas.length && !personas[0].slug)
     avisos.push('Las personas no tienen slug: las URLs van a salir con uuid. Falta correr db/06_ajustes.sql.');
@@ -89,14 +95,21 @@ export async function traerTablas({ incluirDemo = false, incluirPendientes = fal
      ser la base de OpenStreetMap. Los marcadores se ubican solos desde lat/lng,
      así que no falta nada — avisar de un hueco que ya no existe es ruido que
      tapa los avisos que sí importan. */
-  const presuntas = personas.filter(p => vivo(p) && p.vive == null && pareceViva(p)).length;
+  /* Se cuentan las que se publican, no todas: avisar sobre una persona que el
+     sitio no muestra es ruido que tapa los avisos que sí importan. */
+  const presuntas = personas.filter(p => personaVisible(p) && p.vive == null && pareceViva(p)).length;
+  /* Regla 3: el sistema sabe qué le falta, y también qué está conteniendo. */
+  const frenadas = personas.filter(p => vivo(p) && !personaVisible(p)).length;
+  if (frenadas)
+    avisos.push(`${frenadas} persona(s) esperando revisión: no salen al sitio hasta que se
+      apruebe la memoria que las nombra.`.replace(/\s+/g, " "));
   if (presuntas)
     avisos.push(`PRIVACIDAD: ${presuntas} persona(s) sin dato de si viven. Se presumen vivas por la regla de los 100 años y se les ocultan fechas y notas.`);
 
   /* ---- personas ---- */
   const aliasDe = {};
   for (const a of alias) (aliasDe[a.persona_id] ||= []).push(a.alias);
-  const filasPersonas = personas.filter(vivo).map(p => ({
+  const filasPersonas = personas.filter(personaVisible).map(p => ({
     slug: sl(p),
     nombre: p.nombre || '',
     apellido: p.apellido || '',
@@ -128,7 +141,7 @@ export async function traerTablas({ incluirDemo = false, incluirPendientes = fal
       padresDe[h.persona_id] = [a ? sl(a) : '', b ? sl(b) : ''];
     }
   }
-  const filasFamilia = personas.filter(vivo)
+  const filasFamilia = personas.filter(personaVisible)
     .filter(p => padresDe[p.id] || conyugesDe[p.id])
     .map(p => ({
       persona: sl(p),

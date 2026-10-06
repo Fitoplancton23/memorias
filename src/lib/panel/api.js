@@ -46,6 +46,10 @@ function guardar(s) {
 
 export const haySesion = () => !!sesion?.access_token;
 export const correo = () => sesion?.user?.email || '';
+/* Quién cargó cada cosa. Las tablas tienen la columna desde el principio y
+   estaba quedando vacía: saber quién subió una memoria es parte de poder
+   responder por ella. */
+export const quien = () => sesion?.user?.id || null;
 
 export async function entrar(email, password) {
   const r = await fetch(auth + 'token?grant_type=password', {

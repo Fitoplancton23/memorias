@@ -230,7 +230,7 @@ async function cargarBandeja(estado) {
         ok.addEventListener('click', async () => {
           ok.disabled = true; ok.textContent = 'Publicando…';
           try {
-            await api.actualizar('memorias', m.id, { estado: 'aprobada' });
+            await aprobarMemoria(m.id);
             li.remove();
           } catch (x) {
             ok.disabled = false; ok.textContent = 'Publicar';
@@ -251,6 +251,24 @@ async function cargarBandeja(estado) {
    después se pregunta cómo salió: sin eso, una dirección de publicación mal
    escrita falla en silencio y el profe queda esperando algo que nunca
    arrancó, que es la peor forma de fallar. */
+/* Aprobar una memoria aprueba también a las personas que nombra. Los dos
+   movimientos van juntos y no por prolijidad: si se filtran las personas sin
+   esto, una memoria aprobada mostraría menos gente de la que tiene, y el
+   archivo estaría escondiendo parte de lo que dice saber.
+
+   Las personas se aprueban primero. Si algo falla en el medio, queda una
+   persona visible sin su memoria —que no dice nada de nadie— en vez de una
+   memoria publicada con gente que el sitio no va a mostrar. */
+async function aprobarMemoria(id) {
+  const vinculos = await api.traer('memoria_personas',
+    `select=persona_id&memoria_id=eq.${encodeURIComponent(id)}`).catch(() => []);
+  for (const v of vinculos) {
+    await api.actualizar('personas', v.persona_id, { estado: 'aprobada' })
+      .catch(() => { /* una persona ya aprobada, o sin permiso: no frena la memoria */ });
+  }
+  await api.actualizar('memorias', id, { estado: 'aprobada' });
+}
+
 async function alPublicar() {
   const b = $('#publicar'), err = $('#errBandeja'), aviso = $('#avisoPublicar');
   ver(err, false);
@@ -713,6 +731,13 @@ async function crearPersona(texto) {
     const fila = await api.insertar('personas', {
       slug: unico(api.codigo(t), cachePersonas),
       nombre, apellido: apellido || null, es_demo: false,
+      /* Pendiente, igual que la memoria. La compuerta de moderación cubría las
+         memorias pero no a la gente que esas memorias nombran: una persona
+         creada mientras se carga una memoria sin aprobar aparecía en el sitio
+         público con su página propia antes de que nadie mirara nada. En un
+         archivo de un pueblo, con gente viva, eso no puede pasar. */
+      estado: 'pendiente',
+      creado_por: api.quien(),
       /* vive se deja sin dato a propósito: el sitio presume viva a quien no
          tiene fecha y le oculta fechas y notas. Mentir acá es lo único que
          podría publicar el dato de alguien vivo. */
@@ -930,6 +955,7 @@ async function guardar() {
       fuente: borrador.fuente || null,
       estado: 'pendiente',
       es_demo: false,
+      creado_por: api.quien(),
     });
 
     /* 3 · los vínculos */
@@ -944,6 +970,10 @@ async function guardar() {
     if (subidas.length > 1)
       await api.insertar('memoria_fotos', subidas.slice(1).map((url, n) => ({
         memoria_id: memoria.id, url, orden: n + 1,
+        /* Ya los calculó el achicado; guardarlos evita que el sitio tenga que
+           medir la imagen para reservarle el lugar. */
+        ancho: borrador.fotos[n + 1]?.ancho ?? null,
+        alto: borrador.fotos[n + 1]?.alto ?? null,
       })));
 
     if (borrador.acontecimiento)

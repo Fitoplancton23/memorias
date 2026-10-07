@@ -22,7 +22,8 @@
     "fotos": "node scripts/procesar-imagenes.mjs",
     "carga": "node scripts/generar-carga.mjs",
     "dev:real": "npm test --silent && node --env-file=.env scripts/build-snapshot.mjs --sin-aprobar && astro dev",
-    "build:ci": "npm test --silent && node scripts/build-snapshot.mjs --exigir-supabase && astro build"
+    "build:ci": "npm test --silent && node scripts/build-snapshot.mjs --exigir-supabase && astro build",
+    "conexiones": "node scripts/ver-conexiones.mjs"
   },
   "devDependencies": {
     "astro": "^5.6.0"

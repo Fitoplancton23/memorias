@@ -27,28 +27,29 @@ const cuenta = { personas: gente.length, familias: casas.length, memorias: docum
    desaparece. Para que eso se cumpla también en pantalla, cada curva tiene que
    poder nombrar la memoria que la justifica: sin esto, el frontend estaría
    dibujando un vínculo que no puede explicar. */
+/* La ficha de una memoria tiene que poder decir todo lo que el archivo sabe
+   de ella: no alcanza con el título. Lo que falta no se inventa —se dice que
+   falta— pero lo que está tiene que llegar a la pantalla. */
 const memos = Object.fromEntries(documentos.map(d => [d.slug, {
   titulo: d.titulo || d.slug,
   anio: d.fecha?.ref ?? null,
+  fecha: d.fecha?.texto || null,
+  precision: d.fecha?.precision || null,
+  descripcion: d.descripcion || '',
+  transcripcion: d.transcripcion || '',
+  tipo: d.tipo || null,
+  aportante: d.aportante || null,
+  punto: d.punto || null,
 }]));
 ---
 <Base titulo="Nuestra historia" descripcion="La red de personas, familias, lugares y acontecimientos de Aristóbulo del Valle." suelto={true}>
   <div class="red-lienzo">
     <svg id="red" role="application" aria-label="Red de personas, familias, lugares y acontecimientos."></svg>
 
-    <header class="marca">
-      <button class="marca-sello" id="ir-portada" aria-label="Volver a la búsqueda">
-        <svg viewBox="0 0 40 40" aria-hidden="true">
-          <circle cx="20" cy="20" r="13" fill="none" stroke="currentColor" stroke-width="1.1" />
-          <circle cx="20" cy="20" r="4.5" fill="none" stroke="currentColor" stroke-width="1.1" />
-          <path d="M20 2 V38 M2 20 H38" stroke="currentColor" stroke-width="1.1" />
-        </svg>
-      </button>
-      <div>
-        <h1>Nuestra historia</h1>
-        <p>Aristóbulo del Valle, Misiones</p>
-      </div>
-    </header>
+    <!-- Acá vivía una segunda cabecera —el punto de mira y "Nuestra historia"—
+         de una identidad anterior. Eran dos marcas en la misma pantalla y la
+         de abajo se superponía con el árbol. La identidad del sitio es una
+         sola y está en la barra de arriba. No se reemplaza por nada. -->
 
     <!-- La genealogía se lee por posición —pareja a la misma altura,
          descendencia abajo— así que no necesita leyenda: no hay nada que
@@ -269,6 +270,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
        este archivo— y a cualquier persona, por el buscador. */
 
     const elSitio = new Map();
+    const elNom = new Map();     /* el rótulo de cada sitio, para repartirlos sin que se tapen */
     for (const n of entorno) {
       const g = crear('g', { class: 'sit ' + n.tipo, tabindex: '0', role: 'button' });
 
@@ -299,6 +301,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       g.appendChild(t);
       gSitio.appendChild(g);
       elSitio.set(n.id, g);
+      elNom.set(n.id, t);
     }
     const elEstr = new Map(), elHalo = new Map(), elRot = new Map();
     for (const f of familias) {
@@ -575,7 +578,40 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
         c.el.setAttribute('d', `M${A.px.toFixed(1)},${A.py.toFixed(1)} Q${(mx - dy * .18).toFixed(1)},${(my + dx * .18).toFixed(1)} ${B.px.toFixed(1)},${B.py.toFixed(1)}`);
         if (c.grosor) c.el.setAttribute('stroke-width', c.grosor.toFixed(2));
       }
+      repartirRotulos();
       pintarMini();
+    }
+
+    /* Dos títulos de memoria encimados no son dos títulos: es uno ilegible y
+       otro que desapareció sin que nadie lo decidiera —el mismo problema que
+       dos marcadores tapándose en el mapa—. Acá no se puede correr el rótulo
+       sin mentir sobre dónde está la memoria, así que se reparte el derecho a
+       escribir: primero los que están en el contexto del foco, de los más
+       cercanos a los más lejanos; el que choca con uno ya puesto no escribe,
+       y el punto o la foto siguen ahí. Pasando el mouse, el nombre vuelve. */
+    const ALTO_ROT = 13;
+    function repartirRotulos() {
+      const puestos = [];
+      const cands = [];
+      for (const n of entorno) {
+        const t = elNom.get(n.id);
+        if (!t || n.px == null) continue;
+        if (planos.sueltosSitio.has(n.id)) { t.setAttribute('opacity', '0'); continue; }
+        cands.push(n);
+      }
+      const f = foco && planos.deId ? planos.deId[foco] : null;
+      const cx = f?.px ?? 0, cy = f?.py ?? 0;
+      cands.sort((a, b) =>
+        ((a.px - cx) ** 2 + (a.py - cy) ** 2) - ((b.px - cx) ** 2 + (b.py - cy) ** 2));
+      for (const n of cands) {
+        const t = elNom.get(n.id);
+        const x = n.px + (n.tipo === 'memoria' ? (n.r || 14) + 6 : 11);
+        const ancho = (t.textContent || '').length * 5.7;
+        const caja = { a: x, b: x + ancho, c: n.py - ALTO_ROT / 2, d: n.py + ALTO_ROT / 2 };
+        const choca = puestos.some(q => caja.a < q.b && caja.b > q.a && caja.c < q.d && caja.d > q.c);
+        t.setAttribute('opacity', choca ? '0' : '1');
+        if (!choca) puestos.push(caja);
+      }
     }
 
     function bucle(t) { dibujar(t); requestAnimationFrame(bucle); }
@@ -682,7 +718,22 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     /* ---------- ficha ---------- */
     const fila = (k, v) => `<div class="f-fila"><span>${k}</span><div>${v}</div></div>`;
     const enlace = s => `<a href="#" data-ir="${s}">${porId[s]?.nombre || s}</a>`;
+    /* Un nombre de persona lleva a su árbol; una memoria o un lugar abren su
+       ficha. Dos destinos distintos, dos atributos distintos. */
+    const enlaceSitio = s => {
+      const x = porId[s];
+      const an = x?.tipo === 'memoria' ? cuando(MEMOS[x.ref] || x) : null;
+      return `<a href="#" data-ver="${s}">${x?.nombre || s}${an ? ' · ' + an : ''}</a>`;
+    };
 
+    const QUE_ES = { memoria: 'Memoria', lugar: 'Lugar', evento: 'Acontecimiento' };
+    /* Un año solo miente cuando la fecha es aproximada. Si el archivo guardó
+       "c. 1950", eso es lo que se escribe. */
+    const cuando = m => m?.fecha || (m?.anio != null ? String(m.anio) : null);
+
+    /* La ficha de una memoria es la puerta del archivo: de acá se sale hacia
+       cada persona que aparece y hacia el lugar donde ocurrió. Por eso muestra
+       todo lo que hay —y dice qué falta— y por eso cada nombre es un enlace. */
     function mostrarSitio(n) {
       /* De una memoria cuelga la gente que nombra; de un lugar o un
          acontecimiento, la gente de las memorias que ocurrieron ahí. */
@@ -690,20 +741,32 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
         ? (genteDe[n.id] || []).map(id => porId[id]).filter(Boolean)
         : personas.filter(p => contextoDe(p.id).includes(n.id));
       const donde = (ocurreEn[n.id] || []).map(t => porId[t]).filter(Boolean);
+      const m = n.tipo === 'memoria' ? (MEMOS[n.ref] || {}) : null;
+      const fecha = m ? cuando(m) : (n.anio != null ? String(n.anio) : null);
+
+      /* Las memorias que ocurrieron en este lugar o acontecimiento: desde un
+         lugar también se entra al archivo. */
+      const aqui = n.tipo === 'memoria' ? []
+        : entorno.filter(x => x.tipo === 'memoria' && (ocurreEn[x.id] || []).includes(n.id));
 
       ficha.hidden = false;
       ficha.innerHTML = `
         <div class="f-cab">
           <span class="f-ret ${n.tipo}"></span>
-          <div><strong>${n.nombre}</strong><em>${QUE_ES[n.tipo]}${n.anio ? ' · ' + n.anio : ''}</em></div>
+          <div><strong>${n.nombre}</strong><em>${QUE_ES[n.tipo] || ''}${fecha ? ' · ' + fecha : ''}</em></div>
           <button class="f-cerrar" aria-label="Cerrar">×</button>
         </div>
         <div class="f-cuerpo">
           ${n.foto ? `<img class="f-foto" src="${n.foto}" alt="" loading="lazy" />` : ''}
+          ${m && m.descripcion && m.descripcion.trim() ? `<p class="f-texto">${m.descripcion}</p>` : ''}
+          ${m && m.transcripcion && m.transcripcion.trim() ? `<p class="f-texto f-cita">${m.transcripcion}</p>` : ''}
           ${gente.length
-            ? fila('Quiénes aparecen', gente.slice(0, 14).map(p => enlace(p.id)).join('<br />'))
-            : '<p class="f-vacio">Todavía no hay personas asociadas.</p>'}
-          ${donde.length ? fila('Dónde', donde.map(d => d.nombre).join('<br />')) : ''}
+            ? fila('Quiénes aparecen', gente.map(p => enlace(p.id)).join('<br />'))
+            : '<p class="f-vacio">Todavía no sabemos quiénes aparecen. Si reconocés a alguien, contanos.</p>'}
+          ${donde.length ? fila('Dónde', donde.map(d => enlaceSitio(d.id)).join('<br />')) : ''}
+          ${m && !fecha ? fila('Cuándo', '<span class="f-falta">no lo sabemos todavía</span>') : ''}
+          ${m && m.aportante ? fila('Aportó', m.aportante) : ''}
+          ${aqui.length ? fila('Memorias', aqui.map(x => enlaceSitio(x.id)).join('<br />')) : ''}
           ${n.tipo === 'memoria'
             ? `<p class="f-ir"><a href="/memorias/${n.ref}/">Ver la memoria completa →</a></p>` : ''}
         </div>`;
@@ -716,6 +779,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       const padres = origen ? origen.conyuges.filter(c => porId[c]) : [];
       const hermanos = origen ? origen.hijos.filter(h => h !== n.id && porId[h]) : [];
       const ent = contextoDe(n.id).map(t => porId[t]).filter(Boolean);
+      const ms = (memoriasDe[n.id] || []).map(t => porId[t]).filter(Boolean);
       let cuerpo = '';
       if (pestana === 'Familia') {
         cuerpo = (padres.length ? fila('Padres', padres.map(enlace).join('<br />')) : '')
@@ -738,7 +802,12 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
           + (n.nac ? fila('Nacimiento', n.nac) : '')
           + (n.def ? fila('Fallecimiento', n.def) : '')
           + (n.apellido ? fila('Familia', n.apellido) : '')
-          + fila('Memorias', n.docs || 'ninguna todavía')
+          /* "Aparece en 5 memorias" no es un dato: es una puerta. Van
+             nombradas y una por una, porque lo que sigue —entrar a una, ver
+             quién más estaba— es el recorrido que justifica el archivo. */
+          + fila('Aparece en', ms.length
+              ? ms.map(x => enlaceSitio(x.id)).join('<br />')
+              : '<span class="f-falta">ninguna memoria todavía</span>')
           + (n.suelto ? '<p class="f-vacio anom">Todavía no está conectada con nadie.</p>' : '');
       }
       ficha.hidden = false;
@@ -756,8 +825,15 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     }
 
     function conectarFicha(n) {
+      /* Éste es el paso del archivo: de una memoria a una persona. No cambia
+         un nombre en un panel —reemplaza la ficha, reconstruye la grilla con
+         su núcleo familiar y sus generaciones, y encuadra el árbol sobre ella,
+         con sus memorias todavía colgando alrededor. Todo eso lo hace
+         enfocar(). */
       ficha.querySelectorAll('[data-ir]').forEach(a =>
         a.addEventListener('click', ev => { ev.preventDefault(); abrir(a.dataset.ir); }));
+      ficha.querySelectorAll('[data-ver]').forEach(a =>
+        a.addEventListener('click', ev => { ev.preventDefault(); mostrarSitio(porId[a.dataset.ver]); }));
       ficha.querySelectorAll('[data-tab]').forEach(b =>
         b.addEventListener('click', () => mostrarFicha(n, b.dataset.tab)));
       ficha.querySelector('.f-cerrar').addEventListener('click', () => { ficha.hidden = true; });
@@ -838,13 +914,8 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       portada.classList.add('yendose');
       setTimeout(() => { portada.hidden = true; portada.classList.remove('yendose'); }, 420);
     }
-    function abrirPortada() {
-      abierta = true;
-      portada.hidden = false;
-      pBuscar.value = ''; pRes.innerHTML = ''; pSug.hidden = false;
-      requestAnimationFrame(() => pBuscar.focus());
-    }
-    document.getElementById('ir-portada').addEventListener('click', abrirPortada);
+    /* No hay botón para volver a la portada: se entra una vez. Para buscar a
+       otra persona está el buscador, que está siempre a la vista. */
 
     pBuscar.addEventListener('input', () => {
       const res = buscarTodo(pBuscar.value);
@@ -971,6 +1042,10 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     .sit.memoria .sit-nom { fill: var(--tinta); }
     .sit .sit-nom { font: 400 10.5px var(--texto); fill: var(--tinta-2); }
     .sit.lejano { opacity: .5; }
+    /* El rótulo que no entró se recupera al pasar por encima: la memoria nunca
+       queda sin nombre, sólo sin nombre escrito todo el tiempo. */
+    .sit .sit-nom { transition: opacity .15s ease; }
+    .sit:hover .sit-nom, .sit:focus-visible .sit-nom { opacity: 1 !important; }
     .sit:hover, .sit:focus-visible { opacity: 1; }
     .sit:focus-visible { outline: none; }
     .sit:hover .sit-nom { fill: var(--cursor); }
@@ -988,24 +1063,20 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     .curva.por-parentesco  { stroke: var(--tinta-2); stroke-width: 1.1; opacity: .3;
                              stroke-dasharray: 6 3; }
 
-    /* --- marca ------------------------------------------------------ */
-    .marca { position: absolute; left: 1.9rem; top: 1.6rem; display: flex; gap: .85rem;
-             align-items: center; }
-    .marca-sello { width: 34px; height: 34px; flex: none; padding: 0; border: 0; cursor: pointer;
-                   background: none; color: var(--linea-viva); }
-    .marca-sello svg { width: 100%; height: 100%; display: block; }
-    .marca-sello:hover { color: var(--cursor); }
-    .marca h1 { font-size: 1rem; font-weight: 500; letter-spacing: .24em; text-transform: uppercase;
-                margin: 0 0 .2rem; line-height: 1; }
-    .marca p { margin: 0; font-size: .68rem; letter-spacing: .13em; text-transform: uppercase;
-               color: var(--tinta-2); line-height: 1; }
-
     /* --- leyenda ---------------------------------------------------- */
     /* La ficha de una memoria abre con la foto: es lo que la persona vino a
        ver, y el texto puede esperar a estar debajo. */
     .f-foto { width: 100%; border-radius: .3rem; display: block; margin-bottom: .8rem; }
     .f-ir { margin: .9rem 0 0; font-size: .82rem; }
     .f-ret.memoria { background: var(--marca); }
+    .f-texto { margin: 0 0 .8rem; font-size: .84rem; line-height: 1.55; color: var(--tinta); }
+    /* La transcripción es la voz de otro: va entre comillas y en cursiva, para
+       que no se confunda con lo que dice el archivo. */
+    .f-cita { font-style: italic; color: var(--tinta-2); border-left: 2px solid var(--linea);
+              padding-left: .7rem; }
+    .f-cita::before { content: '«'; } .f-cita::after { content: '»'; }
+    /* Lo que falta se dice, y se ve que es un hueco y no un dato. */
+    .f-falta { color: var(--tinta-2); font-style: italic; }
 
     .leyenda { position: absolute; left: 1.9rem; bottom: 1.6rem; padding: .9rem 1.1rem;
                display: flex; gap: 1.7rem; border-radius: 4px; }
@@ -1159,8 +1230,6 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       .buscador { left: 1rem; right: 1rem; top: auto; bottom: 1rem; width: auto; }
       .buscador ul { top: auto; bottom: calc(100% + .4rem); }
       .red-ficha { left: 1rem; right: 1rem; top: auto; bottom: 4.6rem; width: auto; max-height: 48%; }
-      .marca { left: 1rem; }
-      .marca h1 { font-size: .88rem; letter-spacing: .16em; }
       .portada-caja { padding: 1.9rem 1.3rem 1.25rem; }
       .portada-caja h2 { font-size: 1.15rem; letter-spacing: .18em; }
     }

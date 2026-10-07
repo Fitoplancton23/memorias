@@ -109,11 +109,24 @@ a:hover { color: var(--cursor); border-bottom-color: var(--cursor); }
 a:focus-visible { outline: 2px solid var(--cursor); outline-offset: 2px; border-radius: 1px; }
 
 .envoltorio { max-width: var(--ancho); margin: 0 auto; padding: 2rem 1.25rem 6rem; width: 100%; }
-main.suelto { flex: 1; min-height: 0; position: relative; }
+main.suelto { flex: 1; min-height: 0; position: relative; isolation: isolate; }
+/* En una pantalla de lienzo completo la pastilla "Volver al mapa" duplica el
+   MAPA de la barra y le roba alto al dibujo. La barra ya es el camino de vuelta. */
+body:has(main.suelto) > .volver-mapa { display: none; }
 header.sitio, footer.sitio { flex: none; }
 
-header.sitio { border-bottom: 1px solid var(--linea); background: var(--panel); }
-header.sitio .envoltorio { padding-block: .8rem; display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+/* La barra es un elemento propio y el mismo en todo el sitio: ocupa su altura,
+   nada se dibuja encima y el contenido empieza abajo. En las pantallas de
+   lienzo completo —el mapa, los linajes— esto es lo que impide que el árbol se
+   suba sobre el logotipo. */
+header.sitio { position: sticky; top: 0; z-index: 80;
+               border-bottom: 1px solid var(--linea); background: var(--panel); }
+header.sitio .envoltorio { flex-wrap: nowrap; }
+header.sitio .marca { flex: 0 1 auto; min-width: 0; }
+header.sitio .marca b, header.sitio .marca em { white-space: nowrap; overflow: hidden;
+                                                text-overflow: ellipsis; }
+header.sitio .envoltorio { padding-block: .8rem; display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;
+                           padding-bottom: .8rem; }
 header.sitio .marca { display: inline-flex; align-items: center; gap: .6rem; border: 0; color: var(--tinta); }
 /* El nombre va como texto y no como el trazado del isologotipo: misma
    tipografía, se puede seleccionar, lo lee un lector de pantalla, y ahorra los
@@ -178,6 +191,10 @@ footer.sitio p { margin: 0; }
 
 @media (max-width: 30rem) {
   .pie-credito { flex-direction: column; align-items: flex-start; gap: .6rem; }
+  /* Los tres parajes no entran en un celular y salían cortados con puntos
+     suspensivos. Un nombre a medias es peor que un nombre ausente: el de la
+     barra es "Memorias", y los parajes están en el pie. */
+  header.sitio .marca em { display: none; }
 }
 
 /* Curvas de nivel: la sierra donde está el pueblo. Van detrás del texto y muy
@@ -358,12 +375,14 @@ html.sin-carga .cargando { display: none; }
                       clip-path: inset(50%); white-space: nowrap; }
 
 /* El mapa es el tronco de la navegación: desde cualquier página se vuelve a
-   él, y se vuelve al lugar donde se lo dejó. Va arriba y pegajoso: aparece
-   antes que el contenido y se queda a la vista por larga que sea la lectura.
-   Macizo y no de vidrio porque sobre fondo claro el vidrio desaparece, y esto
-   es lo único de la pantalla que siempre tiene que encontrarse. */
+   él, y se vuelve al lugar donde se lo dejó. Macizo y no de vidrio porque
+   sobre fondo claro el vidrio desaparece.
+   Antes era pegajoso, para estar siempre a la vista. Ahora la barra de arriba
+   es la que no se va nunca, y MAPA está ahí: dos cosas pegadas al borde
+   superior se tapan entre sí, y la que perdía era ésta. Queda al principio del
+   contenido, que es donde se la busca al llegar. */
 .volver-mapa {
-  position: sticky; top: .75rem; z-index: 60;
+  position: static; z-index: 60;
   width: fit-content; margin: .9rem 0 .2rem 1.2rem;
   display: inline-flex; align-items: center; gap: .5rem;
   padding: .7rem 1.2rem; border: 0; border-radius: 999px;

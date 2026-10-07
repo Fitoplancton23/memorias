@@ -92,29 +92,43 @@ export function armarRed(personas, documentos, familias = [], lugares = [], acon
      familia. Es lo que convierte esto en una red de información y no sólo en
      una genealogía. */
   const tocados = { lugar: {}, evento: {} };
+  /* Qué memoria pone a cada persona en cada lugar o acontecimiento. La Regla 2
+     vale para todas las curvas, no sólo para las de co-aparición: una línea
+     que no puede nombrar su memoria es una línea que no se puede explicar. */
+  const docsEntorno = {};
   for (const d of documentos) {
     const gente = d.personas.filter(s => P[s]);
     if (!gente.length) continue;
     for (const l of d.lugares || []) {
       tocados.lugar[l] ||= new Set();
-      for (const s of gente) tocados.lugar[l].add(s);
+      for (const s of gente) {
+        tocados.lugar[l].add(s);
+        (docsEntorno['lugar:' + l] ||= {})[s] = [...new Set([...(docsEntorno['lugar:' + l]?.[s] || []), d.slug])];
+      }
     }
     for (const a of d.acontecimientos || []) {
       tocados.evento[a] ||= new Set();
-      for (const s of gente) tocados.evento[a].add(s);
+      for (const s of gente) {
+        tocados.evento[a].add(s);
+        (docsEntorno['evento:' + a] ||= {})[s] = [...new Set([...(docsEntorno['evento:' + a]?.[s] || []), d.slug])];
+      }
     }
   }
   for (const l of lugares) {
     const gente = tocados.lugar[l.slug];
     if (!gente || !gente.size) continue;
     nodos.push({ id: 'lugar:' + l.slug, tipo: 'lugar', nombre: l.nombre, ref: l.slug, r: 9 });
-    for (const s of gente) enlaces.push({ source: s, target: 'lugar:' + l.slug, tipo: 'entorno' });
+    for (const s of gente)
+      enlaces.push({ source: s, target: 'lugar:' + l.slug, tipo: 'entorno',
+                     docs: docsEntorno['lugar:' + l.slug]?.[s] || [] });
   }
   for (const a of acontecimientos) {
     const gente = tocados.evento[a.slug];
     if (!gente || !gente.size) continue;
     nodos.push({ id: 'evento:' + a.slug, tipo: 'evento', nombre: a.titulo, ref: a.slug, r: 9 });
-    for (const s of gente) enlaces.push({ source: s, target: 'evento:' + a.slug, tipo: 'entorno' });
+    for (const s of gente)
+      enlaces.push({ source: s, target: 'evento:' + a.slug, tipo: 'entorno',
+                     docs: docsEntorno['evento:' + a.slug]?.[s] || [] });
   }
 
   return { nodos, enlaces, grupos: g, familias: fams };

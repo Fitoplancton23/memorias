@@ -118,9 +118,10 @@ const gente = [persona('ana', 'Muller'), persona('beto', 'Silveira'), persona('c
    entera dicha de una sola forma, y es lo que se rompe si alguien agrega una
    conexión "porque queda mejor". */
 
-function invariante(personas, documentos, donde) {
-  const red = armarRed(personas, documentos);
+function invariante(personas, documentos, donde, lugares = [], aconts = []) {
+  const red = armarRed(personas, documentos, [], lugares, aconts);
   const porSlug = Object.fromEntries(documentos.map(d => [d.slug, d]));
+
   for (const c of curvas(red)) {
     if (!c.docs?.length) { mal(`${donde}: una curva sin ninguna memoria que la explique`); return; }
     for (const s of c.docs) {
@@ -131,7 +132,48 @@ function invariante(personas, documentos, donde) {
       }
     }
   }
+
+  /* La regla vale para TODA curva derivada, no sólo para las de co-aparición.
+     La línea que une a una persona con un lugar o un acontecimiento también
+     sale de una memoria, y también tiene que poder nombrarla: si no, es una
+     línea que nadie puede explicar. */
+  for (const e of red.enlaces.filter(x => x.tipo === 'entorno')) {
+    const [clase, ref] = String(e.target).split(':');
+    if (!e.docs?.length) { mal(`${donde}: una línea al entorno sin memoria que la explique`); return; }
+    for (const s of e.docs) {
+      const d = porSlug[s];
+      if (!d) { mal(`${donde}: la línea al entorno nombra una memoria que no existe (${s})`); return; }
+      if (!d.personas.includes(e.source)) {
+        mal(`${donde}: la memoria ${s} no nombra a ${e.source}`); return;
+      }
+      const lista = clase === 'lugar' ? (d.lugares || []) : (d.acontecimientos || []);
+      if (!lista.includes(ref)) {
+        mal(`${donde}: la memoria ${s} no ocurre en ${e.target}`); return;
+      }
+    }
+  }
   return red;
+}
+
+{
+  /* La línea al lugar y la línea al acontecimiento salen de la misma memoria
+     y tienen que poder nombrarla. Esto apareció mirando la pantalla: tres
+     personas unidas a "Avenida (Centro)" con una línea que la leyenda no
+     explicaba y que, además, no sabía de dónde venía. */
+  const red = armarRed(gente, [{ slug: 'kermes', personas: ['ana', 'beto'],
+      lugares: ['avenida'], acontecimientos: ['estudiantina'] }],
+    [], [{ slug: 'avenida', nombre: 'Avenida' }], [{ slug: 'estudiantina', titulo: 'Estudiantina' }]);
+  const alLugar = red.enlaces.find(e => e.tipo === 'entorno' && e.target === 'lugar:avenida');
+  const alEvento = red.enlaces.find(e => e.tipo === 'entorno' && e.target === 'evento:estudiantina');
+  if (!alLugar?.docs?.length) mal('la línea al lugar tiene que nombrar su memoria');
+  if (!alEvento?.docs?.length) mal('la línea al acontecimiento tiene que nombrar su memoria');
+
+  /* Y si la memoria deja de ocurrir ahí, la línea se va. */
+  const sinLugar = armarRed(gente, [{ slug: 'kermes', personas: ['ana', 'beto'],
+      lugares: [], acontecimientos: [] }],
+    [], [{ slug: 'avenida', nombre: 'Avenida' }], [{ slug: 'estudiantina', titulo: 'Estudiantina' }]);
+  if (sinLugar.enlaces.some(e => e.tipo === 'entorno'))
+    mal('sacado el lugar de la memoria, la línea al entorno tiene que desaparecer');
 }
 
 /* cien archivos al azar */
@@ -152,16 +194,21 @@ for (let n = 0; n < 100; n++) {
     const cuantas = 1 + azar(4);
     const en = new Set();
     for (let k = 0; k < cuantas; k++) en.add('p' + azar(cuantos));
-    return memoria('d' + d, ...en);
+    const m = memoria('d' + d, ...en);
+    if (azar(2) === 0) m.lugares = ['avenida'];
+    if (azar(3) === 0) m.acontecimientos = ['fiesta'];
+    return m;
   });
-  invariante(ps, docs, 'al azar #' + n);
+  invariante(ps, docs, 'al azar #' + n,
+    [{ slug: 'avenida', nombre: 'Avenida' }], [{ slug: 'fiesta', titulo: 'Fiesta' }]);
 }
 
 /* y sobre los datos de demostración, que es el archivo más grande que hay */
 try {
   const { readFileSync } = await import('node:fs');
   const snap = JSON.parse(readFileSync(new URL('../src/data/snapshot.json', import.meta.url)));
-  const red = invariante(snap.personas, snap.documentos, 'snapshot');
+  const red = invariante(snap.personas, snap.documentos, 'snapshot',
+    snap.lugares || [], snap.acontecimientos || []);
   if (red) {
     /* Y la prueba a mano, hecha sola: se saca una persona de una memoria y la
        curva que esa memoria sostenía sola tiene que desaparecer. */
@@ -178,4 +225,4 @@ try {
 }
 
 if (fallan) { console.error(`${fallan} caso(s) de la Regla 2 fallan`); process.exit(1); }
-console.log('11 casos de la Regla 2 + 100 archivos al azar + el snapshot: todos pasan');
+console.log('13 casos de la Regla 2 + 100 archivos al azar + el snapshot: todos pasan');

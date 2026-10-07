@@ -60,7 +60,11 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
         <li><svg viewBox="0 0 34 8"><path d="M1 4 H33" /></svg>Matrimonio o pareja</li>
         <li><svg viewBox="0 0 34 8"><path d="M1 4 H33" stroke-dasharray="2.5 2.5" /></svg>Hijos</li>
         <li><svg viewBox="0 0 34 8"><path d="M1 6 Q17 -3 33 6" fill="none" stroke-width="2.4" /></svg>Memorias compartidas</li>
-        <li><svg viewBox="0 0 34 8"><path d="M1 6 Q17 -3 33 6" fill="none" stroke-dasharray="4 3" /></svg>Parientes en otro linaje</li>
+        <li><svg viewBox="0 0 34 8"><path d="M1 6 Q17 -3 33 6" fill="none" stroke-dasharray="6 3" /></svg>Parientes en otro linaje</li>
+        {/* Faltaba, y su ausencia hacía leer mal el dibujo: la única línea
+            cortada que la leyenda nombraba era la de parentesco, así que una
+            persona unida a un lugar parecía estar emparentada con él. */}
+        <li><svg viewBox="0 0 34 8"><path d="M1 6 Q17 -3 33 6" fill="none" stroke-dasharray=".5 4.5" stroke-linecap="round" /></svg>Aparece en ese lugar o acontecimiento</li>
       </ul>
       <ul class="ley-planos">
         <li><i class="pl p1"></i>Su familia</li>
@@ -1019,10 +1023,14 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     /* El grosor dice cuántas memorias comparten. Una conexión sin memorias es
        parentesco puro: línea fina y discontinua, porque es de otra naturaleza. */
     .curva.por-memoria     { stroke: var(--halo-familia); opacity: .55; }
-    .curva.por-parentesco  { stroke: var(--tinta-2); stroke-width: 1; opacity: .3;
-                             stroke-dasharray: 5 4; }
-    .curva.hacia-entorno { stroke: var(--tinta-2); stroke-width: .9; opacity: .34;
-                           stroke-dasharray: 1 4; }
+    /* Dos líneas cortadas que significan cosas distintas tienen que verse
+       distintas de verdad, no por un píxel de diferencia en el patrón: una es
+       de rayas y la otra de puntos redondos, que no se confunden ni de lejos.
+       Es el error que hizo leer "parientes" donde decía "estuvo ahí". */
+    .curva.por-parentesco  { stroke: var(--tinta-2); stroke-width: 1.1; opacity: .32;
+                             stroke-dasharray: 6 3; }
+    .curva.hacia-entorno { stroke: var(--tinta-2); stroke-width: 1.3; opacity: .3;
+                           stroke-dasharray: .5 4.5; stroke-linecap: round; }
 
     /* --- marca ------------------------------------------------------ */
     .marca { position: absolute; left: 1.9rem; top: 1.6rem; display: flex; gap: .85rem;

@@ -24,10 +24,16 @@ ubicación o el nombre de quienes aparecen **nunca** es motivo para descartarla,
 esconderla ni "resolverla" inventando. La incertidumbre es un dato: se muestra,
 no se tapa.
 
-**Todo vínculo entre personas o linajes que no sea de parentesco tiene que
-estar respaldado por una memoria real.** Si el frontend dibuja una conexión,
+**Todo vínculo que no sea de parentesco tiene que estar respaldado por una
+memoria real.** Vale entre personas, entre linajes, y también entre una
+persona y un lugar o un acontecimiento: si el frontend dibuja una conexión,
 tiene que poder nombrar la memoria que la justifica. Una curva que no se puede
 explicar no se dibuja.
+
+Y la leyenda tiene que nombrarlas a todas. Dos líneas que significan cosas
+distintas tienen que verse distintas de verdad, y una línea que la leyenda no
+menciona se lee como la que sí menciona: ahí el dibujo miente sin que nadie lo
+haya decidido.
 
 **Una memoria con dos personas de familias distintas NO dice que sean
 parientes.** Dice que existe una memoria que las relaciona. Son cosas

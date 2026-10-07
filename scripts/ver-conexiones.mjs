@@ -25,16 +25,59 @@ console.log(`Snapshot del ${snap.generado?.slice(0, 16) || '?'}`
   + (snap.sinAprobar ? '  · incluye pendientes' : ''));
 console.log(`${documentos.length} memorias · ${personas.length} personas · ${lugares.length} lugares\n`);
 
-/* ---- las curvas que sí se dibujan ---- */
-const curvas = red.enlaces.filter(e => e.tipo === 'coaparicion');
-console.log(`Curvas entre familias: ${curvas.length}`);
-for (const c of curvas.sort((a, b) => b.docs.length - a.docs.length)) {
-  console.log(`  ${apellido(c.source)} ↔ ${apellido(c.target)}`
-    + `  (${nombre(c.source)} / ${nombre(c.target)})`);
-  console.log(`      ${c.docs.length} ${c.docs.length === 1 ? 'memoria' : 'memorias'}: ${c.docs.join(', ')}`);
-}
-if (!curvas.length) console.log('  (ninguna)');
+/* ---- las memorias, que ahora son nodos ---- */
+const mems = red.nodos.filter(n => n.tipo === 'memoria');
+const apareceEn = {};
+for (const e of red.enlaces.filter(e => e.tipo === 'aparece'))
+  (apareceEn[e.target] ||= []).push(e.source);
+const ocurreEn = {};
+for (const e of red.enlaces.filter(e => e.tipo === 'ocurre'))
+  (ocurreEn[e.source] ||= []).push(e.target);
+const comoSeLlama = id => red.nodos.find(n => n.id === id)?.nombre || id;
 
+console.log(`Memorias en la red: ${mems.length} de ${documentos.length}`);
+for (const m of mems.sort((a, b) => (apareceEn[b.id] || []).length - (apareceEn[a.id] || []).length)) {
+  const quienes = (apareceEn[m.id] || []).map(nombre);
+  console.log(`  ${m.nombre}${m.anio ? '  (' + m.anio + ')' : ''}`);
+  console.log(`      aparecen: ${quienes.join(', ')}`);
+  const donde = (ocurreEn[m.id] || []).map(comoSeLlama);
+  if (donde.length) console.log(`      ocurre en: ${donde.join(' · ')}`);
+}
+if (!mems.length) console.log('  (ninguna: ninguna memoria nombra a alguien del archivo)');
+
+/* ---- a cuántas memorias está cada persona de las demás ----
+   Es la afirmación romántica del proyecto, hecha cuenta: "en Aristóbulo, de
+   algún modo, todos compartimos alguna memoria". Se mide recorriendo el grafo
+   bipartito — persona, memoria, persona — y contando saltos. */
+const vecinaDe = {};
+for (const e of red.enlaces.filter(e => e.tipo === 'aparece')) {
+  for (const otro of apareceEn[e.target]) if (otro !== e.source)
+    (vecinaDe[e.source] ||= new Set()).add(otro);
+}
+const gentePorId = red.nodos.filter(n => n.tipo === 'persona').map(n => n.id);
+const alcance = origen => {
+  const visto = new Set([origen]);
+  let frente = [origen], saltos = 0;
+  while (frente.length) {
+    saltos++;
+    const sig = [];
+    for (const x of frente)
+      for (const v of vecinaDe[x] || []) if (!visto.has(v)) { visto.add(v); sig.push(v); }
+    frente = sig;
+  }
+  return { alcanzadas: visto.size - 1, saltos: saltos - 1 };
+};
+if (gentePorId.length) {
+  const islas = gentePorId.map(id => alcance(id).alcanzadas);
+  const mayor = Math.max(...islas);
+  const solas = islas.filter(n => n === 0).length;
+  console.log(`\nTodos compartimos alguna memoria:`);
+  console.log(`  el grupo más grande alcanza a ${mayor} de ${gentePorId.length - 1} personas`);
+  console.log(`  ${solas} persona(s) no comparten memoria con nadie`);
+}
+
+console.log('');
+/* ---- las curvas entre personas, que ya no se dibujan ---- */
 /* ---- y por qué las otras no ----
    Se repite la misma cuenta que hace red.js, pero anotando el motivo. Si
    alguna vez las dos no coinciden, es que una de las dos está mal. */

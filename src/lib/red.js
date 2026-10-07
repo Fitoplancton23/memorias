@@ -6,11 +6,33 @@
    que un hijo pertenezca a UNA unión concreta, y que alguien que enviudó y se
    volvió a casar tenga dos uniones distintas con sus hijos bien separados.
 
-   Tres tipos de arista:
+   La memoria también es un nodo, y eso no es un detalle de dibujo.
+
+   La regla maestra del proyecto dice que la memoria es la entidad central, y
+   hasta acá era la única entidad central SIN nodo: personas, familias, lugares
+   y acontecimientos tenían el suyo; la memoria estaba implícita, escondida
+   adentro de una curva entre dos personas. La red dibujaba todo menos aquello
+   de lo que todo se desprende.
+
+   Con la memoria como nodo, el recorrido del archivo es el que tiene que ser:
+   una persona, las memorias donde aparece, la gente que aparece en ellas, sus
+   memorias. Cada salto tiene nombre y cara. Nadie necesita entender un grafo:
+   va saltando de gente a momentos.
+
+   Y la Regla 2 deja de ser una promesa que hay que verificar: pasa a ser la
+   forma del grafo. Si se borra la memoria desaparece el nodo y con él todas sus
+   líneas, y no existe manera de dibujar una conexión inexplicable, porque la
+   explicación ES el nodo del medio.
+
+   Los tipos de arista:
      conyuge      persona → familia
      hijo         familia → persona
-     coaparicion  persona ↔ persona, aparecen juntos en una foto sin parentesco
-                  conocido. Es el puente: lo único que cruza la estructura.   */
+     aparece      persona → memoria        «fulano aparece en esta memoria»
+     ocurre       memoria → lugar · acontecimiento
+     coaparicion  persona ↔ persona — NO se dibuja. Es una proyección de
+                  `aparece` sobre sí misma, que se conserva porque hay partes
+                  de la interfaz que preguntan "¿qué comparten estos dos?" y la
+                  respuesta directa es más barata que recorrer el grafo.      */
 
 export function armarRed(personas, documentos, familias = [], lugares = [], acontecimientos = []) {
   const P = Object.fromEntries(personas.map(p => [p.slug, p]));
@@ -86,50 +108,57 @@ export function armarRed(personas, documentos, familias = [], lugares = [], acon
   }
   enlaces.push(...coap.values());
 
-  /* --- lugares y acontecimientos como nodos de contexto ---------------------
-     Una persona se vincula a un lugar o a un hecho cuando comparten al menos un
-     documento. Nunca entran a la grilla genealógica: son el entorno, no la
-     familia. Es lo que convierte esto en una red de información y no sólo en
-     una genealogía. */
-  const tocados = { lugar: {}, evento: {} };
-  /* Qué memoria pone a cada persona en cada lugar o acontecimiento. La Regla 2
-     vale para todas las curvas, no sólo para las de co-aparición: una línea
-     que no puede nombrar su memoria es una línea que no se puede explicar. */
-  const docsEntorno = {};
+  /* --- la memoria, el lugar y el acontecimiento como nodos ------------------
+     Una memoria entra a la red cuando nombra al menos a una persona que el
+     archivo muestra. Si no nombra a nadie no se dibuja acá: no tiene de dónde
+     colgarse, y nadie podría llegar a ella navegando desde una persona. Esa
+     memoria no desaparece del archivo — vive en el mapa y en la lista de
+     memorias, que son sus puertas. Ésta no lo es.
+
+     El lugar y el acontecimiento cuelgan de la MEMORIA, no de cada persona.
+     Es más cierto —la memoria ocurrió ahí, las personas aparecen en ella— y
+     además arregla solo el error que tenía la versión anterior: la línea al
+     lugar salía únicamente de la persona enfocada, así que un acontecimiento
+     que relacionaba a cinco personas aparecía colgando de una. */
+  const conLugar = new Set(lugares.map(l => l.slug));
+  const conEvento = new Set(acontecimientos.map(a => a.slug));
+  const porLugar = Object.fromEntries(lugares.map(l => [l.slug, l]));
+  const porEvento = Object.fromEntries(acontecimientos.map(a => [a.slug, a]));
+  const lugaresVivos = new Set(), eventosVivos = new Set();
+
   for (const d of documentos) {
     const gente = d.personas.filter(s => P[s]);
     if (!gente.length) continue;
-    for (const l of d.lugares || []) {
-      tocados.lugar[l] ||= new Set();
-      for (const s of gente) {
-        tocados.lugar[l].add(s);
-        (docsEntorno['lugar:' + l] ||= {})[s] = [...new Set([...(docsEntorno['lugar:' + l]?.[s] || []), d.slug])];
-      }
+
+    const id = 'memoria:' + d.slug;
+    nodos.push({
+      id, tipo: 'memoria', ref: d.slug,
+      nombre: d.titulo || d.slug,
+      anio: d.fecha?.ref ?? null,
+      /* La portada viaja con el nodo: en un archivo de fotografías, el nodo de
+         una memoria tiene que poder ser la memoria y no una etiqueta. */
+      foto: d.archivo || null,
+      gente,
+      r: 11 + Math.sqrt(gente.length) * 2.2,
+    });
+    for (const s of gente) enlaces.push({ source: s, target: id, tipo: 'aparece' });
+
+    for (const l of d.lugares || []) if (conLugar.has(l)) {
+      lugaresVivos.add(l);
+      enlaces.push({ source: id, target: 'lugar:' + l, tipo: 'ocurre' });
     }
-    for (const a of d.acontecimientos || []) {
-      tocados.evento[a] ||= new Set();
-      for (const s of gente) {
-        tocados.evento[a].add(s);
-        (docsEntorno['evento:' + a] ||= {})[s] = [...new Set([...(docsEntorno['evento:' + a]?.[s] || []), d.slug])];
-      }
+    for (const a of d.acontecimientos || []) if (conEvento.has(a)) {
+      eventosVivos.add(a);
+      enlaces.push({ source: id, target: 'evento:' + a, tipo: 'ocurre' });
     }
   }
-  for (const l of lugares) {
-    const gente = tocados.lugar[l.slug];
-    if (!gente || !gente.size) continue;
-    nodos.push({ id: 'lugar:' + l.slug, tipo: 'lugar', nombre: l.nombre, ref: l.slug, r: 9 });
-    for (const s of gente)
-      enlaces.push({ source: s, target: 'lugar:' + l.slug, tipo: 'entorno',
-                     docs: docsEntorno['lugar:' + l.slug]?.[s] || [] });
-  }
-  for (const a of acontecimientos) {
-    const gente = tocados.evento[a.slug];
-    if (!gente || !gente.size) continue;
-    nodos.push({ id: 'evento:' + a.slug, tipo: 'evento', nombre: a.titulo, ref: a.slug, r: 9 });
-    for (const s of gente)
-      enlaces.push({ source: s, target: 'evento:' + a.slug, tipo: 'entorno',
-                     docs: docsEntorno['evento:' + a.slug]?.[s] || [] });
-  }
+
+  for (const slug of lugaresVivos)
+    nodos.push({ id: 'lugar:' + slug, tipo: 'lugar', ref: slug,
+                 nombre: porLugar[slug].nombre, r: 9 });
+  for (const slug of eventosVivos)
+    nodos.push({ id: 'evento:' + slug, tipo: 'evento', ref: slug,
+                 nombre: porEvento[slug].titulo || porEvento[slug].nombre, r: 9 });
 
   return { nodos, enlaces, grupos: g, familias: fams };
 }

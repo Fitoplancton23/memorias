@@ -133,47 +133,93 @@ function invariante(personas, documentos, donde, lugares = [], aconts = []) {
     }
   }
 
-  /* La regla vale para TODA curva derivada, no sólo para las de co-aparición.
-     La línea que une a una persona con un lugar o un acontecimiento también
-     sale de una memoria, y también tiene que poder nombrarla: si no, es una
-     línea que nadie puede explicar. */
-  for (const e of red.enlaces.filter(x => x.tipo === 'entorno')) {
-    const [clase, ref] = String(e.target).split(':');
-    if (!e.docs?.length) { mal(`${donde}: una línea al entorno sin memoria que la explique`); return; }
-    for (const s of e.docs) {
-      const d = porSlug[s];
-      if (!d) { mal(`${donde}: la línea al entorno nombra una memoria que no existe (${s})`); return; }
-      if (!d.personas.includes(e.source)) {
-        mal(`${donde}: la memoria ${s} no nombra a ${e.source}`); return;
-      }
-      const lista = clase === 'lugar' ? (d.lugares || []) : (d.acontecimientos || []);
-      if (!lista.includes(ref)) {
-        mal(`${donde}: la memoria ${s} no ocurre en ${e.target}`); return;
-      }
+  /* Con la memoria como nodo, la regla deja de ser una promesa a verificar y
+     pasa a ser la forma del grafo: toda línea `aparece` termina en una memoria,
+     y toda línea `ocurre` sale de una. No hay manera de dibujar una conexión
+     sin nombrarla, porque la explicación es el nodo del medio. Igual se
+     comprueba: lo que es cierto por construcción deja de serlo el día que
+     alguien cambia la construcción. */
+  const memNodos = new Map(red.nodos.filter(n => n.tipo === 'memoria').map(n => [n.id, n]));
+
+  /* Y que la persona exista de verdad. Una memoria puede nombrar a alguien que
+     el archivo no muestra —está pendiente de revisión, o se borró— y entonces
+     la línea sale de la nada: en pantalla es una curva que nace en el vacío. */
+  const sonPersonas = new Set(red.nodos.filter(n => n.tipo === 'persona').map(n => n.id));
+
+  for (const e of red.enlaces.filter(x => x.tipo === 'aparece')) {
+    if (!sonPersonas.has(e.source)) {
+      mal(`${donde}: «aparece» que sale de alguien que no está en la red (${e.source})`); return;
+    }
+    const m = memNodos.get(e.target);
+    if (!m) { mal(`${donde}: «aparece» que no termina en una memoria (${e.target})`); return; }
+    const d = porSlug[m.ref];
+    if (!d) { mal(`${donde}: el nodo ${e.target} no corresponde a ninguna memoria`); return; }
+    if (!d.personas.includes(e.source)) {
+      mal(`${donde}: la memoria ${m.ref} no nombra a ${e.source}`); return;
     }
   }
+
+  for (const e of red.enlaces.filter(x => x.tipo === 'ocurre')) {
+    const m = memNodos.get(e.source);
+    if (!m) { mal(`${donde}: «ocurre» que no sale de una memoria (${e.source})`); return; }
+    const d = porSlug[m.ref];
+    const [clase, ref] = String(e.target).split(':');
+    const lista = clase === 'lugar' ? (d.lugares || []) : (d.acontecimientos || []);
+    if (!lista.includes(ref)) {
+      mal(`${donde}: la memoria ${m.ref} no ocurre en ${e.target}`); return;
+    }
+  }
+
+  /* Y nadie llega al entorno sin pasar por una memoria. */
+  for (const e of red.enlaces)
+    if (String(e.target).startsWith('lugar:') || String(e.target).startsWith('evento:'))
+      if (!String(e.source).startsWith('memoria:')) {
+        mal(`${donde}: ${e.source} toca el entorno sin pasar por una memoria`); return;
+      }
+
   return red;
 }
 
 {
-  /* La línea al lugar y la línea al acontecimiento salen de la misma memoria
-     y tienen que poder nombrarla. Esto apareció mirando la pantalla: tres
-     personas unidas a "Avenida (Centro)" con una línea que la leyenda no
-     explicaba y que, además, no sabía de dónde venía. */
-  const red = armarRed(gente, [{ slug: 'kermes', personas: ['ana', 'beto'],
+  /* El recorrido que esto habilita, que es el que el archivo promete:
+     una persona, la memoria donde aparece, la otra persona que aparece ahí.
+     Cada salto tiene nombre. */
+  const red = armarRed(gente, [{ slug: 'kermes', titulo: 'La kermés', personas: ['ana', 'beto'],
       lugares: ['avenida'], acontecimientos: ['estudiantina'] }],
     [], [{ slug: 'avenida', nombre: 'Avenida' }], [{ slug: 'estudiantina', titulo: 'Estudiantina' }]);
-  const alLugar = red.enlaces.find(e => e.tipo === 'entorno' && e.target === 'lugar:avenida');
-  const alEvento = red.enlaces.find(e => e.tipo === 'entorno' && e.target === 'evento:estudiantina');
-  if (!alLugar?.docs?.length) mal('la línea al lugar tiene que nombrar su memoria');
-  if (!alEvento?.docs?.length) mal('la línea al acontecimiento tiene que nombrar su memoria');
 
-  /* Y si la memoria deja de ocurrir ahí, la línea se va. */
-  const sinLugar = armarRed(gente, [{ slug: 'kermes', personas: ['ana', 'beto'],
-      lugares: [], acontecimientos: [] }],
-    [], [{ slug: 'avenida', nombre: 'Avenida' }], [{ slug: 'estudiantina', titulo: 'Estudiantina' }]);
-  if (sinLugar.enlaces.some(e => e.tipo === 'entorno'))
-    mal('sacado el lugar de la memoria, la línea al entorno tiene que desaparecer');
+  const nodo = red.nodos.find(n => n.tipo === 'memoria' && n.ref === 'kermes');
+  if (!nodo) mal('la memoria tiene que ser un nodo');
+  const colgados = red.enlaces.filter(e => e.tipo === 'aparece' && e.target === 'memoria:kermes');
+  if (colgados.length !== 2) mal('las dos personas tienen que colgar de la memoria');
+  const alLugar = red.enlaces.find(e => e.tipo === 'ocurre' && e.target === 'lugar:avenida');
+  const alEvento = red.enlaces.find(e => e.tipo === 'ocurre' && e.target === 'evento:estudiantina');
+  if (alLugar?.source !== 'memoria:kermes') mal('el lugar tiene que colgar de la memoria, no de la persona');
+  if (alEvento?.source !== 'memoria:kermes') mal('el acontecimiento tiene que colgar de la memoria');
+
+  /* Borrada la memoria, se va el nodo y con él todo lo que colgaba. */
+  const sinNada = armarRed(gente, []);
+  if (sinNada.nodos.some(n => n.tipo === 'memoria' || n.tipo === 'lugar' || n.tipo === 'evento'))
+    mal('sin memorias no puede quedar ni el nodo ni su entorno');
+
+  /* Una memoria que nombra a alguien que el archivo no muestra —pendiente de
+     revisión, o borrado— no puede dejar una línea saliendo de la nada. */
+  const conFantasma = armarRed([persona('ana', 'Muller')],
+    [{ slug: 'kermes', titulo: 'La kermés', personas: ['ana', 'nadie'], lugares: [], acontecimientos: [] }]);
+  if (conFantasma.enlaces.some(e => e.tipo === 'aparece' && e.source === 'nadie'))
+    mal('una memoria no puede colgar de alguien que no está en la red');
+  invariante([persona('ana', 'Muller')],
+    [{ slug: 'kermes', titulo: 'La kermés', personas: ['ana', 'nadie'], lugares: [], acontecimientos: [] }],
+    'con una persona que no está');
+
+  /* Una memoria que no nombra a nadie no entra: no tiene de dónde colgarse. */
+  const muda = armarRed(gente, [{ slug: 'aerea', titulo: 'Tomas aéreas', personas: [],
+      lugares: ['avenida'], acontecimientos: [] }],
+    [], [{ slug: 'avenida', nombre: 'Avenida' }], []);
+  if (muda.nodos.some(n => n.tipo === 'memoria'))
+    mal('una memoria sin personas no entra a la red');
+  if (muda.nodos.some(n => n.tipo === 'lugar'))
+    mal('y su lugar tampoco, porque nadie podría llegar hasta él');
 }
 
 /* cien archivos al azar */
@@ -225,4 +271,4 @@ try {
 }
 
 if (fallan) { console.error(`${fallan} caso(s) de la Regla 2 fallan`); process.exit(1); }
-console.log('13 casos de la Regla 2 + 100 archivos al azar + el snapshot: todos pasan');
+console.log('22 casos de la Regla 2 + 100 archivos al azar + el snapshot: todos pasan');

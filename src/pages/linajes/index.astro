@@ -50,27 +50,19 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       </div>
     </header>
 
+    <!-- La genealogía se lee por posición —pareja a la misma altura,
+         descendencia abajo— así que no necesita leyenda: no hay nada que
+         decodificar. Lo único que hay que explicar es la curva, y se explica
+         con dos palabras. -->
     <div class="leyenda">
       <ul class="ley-tipos">
         <li><i class="pt persona"></i>Persona</li>
+        <li><i class="pt memoria"></i>Memoria</li>
         <li><i class="pt lugar"></i>Lugar</li>
         <li><i class="pt evento"></i>Acontecimiento</li>
       </ul>
       <ul class="ley-lineas">
-        <li><svg viewBox="0 0 34 8"><path d="M1 4 H33" /></svg>Matrimonio o pareja</li>
-        <li><svg viewBox="0 0 34 8"><path d="M1 4 H33" stroke-dasharray="2.5 2.5" /></svg>Hijos</li>
-        <li><svg viewBox="0 0 34 8"><path d="M1 6 Q17 -3 33 6" fill="none" stroke-width="2.4" /></svg>Memorias compartidas</li>
-        <li><svg viewBox="0 0 34 8"><path d="M1 6 Q17 -3 33 6" fill="none" stroke-dasharray="6 3" /></svg>Parientes en otro linaje</li>
-        {/* Faltaba, y su ausencia hacía leer mal el dibujo: la única línea
-            cortada que la leyenda nombraba era la de parentesco, así que una
-            persona unida a un lugar parecía estar emparentada con él. */}
-        <li><svg viewBox="0 0 34 8"><path d="M1 6 Q17 -3 33 6" fill="none" stroke-dasharray=".5 4.5" stroke-linecap="round" /></svg>Aparece en ese lugar o acontecimiento</li>
-      </ul>
-      <ul class="ley-planos">
-        <li><i class="pl p1"></i>Su familia</li>
-        <li><i class="pl p2"></i>Parientes del borde</li>
-        <li><i class="pl p3"></i>Linajes conectados</li>
-        <li><i class="pl p4"></i>Halo de familia</li>
+        <li><svg viewBox="0 0 34 8"><path d="M1 6 Q17 -3 33 6" fill="none" stroke-width="2.2" /></svg>Aparece en</li>
       </ul>
     </div>
 
@@ -142,12 +134,30 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
 
     const todos = RED.nodos.map(n => ({ ...n }));
     const personas = todos.filter(n => n.tipo === 'persona');
-    const entorno  = todos.filter(n => n.tipo === 'lugar' || n.tipo === 'evento');
+    /* Todo lo que no es una persona ni una familia: memorias, lugares y
+       acontecimientos. Nunca entran a la grilla genealógica — son el contexto,
+       y los acomodan las fuerzas. */
+    const entorno  = todos.filter(n => n.tipo === 'memoria' || n.tipo === 'lugar' || n.tipo === 'evento');
     const familias = todos.filter(n => n.tipo === 'familia');
     const porId    = Object.fromEntries([...personas, ...entorno].map(n => [n.id, n]));
     const famPorId = Object.fromEntries(familias.map(f => [f.id, f]));
-    const entornoEn = {};
-    for (const e of RED.enlaces) if (e.tipo === 'entorno') (entornoEn[e.source] ||= []).push(e.target);
+    /* El grafo es bipartito: de una persona se va a una memoria, y de una
+       memoria a la gente que nombra y al lugar donde ocurrió. Nadie toca el
+       entorno sin pasar por una memoria. */
+    const memoriasDe = {};   /* persona  → memorias donde aparece */
+    const genteDe = {};      /* memoria  → personas que nombra */
+    const ocurreEn = {};     /* memoria  → lugar y acontecimiento */
+    for (const e of RED.enlaces) {
+      if (e.tipo === 'aparece') {
+        (memoriasDe[e.source] ||= []).push(e.target);
+        (genteDe[e.target] ||= []).push(e.source);
+      } else if (e.tipo === 'ocurre') (ocurreEn[e.source] ||= []).push(e.target);
+    }
+    /* Lo que rodea a una persona: sus memorias, y dónde ocurrieron. */
+    const contextoDe = id => {
+      const ms = memoriasDe[id] || [];
+      return [...new Set([...ms, ...ms.flatMap(m => ocurreEn[m] || [])])];
+    };
 
     const unionesDe = {}, origenDe = {};
     for (const f of familias) {
@@ -188,8 +198,8 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     const raiz   = crear('g', { id: 'mundo' });
     const gHalo  = crear('g', { id: 'halos', filter: 'url(#suave)' });
     const gRot   = crear('g', { id: 'rotulos-familia' });
-    const gCurva = crear('g', { id: 'curvas' });          /* hacia otros linajes y hacia el entorno */
-    const gLejos = crear('g', { id: 'linajes' });         /* pastillas de otras familias */
+    const gCurva = crear('g', { id: 'curvas' });          /* "aparece en": lo único que se explica */
+    const gLejos = crear('g', { id: 'linajes' });         /* la nube de los que no se conectaron */
     const gSitio = crear('g', { id: 'sitios' });          /* lugares y acontecimientos */
     const gEstr  = crear('g', { id: 'estructura' });
     const gBorde = crear('g', { id: 'borde' });           /* parientes justo afuera de la grilla */
@@ -249,40 +259,43 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     const famDe = {};
     for (const p of personas) famDe[p.id] = (unionesDe[p.id] || [])[0] || origenDe[p.id] || null;
     const apellidoDe = id => (famDe[id] && famPorId[famDe[id]]?.apellido) || porId[id]?.apellido || null;
-    const apellidos = [...new Set(personas.map(p => apellidoDe(p.id)).filter(Boolean))];
-    /* Regla 2: la conexión entre dos linajes se deriva de las memorias que
-       comparten. Se agrega por PAR DE APELLIDOS, no por par de personas: si el
-       mismo par de familias aparece dos veces en la misma foto, es una conexión,
-       no dos, y el grosor tiene que decir la verdad. */
-    const parClave = (a, b) => [a, b].sort().join('\u0000');
-    const memoriasEntre = new Map();
-    const linajeNodo = new Map(), elLinaje = new Map(), elLinajeN = new Map();
-    for (const ap of apellidos) {
-      linajeNodo.set(ap, { id: 'linaje:' + ap, tipo: 'linaje', apellido: ap, nombre: 'Familia ' + ap });
-      const g = crear('g', { class: 'lin oculto', tabindex: '0', role: 'button' });
-      const ancho = Math.max(80, ap.length * ANCHO_CAR + 50);
-      g.appendChild(crear('rect', { class: 'lin-caja', x: -ancho / 2, y: -15, width: ancho, height: 30, rx: 15, ry: 15 }));
-      const t = crear('text', { class: 'lin-nom', x: -ancho / 2 + 14, y: 4.5 }); t.textContent = ap;
-      const c = crear('text', { class: 'lin-n', x: ancho / 2 - 13, y: 4.5 });
-      g.append(t, c);
-      gLejos.appendChild(g);
-      elLinaje.set(ap, g); elLinajeN.set(ap, c);
-    }
-    for (const e of RED.enlaces) {
-      if (e.tipo !== 'coaparicion') continue;
-      const a = apellidoDe(e.source), b = apellidoDe(e.target);
-      if (!a || !b || a === b) continue;
-      const k = parClave(a, b);
-      if (!memoriasEntre.has(k)) memoriasEntre.set(k, new Set());
-      for (const d of e.docs || []) memoriasEntre.get(k).add(d);
-    }
-    const compartidas = (a, b) => [...(memoriasEntre.get(parClave(a, b)) || [])];
+    /* Las pastillas de apellido se fueron. Decían "Familia Silveira · 23" y eso
+       era falso: veintitrés Silveira de un pueblo no son una familia, son
+       veintitrés personas que comparten apellido. La pantalla afirmaba un
+       parentesco que el archivo no tiene.
 
-    const elSitio = new Map();    /* lugares y acontecimientos: nunca un punto mudo */
+       Lo que las reemplaza no es otro dibujo: es la memoria. A las otras
+       familias se llega por lo que vivieron juntas —que es de lo que trata
+       este archivo— y a cualquier persona, por el buscador. */
+
+    const elSitio = new Map();
     for (const n of entorno) {
       const g = crear('g', { class: 'sit ' + n.tipo, tabindex: '0', role: 'button' });
-      g.appendChild(crear('circle', { class: 'sit-pt', r: 5.5 }));
-      const t = crear('text', { class: 'sit-nom', x: 11, y: 4 }); t.textContent = n.nombre;
+
+      if (n.tipo === 'memoria' && n.foto) {
+        /* La memoria se dibuja con su foto. Es un archivo de fotografías: el
+           nodo de una memoria tiene que poder ser la memoria, no una etiqueta
+           que la nombra. Es lo único que convierte este dibujo en algo que da
+           ganas de tocar. */
+        const rec = 'rec-' + n.ref;
+        const clip = crear('clipPath', { id: rec });
+        clip.appendChild(crear('circle', { r: n.r || 14 }));
+        defs.appendChild(clip);
+        const img = crear('image', {
+          href: n.foto, x: -(n.r || 14), y: -(n.r || 14),
+          width: (n.r || 14) * 2, height: (n.r || 14) * 2,
+          preserveAspectRatio: 'xMidYMid slice', 'clip-path': `url(#${rec})`,
+        });
+        g.appendChild(img);
+        g.appendChild(crear('circle', { class: 'mem-aro', r: n.r || 14 }));
+      } else {
+        g.appendChild(crear('circle', { class: 'sit-pt', r: n.tipo === 'memoria' ? 7.5 : 5.5 }));
+      }
+
+      const t = crear('text', { class: 'sit-nom', x: (n.tipo === 'memoria' ? (n.r || 14) + 6 : 11), y: 4 });
+      /* El año va con el título: en un archivo histórico, "cuándo" es la mitad
+         de lo que se pregunta al ver una foto. */
+      t.textContent = n.nombre + (n.anio ? '  ·  ' + n.anio : '');
       g.appendChild(t);
       gSitio.appendChild(g);
       elSitio.set(n.id, g);
@@ -311,7 +324,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
 
     let foco = null, G = null;
     const enGrilla = new Map();
-    let borde = new Set(), linajes = [], curvas = [], activos = [];
+    let borde = new Set(), curvas = [], activos = [];
 
     sim.force('banda', alpha => {
       if (!G) return;
@@ -346,28 +359,12 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
         for (const v of vecinos[pid] || []) if (!enGrilla.has(v)) borde.add(v);
       const dibujadas = new Set([...enGrilla.keys(), ...borde]);
 
-      /* Todo el que no se dibujó entero entra en la pastilla de su apellido.
-         Sólo quien no tiene ni apellido ni parientes cae al plano desenfocado:
-         de esa gente el archivo realmente no sabe nada más. */
-      const pendientes = new Map(), polvo = [];
-      for (const p of personas) {
-        if (dibujadas.has(p.id)) continue;
-        const ap = apellidoDe(p.id);
-        if (ap && (vecinos[p.id] || new Set()).size) {
-          if (!pendientes.has(ap)) pendientes.set(ap, []);
-          pendientes.get(ap).push(p.id);
-        } else polvo.push(p);
-      }
-
-      /* de qué pariente dibujado cuelga cada linaje: ésa es la curva que se ve */
-      const ancla = new Map();
-      for (const [ap, ids] of pendientes) {
-        for (const m of ids) {
-          const v = [...(vecinos[m] || [])].find(x => dibujadas.has(x));
-          if (v) { ancla.set(ap, v); break; }
-        }
-      }
-      linajes = [...pendientes.keys()];
+      /* Quien no se dibujó entero no se dibuja: se lo encuentra por el
+         buscador o por una memoria compartida. El único plano que queda es el
+         de quien no tiene ni apellido ni parientes — de esa gente el archivo
+         realmente no sabe nada más, y eso sí hay que decirlo. */
+      const polvo = personas.filter(p => !dibujadas.has(p.id)
+        && !(apellidoDe(p.id) && (vecinos[p.id] || new Set()).size));
 
       activos = [];
       for (const pid of enGrilla.keys()) {
@@ -379,14 +376,6 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
         const n = porId[pid];
         n.fijo = false; n.cerca = true; n.fx = null; n.fy = null;
         n.radio = 26 + n.nombre.length * 2.5;
-        activos.push(n);
-      }
-      for (const ap of linajes) {
-        const n = linajeNodo.get(ap);
-        n.fijo = false; n.cerca = false; n.fx = null; n.fy = null;
-        n.radio = 40 + ap.length * 3.6;
-        n.cuenta = pendientes.get(ap).length;
-        n.gente = pendientes.get(ap);
         activos.push(n);
       }
       for (const n of entorno) {
@@ -411,32 +400,33 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
           porId[pid].anclaY = enGrilla.get(anc).y;
         } else porId[pid].anclaY = null;
       }
-      const apFoco = apellidoDe(id);
-      for (const ap of linajes) {
-        const memos = apFoco ? compartidas(apFoco, ap) : [];
-        /* Un linaje sin pariente a la vista igual se ancla si comparte una
-           memoria con la familia enfocada: ése es exactamente el tejido que el
-           proyecto quiere mostrar — familias vinculadas por lo que vivieron
-           juntas, no sólo por sangre. */
-        const a = ancla.get(ap) || (memos.length ? id : null);
-        if (!a || !deId[a]) continue;
-        enlaces.push({ source: a, target: 'linaje:' + ap, dist: 330 });
-        curvas.push({
-          a, b: 'linaje:' + ap,
-          clase: memos.length ? 'por-memoria' : 'por-parentesco',
-          grosor: memos.length ? Math.min(4.5, 1 + Math.sqrt(memos.length) * .9) : 1,
-        });
-        linajeNodo.get(ap).memos = memos;
-      }
-      for (const t of entornoEn[id] || []) if (deId[t]) {
-        enlaces.push({ source: id, target: t, dist: 360 });
-        curvas.push({ a: id, b: t, clase: 'hacia-entorno' });
+      /* Lo que está a la vista alrededor del foco: sus memorias y dónde
+         ocurrieron. El resto del entorno queda tenue. */
+      const cerca = new Set(contextoDe(id));
+      /* Las memorias del foco, y de cada una: toda la gente que nombra y que
+         esté dibujada, más el lugar y el acontecimiento donde ocurrió.
+         Ésta es la navegación que el archivo promete — Morocha, la memoria de
+         la estudiantina, la otra reina que también está ahí — y por eso la
+         línea va a TODOS los que aparecen, no sólo al foco. */
+      for (const m of memoriasDe[id] || []) {
+        if (!deId[m]) continue;
+        enlaces.push({ source: id, target: m, dist: 300 });
+        for (const otro of genteDe[m] || [])
+          if (otro !== id && deId[otro] && (enGrilla.has(otro) || borde.has(otro))) {
+            enlaces.push({ source: otro, target: m, dist: 300 });
+            curvas.push({ a: otro, b: m, clase: 'aparece' });
+          }
+        curvas.push({ a: id, b: m, clase: 'aparece' });
+        for (const t of ocurreEn[m] || []) if (deId[t]) {
+          enlaces.push({ source: m, target: t, dist: 240 });
+          curvas.push({ a: m, b: t, clase: 'aparece' });
+        }
       }
       sim.nodes(activos);
       sim.force('vinculo').links(enlaces);
       return {
         polvo: new Set(polvo.map(p => p.id)),
-        sueltosSitio: new Set(entorno.filter(n => !(entornoEn[id] || []).includes(n.id)).map(n => n.id)),
+        sueltosSitio: new Set(entorno.filter(n => !cerca.has(n.id)).map(n => n.id)),
         deId,
       };
     }
@@ -493,12 +483,6 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
         rot.setAttribute('opacity', '0');
         rot.textContent = dentro ? 'Familia ' + f.apellido : '';
       }
-      for (const ap of apellidos) {
-        const act = linajes.includes(ap);
-        elLinaje.get(ap).setAttribute('class', 'lin' + (act ? '' : ' oculto'));
-        if (act) elLinajeN.get(ap).textContent = linajeNodo.get(ap).cuenta;
-      }
-      for (const ap of apellidos) if (!linajes.includes(ap)) linajeNodo.get(ap).memos = [];
       const haySin = activos.includes(nodoSin);
       elSin.setAttribute('class', 'lin sin' + (haySin ? '' : ' oculto'));
       if (haySin) elSin.__n.textContent = nodoSin.cuenta;
@@ -532,7 +516,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
           else if (borde.has(n.id)) mover(elBorde.get(n.id));
           const b = elGlow.get(n.id);
           b.setAttribute('cx', n.px.toFixed(1)); b.setAttribute('cy', n.py.toFixed(1));
-        } else if (n.tipo === 'linaje') mover(n.id === 'sin-conectar' ? elSin : elLinaje.get(n.apellido));
+        } else if (n.tipo === 'linaje') mover(elSin);
         else mover(elSitio.get(n.id));
       }
 
@@ -677,20 +661,6 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
           if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); abrir(n.id); } });
       }
     }
-    /* Toda curva tiene que ser explicable: "estas dos familias están conectadas
-       PORQUE compartieron esto". Tocar la pastilla no salta a ciegas — primero
-       dice por qué está dibujada la línea. */
-    const cabezaDe = ap => {
-      const g = linajeNodo.get(ap).gente || [];
-      return g.slice().sort((a, b) =>
-        ((vecinos[b] || new Set()).size) - ((vecinos[a] || new Set()).size))[0];
-    };
-    for (const ap of apellidos) {
-      const ver = ev => { ev.stopPropagation(); mostrarLinaje(ap); };
-      elLinaje.get(ap).addEventListener('click', ver);
-      elLinaje.get(ap).addEventListener('keydown', ev => {
-        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ver(ev); } });
-    }
     {
       const ir = ev => { ev.stopPropagation(); const g = nodoSin.gente || []; if (g.length) abrir(g[0]); };
       elSin.addEventListener('click', ir);
@@ -699,6 +669,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     }
     for (const n of entorno) {
       const ver = ev => { ev.stopPropagation(); mostrarSitio(n); };
+      /* La memoria no se queda en la ficha: lleva a la memoria. */
       elSitio.get(n.id).addEventListener('click', ver);
       elSitio.get(n.id).addEventListener('keydown', ev => {
         if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ver(ev); } });
@@ -712,48 +683,29 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     const fila = (k, v) => `<div class="f-fila"><span>${k}</span><div>${v}</div></div>`;
     const enlace = s => `<a href="#" data-ir="${s}">${porId[s]?.nombre || s}</a>`;
 
-    function mostrarLinaje(ap) {
-      const n = linajeNodo.get(ap);
-      const memos = n.memos || [];
-      const apFoco = apellidoDe(foco);
-      const cabeza = cabezaDe(ap);
-      const lista = memos.slice(0, 8).map(d => {
-        const m = MEMOS[d] || {};
-        return `<a href="/memorias/${d}/">${m.titulo || d}</a>${m.anio ? ' <em>' + m.anio + '</em>' : ''}`;
-      }).join('<br />');
-      ficha.hidden = false;
-      ficha.innerHTML = `
-        <div class="f-cab">
-          <span class="f-ret linaje"></span>
-          <div><strong>Familia ${ap}</strong><em>${n.cuenta} ${n.cuenta === 1 ? 'persona' : 'personas'} fuera de la vista</em></div>
-          <button class="f-cerrar" aria-label="Cerrar">×</button>
-        </div>
-        <div class="f-cuerpo">
-          ${memos.length
-            ? fila(`Comparten con ${apFoco}`,
-                `<b>${memos.length} ${memos.length === 1 ? 'memoria' : 'memorias'}</b><div class="f-memos">${lista}` +
-                (memos.length > 8 ? `<span class="f-mas">y ${memos.length - 8} más</span>` : '') + '</div>')
-            : '<p class="f-vacio">Se conectan por parentesco: alguien de esta familia es pariente de alguien a la vista. Todavía no comparten ninguna memoria.</p>'}
-        </div>
-        ${cabeza ? `<a class="f-ficha" href="#" data-ver="${cabeza}">Ver esta familia →</a>` : ''}`;
-      ficha.querySelector('.f-cerrar').addEventListener('click', () => { ficha.hidden = true; });
-      const ir = ficha.querySelector('[data-ver]');
-      if (ir) ir.addEventListener('click', ev => { ev.preventDefault(); abrir(ir.dataset.ver); });
-    }
-
     function mostrarSitio(n) {
-      const gente = personas.filter(p => (entornoEn[p.id] || []).includes(n.id));
+      /* De una memoria cuelga la gente que nombra; de un lugar o un
+         acontecimiento, la gente de las memorias que ocurrieron ahí. */
+      const gente = n.tipo === 'memoria'
+        ? (genteDe[n.id] || []).map(id => porId[id]).filter(Boolean)
+        : personas.filter(p => contextoDe(p.id).includes(n.id));
+      const donde = (ocurreEn[n.id] || []).map(t => porId[t]).filter(Boolean);
+
       ficha.hidden = false;
       ficha.innerHTML = `
         <div class="f-cab">
           <span class="f-ret ${n.tipo}"></span>
-          <div><strong>${n.nombre}</strong><em>${n.tipo === 'lugar' ? 'Lugar' : 'Acontecimiento'}</em></div>
+          <div><strong>${n.nombre}</strong><em>${QUE_ES[n.tipo]}${n.anio ? ' · ' + n.anio : ''}</em></div>
           <button class="f-cerrar" aria-label="Cerrar">×</button>
         </div>
         <div class="f-cuerpo">
+          ${n.foto ? `<img class="f-foto" src="${n.foto}" alt="" loading="lazy" />` : ''}
           ${gente.length
-            ? fila('Quiénes aparecen', gente.slice(0, 12).map(p => enlace(p.id)).join('<br />'))
+            ? fila('Quiénes aparecen', gente.slice(0, 14).map(p => enlace(p.id)).join('<br />'))
             : '<p class="f-vacio">Todavía no hay personas asociadas.</p>'}
+          ${donde.length ? fila('Dónde', donde.map(d => d.nombre).join('<br />')) : ''}
+          ${n.tipo === 'memoria'
+            ? `<p class="f-ir"><a href="/memorias/${n.ref}/">Ver la memoria completa →</a></p>` : ''}
         </div>`;
       conectarFicha(null);
     }
@@ -763,7 +715,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       const origen = origenDe[n.id] ? famPorId[origenDe[n.id]] : null;
       const padres = origen ? origen.conyuges.filter(c => porId[c]) : [];
       const hermanos = origen ? origen.hijos.filter(h => h !== n.id && porId[h]) : [];
-      const ent = (entornoEn[n.id] || []).map(t => porId[t]).filter(Boolean);
+      const ent = contextoDe(n.id).map(t => porId[t]).filter(Boolean);
       let cuerpo = '';
       if (pestana === 'Familia') {
         cuerpo = (padres.length ? fila('Padres', padres.map(enlace).join('<br />')) : '')
@@ -1012,6 +964,11 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     .sit { cursor: pointer; }
     .sit .sit-pt { fill: var(--tipo-lugar); }
     .sit.evento .sit-pt { fill: var(--tipo-evento); }
+    .sit.memoria .sit-pt { fill: var(--marca); }
+    /* El aro de la foto: la despega del fondo sin taparla. */
+    .mem-aro { fill: none; stroke: var(--placa); stroke-width: 2.5; }
+    .sit.memoria:hover .mem-aro, .sit.memoria:focus-visible .mem-aro { stroke: var(--cursor); }
+    .sit.memoria .sit-nom { fill: var(--tinta); }
     .sit .sit-nom { font: 400 10.5px var(--texto); fill: var(--tinta-2); }
     .sit.lejano { opacity: .5; }
     .sit:hover, .sit:focus-visible { opacity: 1; }
@@ -1023,14 +980,13 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     /* El grosor dice cuántas memorias comparten. Una conexión sin memorias es
        parentesco puro: línea fina y discontinua, porque es de otra naturaleza. */
     .curva.por-memoria     { stroke: var(--halo-familia); opacity: .55; }
-    /* Dos líneas cortadas que significan cosas distintas tienen que verse
-       distintas de verdad, no por un píxel de diferencia en el patrón: una es
-       de rayas y la otra de puntos redondos, que no se confunden ni de lejos.
-       Es el error que hizo leer "parientes" donde decía "estuvo ahí". */
-    .curva.por-parentesco  { stroke: var(--tinta-2); stroke-width: 1.1; opacity: .32;
+    /* Una sola curva, y dice una sola cosa: «aparece en». Va del color de la
+       marca y sólida, porque es la única cosa de la pantalla que hay que
+       explicar y tiene que distinguirse sin esfuerzo de la estructura
+       familiar, que es gris y se lee por posición. */
+    .curva.aparece { stroke: var(--marca); stroke-width: 1.6; opacity: .5; }
+    .curva.por-parentesco  { stroke: var(--tinta-2); stroke-width: 1.1; opacity: .3;
                              stroke-dasharray: 6 3; }
-    .curva.hacia-entorno { stroke: var(--tinta-2); stroke-width: 1.3; opacity: .3;
-                           stroke-dasharray: .5 4.5; stroke-linecap: round; }
 
     /* --- marca ------------------------------------------------------ */
     .marca { position: absolute; left: 1.9rem; top: 1.6rem; display: flex; gap: .85rem;
@@ -1045,6 +1001,12 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
                color: var(--tinta-2); line-height: 1; }
 
     /* --- leyenda ---------------------------------------------------- */
+    /* La ficha de una memoria abre con la foto: es lo que la persona vino a
+       ver, y el texto puede esperar a estar debajo. */
+    .f-foto { width: 100%; border-radius: .3rem; display: block; margin-bottom: .8rem; }
+    .f-ir { margin: .9rem 0 0; font-size: .82rem; }
+    .f-ret.memoria { background: var(--marca); }
+
     .leyenda { position: absolute; left: 1.9rem; bottom: 1.6rem; padding: .9rem 1.1rem;
                display: flex; gap: 1.7rem; border-radius: 4px; }
     .leyenda ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .42rem; }
@@ -1055,8 +1017,11 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     i.pt.lugar   { background: var(--tipo-lugar); }
     i.pt.evento  { background: var(--tipo-evento); }
     i.pt.familia { background: var(--halo-familia); }
+    i.pt.memoria { background: var(--marca); }
     .ley-lineas svg { width: 34px; height: 8px; flex: none; overflow: visible; }
-    .ley-lineas svg path { fill: none; stroke: var(--vinculo); stroke-width: 1.5; }
+    /* La única línea de la leyenda va del color de la marca, igual que la curva
+       que nombra: si la muestra no se ve como lo que explica, no explica nada. */
+    .ley-lineas svg path { fill: none; stroke: var(--marca); stroke-width: 1.8; }
     i.pl { width: 22px; height: 10px; display: block; flex: none; border-radius: 5px;
            background: var(--tipo-persona); }
     i.pl.p1 { opacity: 1; }

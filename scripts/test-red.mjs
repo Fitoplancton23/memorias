@@ -25,8 +25,8 @@ const pers = R.nodos.filter(n => n.tipo === 'persona');
 const nf   = R.nodos.filter(n => n.tipo === 'familia');
 ok('un nodo por persona', pers.length === 8);
 ok('un nodo por familia', nf.length === 3);
-ok('el grafo es bipartito: ninguna arista de parentesco une dos personas',
-   R.enlaces.filter(e => e.tipo !== 'coaparicion')
+ok('el parentesco es bipartito: ninguna arista de familia une dos personas',
+   R.enlaces.filter(e => e.tipo === 'conyuge' || e.tipo === 'hijo')
      .every(e => (String(e.source).startsWith('fam-')) !== (String(e.target).startsWith('fam-'))));
 
 const conyA = R.enlaces.filter(e => e.tipo === 'conyuge' && e.source === 'a');
@@ -39,6 +39,16 @@ ok('la familia monoparental tiene un solo cónyuge',
 ok('la familia monoparental igual enlaza a su hijo',
    R.enlaces.some(e => e.tipo === 'hijo' && e.source === 'fam-3' && e.target === 'y'));
 
+/* La memoria es un nodo, y es el único camino de una persona a otra que no
+   pasa por el parentesco. */
+const mems = R.nodos.filter(n => n.tipo === 'memoria');
+ok('un nodo por memoria que nombra gente', mems.length === 2);
+ok('la memoria lleva a quienes nombra',
+   R.enlaces.filter(e => e.tipo === 'aparece' && e.target === 'memoria:d1').length === 2);
+ok('ninguna arista `aparece` une dos personas',
+   R.enlaces.filter(e => e.tipo === 'aparece')
+     .every(e => String(e.target).startsWith('memoria:') && !String(e.source).startsWith('memoria:')));
+
 const co = R.enlaces.filter(e => e.tipo === 'coaparicion');
 ok('un solo puente, c–x', co.length === 1 && co[0].source === 'c' && co[0].target === 'x');
 ok('no hay puentes entre parientes', !co.some(e => e.source === 'a' && e.target === 'c'));
@@ -48,5 +58,5 @@ ok('el radio crece con las memorias',
 ok('los nodos familia no llevan nombre ni tamaño de persona',
    nf.every(n => n.r <= 4 && !n.nombre));
 
-console.log(fallos === 0 ? '12 casos de red: todos pasan' : `${fallos} caso(s) fallan`);
+console.log(fallos === 0 ? '15 casos de red: todos pasan' : `${fallos} caso(s) fallan`);
 process.exit(fallos ? 1 : 0);

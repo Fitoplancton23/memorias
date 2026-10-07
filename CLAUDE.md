@@ -190,6 +190,7 @@ Matías cargue una memoria solo.
 - `claude/sistema-visual.md` — paleta validada, lenguaje de formas, movimiento.
 - `claude/roadmap.md` — sprints y bloqueos.
 - `claude/investigacion-familysearch.md` — cómo lo resuelve FamilySearch.
+- `claude/anatomia-linajes.md` — cómo está construida la red, y qué le falta.
 
 Antes de cambiar algo que esté escrito ahí, leerlo. Si la decisión cambia, se
 actualiza el documento en el mismo movimiento — dos documentos que se

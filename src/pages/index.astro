@@ -239,6 +239,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     import { select } from 'd3-selection';
     import { zoom, zoomIdentity } from 'd3-zoom';
     import { separar, AIRE, GUIA_DESDE } from '../lib/separar.js';
+    import { dobleToque } from '../lib/doble-toque.js';
 
     const { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD } = window.__MAPA;
     const svgEl = document.getElementById('mapa');
@@ -547,6 +548,15 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         guardarEstado();
       });
     const sel = select(svgEl).call(zm);
+
+    /* Doble toque para acercar, hacia donde se tocó. En el escritorio el doble
+       clic ya lo hace d3; en el teléfono no se puede confiar en el `dblclick`
+       sintético, porque el mapa declara `touch-action: none` y con eso iOS
+       deja de emitirlo de forma predecible. */
+    dobleToque(svgEl, (x, y) => {
+      const c = svgEl.getBoundingClientRect();
+      zm.scaleBy(sel, 2, [x - c.left, y - c.top]);
+    });
 
     /* zoom.transform() de d3 NO pasa por scaleExtent ni translateExtent: esos
        límites sólo rigen para lo que hace el usuario. Todo encuadre que pongamos

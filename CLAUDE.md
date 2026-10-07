@@ -154,6 +154,20 @@ también es una decisión, no una limitación.
 
 ---
 
+## El archivo muestra; interpretar es de quien mira
+
+No hace falta que el sistema registre el rol de cada persona en cada memoria
+—quién fue la reina, quién el alumno, quién el concejal—. Eso lo reconoce
+quien mira, con la foto, el título y a veces la descripción. Un pueblo sabe
+leer sus propias fotos.
+
+La regla general: antes de agregar un campo para que el sitio pueda afirmar
+algo, preguntarse si el lector ya lo ve. La web no tiene que hacer
+absolutamente todo, y cada campo de más es trabajo de carga que recae sobre
+una persona sola.
+
+---
+
 ## El administrador no es el público
 
 Matías cura: recibe, verifica, identifica personas, busca coordenadas, carga y

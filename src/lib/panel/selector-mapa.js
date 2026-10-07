@@ -21,6 +21,7 @@
 import { select } from 'd3-selection';
 import { zoom as d3zoom, zoomIdentity } from 'd3-zoom';
 import { aLatLon, aNormalizado, caeDentro } from '../proyeccion.js';
+import { dobleToque } from '../doble-toque.js';
 
 const ACERCAMIENTO_MAXIMO = 40;   /* más que los 22 que pide una escuela */
 let mapasCache = null;
@@ -143,7 +144,18 @@ export async function montarSelector(caja, opciones = {}) {
 
   const sel = select(svg);
   sel.call(zm);
-  sel.on('dblclick.zoom', null);   /* doble clic es para marcar, no para acercar */
+  /* El doble clic acerca, como en cualquier mapa. Antes estaba apagado por
+     miedo a que peleara con marcar el punto, y no pelea: el primer clic ya
+     marcó, el segundo marca en el mismo lugar, y recién después el mapa se
+     acerca sobre esa marca. Que es justo lo que uno quiere al ubicar algo con
+     precisión — marcar, y acercarse a ver si quedó bien.
+
+     El doble toque va aparte: con `touch-action: none` el navegador deja de
+     emitir `dblclick` de forma confiable en el teléfono. */
+  dobleToque(svg, (x, y) => {
+    const c = svg.getBoundingClientRect();
+    zm.scaleBy(sel, 2, [x - c.left, y - c.top]);
+  });
 
   /* ---- marcar ---- */
   let elegido = null;

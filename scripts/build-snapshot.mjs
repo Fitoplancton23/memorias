@@ -253,6 +253,16 @@ for (const a of acontecimientos)
     if (byL[s]) byL[s].acontecimientos.push(a.slug);
     else avisos.push(`acontecimiento "${a.slug}" apunta a lugar inexistente: "${s}"`);
 
+/* Regla 3: el sitio no muestra los lugares sin memorias —serían marcadores
+   que no llevan a ningún lado— pero el build sí los cuenta. Son fichas que
+   alguien creó para ubicar algo que después no llegó, y eso es trabajo a
+   medio hacer que conviene ver. */
+const lugaresVacios = lugares.filter(l => !l.documentos.length);
+if (lugaresVacios.length)
+  avisos.push(`${lugaresVacios.length} lugar(es) sin ninguna memoria: no salen al mapa `
+    + `ni al listado. ${lugaresVacios.slice(0, 6).map(l => l.nombre).join(', ')}`
+    + (lugaresVacios.length > 6 ? '…' : ''));
+
 /* ---------- Años ---------- */
 const anios = {};
 const bucket = (anio, tipo, slug) => {

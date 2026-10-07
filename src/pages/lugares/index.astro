@@ -1,12 +1,16 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { lugares } from '../../lib/datos.js';
+/* Sólo los que tienen al menos una memoria: un lugar sin memorias no tiene
+   nada que mostrar, y una página vacía que Google indexa es peor que no
+   existir. Vuelve cuando le entre material. */
+const conMemorias = lugares.filter(l => (l.documentos || []).length > 0);
 ---
 <Base titulo="Lugares">
   <p class="sobretitulo">Mapa</p>
   <h1>Lugares</h1>
   <ul class="listado">
-    {lugares.map(l => (
+    {conMemorias.map(l => (
       <li><a href={`/lugares/${l.slug}/`}>{l.nombre}</a><span class="anio">{l.tipo || ''} · {l.documentos.length}</span></li>
     ))}
   </ul>

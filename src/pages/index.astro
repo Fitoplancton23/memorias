@@ -31,8 +31,13 @@ const M_POR_UNIDAD = (() => {
   return anchoM / ANCHO;
 })();
 
+/* Un lugar sin memorias no es un lugar del archivo todavía: es una ficha que
+   alguien creó para ubicar algo que después no llegó. En el mapa sería un
+   marcador que no lleva a ningún lado, y el archivo prometería material que
+   no tiene. Cuando le entre la primera memoria, aparece solo. */
 const puntos = lugares
   .filter(l => l.lat != null && l.lng != null)
+  .filter(l => (l.documentos || []).length > 0)
   .map(l => {
     const { x, y } = aNormalizado(l.lat, l.lng, mapa);
     const docs = (l.documentos || []).map(s => doc[s]).filter(Boolean)
@@ -85,7 +90,7 @@ const puntos = lugares
     return { ...p, r, rPunto, d, dPunto: Math.max(Math.round(rPunto * 2 + 12), 18) };
   });
 
-const conMaterial = puntos.filter(p => p.n > 0).length;
+const conMaterial = puntos.length;
 const totalDocs = puntos.reduce((a, p) => a + p.n, 0);
 const anios = puntos.flatMap(p => p.docs.map(d => d.anio)).filter(Boolean);
 const rango = anios.length ? [Math.min(...anios), Math.max(...anios)] : null;
@@ -132,7 +137,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       <svg class="guias" id="guias" aria-hidden="true"></svg>
 
       {puntos.map(p => (
-        <button type="button" class={'marca-mapa' + (p.n ? '' : ' vacio')}
+        <button type="button" class="marca-mapa"
                 data-slug={p.slug} style={`--d:${p.d}px`}
                 aria-label={`${p.nombre}, ${p.n} ${p.n === 1 ? 'memoria' : 'memorias'}`}>
           <span class="lente">

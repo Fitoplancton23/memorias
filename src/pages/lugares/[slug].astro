@@ -3,7 +3,10 @@ import Base from '../../layouts/Base.astro';
 import { D, A, fecha } from '../../lib/datos.js';
 export async function getStaticPaths() {
   const { lugares } = await import('../../lib/datos.js');
-  return lugares.map(l => ({ params: { slug: l.slug }, props: { l } }));
+  /* Sin memorias no hay página: sería una ficha vacía, indexada, que promete
+     algo que el archivo no tiene. */
+  return lugares.filter(l => (l.documentos || []).length > 0)
+    .map(l => ({ params: { slug: l.slug }, props: { l } }));
 }
 const { l } = Astro.props;
 const porAnio = {};

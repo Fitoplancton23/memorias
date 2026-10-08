@@ -124,6 +124,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
     import { construirGrilla, alinearGrilla, GRILLA } from '../../lib/grilla.js';
     import { despejar } from '../../lib/despejar.js';
+    import { arco, masAfuera } from '../../lib/arco.js';
     import { calza, plano } from '../../lib/buscar.js';
 
     const RED = window.__RED;
@@ -160,6 +161,23 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       const ms = memoriasDe[id] || [];
       return [...new Set([...ms, ...ms.flatMap(m => ocurreEn[m] || [])])];
     };
+
+    /* El rango de años de TODO el archivo. Es lo que vuelve estable al arco: el
+       lugar de una memoria sale de su año repartido sobre este rango, que no
+       cambia nunca, y no del orden de las que estén a la vista. */
+    const anios = entorno.filter(n => n.tipo === 'memoria' && n.anio != null).map(n => n.anio);
+    const RANGO = anios.length ? { min: Math.min(...anios), max: Math.max(...anios) } : null;
+    /* Dos memorias del mismo año caen en la misma columna. Se las apila, y la
+       fila sale del archivo entero —no de las que estén a la vista— para que
+       una memoria no cambie de altura según a quién estés mirando. */
+    const FILA = {};
+    {
+      const porAnio = {};
+      for (const n of entorno) {
+        if (n.tipo !== 'memoria' || n.anio == null) continue;
+        FILA[n.id] = (porAnio[n.anio] = (porAnio[n.anio] ?? -1) + 1);
+      }
+    }
 
     const unionesDe = {}, origenDe = {};
     for (const f of familias) {
@@ -397,8 +415,30 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
         n.radio = 26 + n.nombre.length * 2.5;
         activos.push(n);
       }
+      /* El entorno no lo acomodan las fuerzas: se calcula. Las memorias del foco
+         van en un arco cronológico sobre la familia (src/lib/arco.js, con
+         tests), y el lugar donde ocurrió cada una cuelga de ella, un paso más
+         afuera. Determinístico quiere decir que entre dos hermanos sale igual,
+         así que no se mueve nada, y que la posición dice cuándo. */
+      const cercaAhora = new Set(contextoDe(id));
+      const memsFoco = entorno.filter(n => n.tipo === 'memoria' && cercaAhora.has(n.id));
+      const puestos = arco(G.caja,
+        memsFoco.map(n => ({ id: n.id, anio: n.anio, fila: FILA[n.id] || 0 })), RANGO);
       for (const n of entorno) {
-        n.fijo = false; n.cerca = false; n.fx = null; n.fy = null; n.radio = 22 + n.nombre.length * 2.6;
+        n.fijo = true; n.cerca = false; n.radio = 22 + n.nombre.length * 2.6;
+        const p = puestos.get(n.id);
+        if (p) { n.fx = p.x; n.fy = p.y; }
+        else if (cercaAhora.has(n.id)) {
+          /* Un lugar o un acontecimiento: cuelga de la memoria que lo nombra. */
+          const madre = memsFoco.find(m => (ocurreEn[m.id] || []).includes(n.id));
+          const q = madre && puestos.get(madre.id);
+          const f = q ? masAfuera(G.caja, q) : { x: G.caja.x1 + 320, y: G.caja.y1 + 220 };
+          n.fx = f.x; n.fy = f.y;
+        }
+        /* Lo que no está en el contexto del foco no se dibuja; igual se lo deja
+           donde estaba, para no inventarle una posición que nadie va a ver. */
+        if (n.fx == null) { n.fx = n.x ?? 0; n.fy = n.y ?? 0; }
+        n.x = n.fx; n.y = n.fy;
         activos.push(n);
       }
       if (polvo.length) {
@@ -511,7 +551,15 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       for (const n of activos) {
         const a = antes.get(n.id);
         const hx = n.fijo ? n.fx : n.x, hy = n.fijo ? n.fy : n.y;
-        n.dx = a ? a[0] : hx; n.dy = a ? a[1] : hy;   /* lo nuevo no viaja: aparece */
+        /* El contexto no viaja nunca: aparece, se va, o se queda. Su lugar sale
+           del año y del bloque familiar, así que entre dos personas de la misma
+           familia es idéntico y no hay nada que animar; y cuando el bloque
+           cambia, una memoria que cruza media pantalla para reacomodarse es
+           justamente el deslizamiento que no queremos. Lo que cambia, cambia
+           fundiéndose. */
+        const cruza = n.tipo !== 'persona' && n.tipo !== 'linaje';
+        n.dx = (a && !cruza) ? a[0] : hx;
+        n.dy = (a && !cruza) ? a[1] : hy;   /* lo nuevo no viaja: aparece */
       }
       /* Sin transición cuando no hay nada que transicionar: animar cero
          movimiento igual gasta 760 ms en los que la pantalla parece ocupada. */
@@ -519,7 +567,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       pintar(); mostrarFicha(porId[id], 'Información');
       /* Y si nada se movió, la cámara tampoco: sólo se acomoda si el foco
          nuevo quedó fuera de lo que se está viendo. */
-      if (!fija || !aLaVista(id)) encuadrar();
+      if (!fija || !todoALaVista()) encuadrar();
     }
 
     function marcar(el, visible, extra = '') {
@@ -738,16 +786,28 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       requestAnimationFrame(paso);
     }
 
-    /* ¿El foco está cómodamente dentro de la ventana? Se deja un margen para
-       que no cuente como visible alguien pegado al borde o debajo de la ficha. */
-    function aLaVista(id) {
-      const n = enGrilla.get(id); if (!n) return false;
+    /* ¿Ya se ve todo lo que hay que ver? No alcanza con que se vea el foco:
+       si una de sus memorias quedó fuera de la pantalla, su curva sale por el
+       borde y la conexión no se puede leer. Se mira la familia y su contexto
+       entero, con un margen para que no cuente lo que está pegado al borde ni
+       lo que queda debajo de la ficha. */
+    function todoALaVista() {
+      if (!G) return false;
       const r = svgEl.getBoundingClientRect();
       const t = zoomTransform(svgEl);
-      const x = n.x * t.k + t.x, y = n.y * t.k + t.y;
       const panel = r.width > 880 ? 360 : 0;
-      return x > -r.width / 2 + 90 && x < r.width / 2 - panel - 60
-          && y > -r.height / 2 + 70 && y < r.height / 2 - 70;
+      const dentro = (x, y) => {
+        const px = x * t.k + t.x, py = y * t.k + t.y;
+        return px > -r.width / 2 + 60 && px < r.width / 2 - panel - 40
+            && py > -r.height / 2 + 50 && py < r.height / 2 - 50;
+      };
+      const { x0, x1, y0, y1 } = G.caja;
+      if (!dentro(x0, y0) || !dentro(x1, y1)) return false;
+      for (const n of entorno) {
+        if (planos.sueltosSitio.has(n.id) || n.fx == null) continue;
+        if (!dentro(n.fx, n.fy)) return false;
+      }
+      return true;
     }
 
     function encuadrar(todoEl = false, animar = true) {
@@ -756,17 +816,38 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       if (todoEl) {
         const xs = activos.map(p => p.px ?? p.x), ys = activos.map(p => p.py ?? p.y);
         x0 = Math.min(...xs); x1 = Math.max(...xs); y0 = Math.min(...ys); y1 = Math.max(...ys);
-      } else ({ x0, x1, y0, y1 } = G.caja);
-      const m = todoEl ? 110 : 230;
-      let k = Math.min(3, Math.max(.08, Math.min(r.width / (x1 - x0 + m * 2), r.height / (y1 - y0 + m * 2))));
+      } else {
+        /* Encuadrar sólo a la familia dejaba la mitad del arco de memorias
+           fuera de la pantalla, y sus curvas saliéndose por el borde. Lo que
+           hay que ver es la familia Y lo que cuelga de ella: eso es el
+           contexto del foco, y ahora está acotado y se puede calcular. */
+        ({ x0, x1, y0, y1 } = G.caja);
+        for (const n of entorno) {
+          if (planos.sueltosSitio.has(n.id) || n.fx == null) continue;
+          x0 = Math.min(x0, n.fx); x1 = Math.max(x1, n.fx);
+          y0 = Math.min(y0, n.fy); y1 = Math.max(y1, n.fy);
+        }
+      }
+      const m = todoEl ? 110 : 150;
+      /* El alto y el ancho que de verdad quedan libres: la ficha tapa la
+         derecha y la leyenda con el minimapa tapan la franja de abajo. Calcular
+         el zoom contra la ventana entera y después correr el contenido daba un
+         encuadre que no entraba: el contenido se metía debajo de la ficha. */
+      const panel = r.width > 880 ? 360 : 0;
+      const pie = r.height > 620 ? 150 : 0;
+      const ancho = r.width - panel, alto = r.height - pie;
+      let k = Math.min(3, Math.max(.08, Math.min(ancho / (x1 - x0 + m * 2), alto / (y1 - y0 + m * 2))));
       let cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
       /* una familia muy ancha no se achica hasta volver ilegibles los nombres */
       if (!todoEl && k < .62) { k = .62; const f = enGrilla.get(foco); if (f) { cx = f.x; cy = f.y; } }
       /* La ficha ocupa 21rem a la derecha: sin esto la familia queda centrada
          en la ventana pero descentrada en el espacio que se ve, y las pastillas
          de linaje terminan debajo del panel, donde no se pueden tocar. */
-      const panel = r.width > 880 ? 360 : 0;
-      const destino = zoomIdentity.scale(k).translate(-cx + panel / 2 / k, -cy);
+      /* Y el contenido se centra en ese espacio libre, no en la ventana. El
+         signo estaba al revés desde el principio: corría el dibujo HACIA la
+         ficha en vez de alejarlo. Medido, quedaba 360 px corrido justo por
+         debajo del panel. */
+      const destino = zoomIdentity.scale(k).translate(-cx - panel / 2 / k, -cy - pie / 2 / k);
       const desde = zoomTransform(svgEl);
       if (animar && desde.k) deslizar(desde, destino);
       else zm.transform(sel, destino);

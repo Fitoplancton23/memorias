@@ -198,6 +198,30 @@ Matías cargue una memoria solo.
 
 ---
 
+## Lo visual se mira, no se deduce
+
+Un cambio de pantalla no está hecho cuando compila ni cuando pasan los tests:
+está hecho cuando alguien **abrió la página y la miró**. Varios de los peores
+errores de este proyecto no aparecían leyendo el diff — un recuadro negro que
+el navegador dibuja solo, ciento cincuenta nodos moviéndose en cada clic, un
+encuadre corrido justo por debajo del panel. Aparecieron sacando una captura.
+
+Y lo que se puede medir, se mide: cuántos elementos se movieron y cuánto,
+cuántos rótulos se encimaron, cuánto del contenido quedó fuera del cuadro. Un
+"se ve mejor" no es una verificación.
+
+Cuando arreglás lo que alguien señaló, medí **toda la pantalla**, no sólo la
+parte señalada. El error de medir únicamente lo que se pidió ya pasó: la
+familia quedó quieta, se dio por cerrado el problema, y las ciento cincuenta y
+seis memorias que seguían viajando en cada clic las tuvo que volver a señalar
+Facundo.
+
+Un invariante —que nada quede tapado, que nada se corra sin motivo, que una
+posición salga del dato y no del orden— vive en una función pura con tests, y
+el test se verifica **rompiendo la función a propósito** y viendo que falle.
+
+---
+
 ## Documentación
 
 - `claude/arquitectura-tecnica.md` — el pipeline, el modelo, las decisiones.
@@ -205,6 +229,7 @@ Matías cargue una memoria solo.
 - `claude/roadmap.md` — sprints y bloqueos.
 - `claude/investigacion-familysearch.md` — cómo lo resuelve FamilySearch.
 - `claude/anatomia-linajes.md` — cómo está construida la red, y qué le falta.
+- `db/esquema.md` — el volcado de la base y lo que cambió después.
 
 Antes de cambiar algo que esté escrito ahí, leerlo. Si la decisión cambia, se
 actualiza el documento en el mismo movimiento — dos documentos que se

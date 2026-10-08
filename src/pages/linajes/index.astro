@@ -882,6 +882,10 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
 
     /* ---------- ficha ---------- */
     const fila = (k, v) => `<div class="f-fila"><span>${k}</span><div>${v}</div></div>`;
+    /* Un hueco se nombra igual en todas partes y con las mismas dos palabras.
+       «No sabemos» pone al archivo a dar explicaciones; «dato pendiente» dice
+       lo mismo y además dice que alguien lo va a completar. */
+    const falta = () => '<span class="f-falta">dato pendiente</span>';
     const enlace = s => `<a href="#" data-ir="${s}">${porId[s]?.nombre || s}</a>`;
     /* Un nombre de persona lleva a su árbol; una memoria o un lugar abren su
        ficha. Dos destinos distintos, dos atributos distintos. */
@@ -925,11 +929,11 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
           ${n.foto ? `<img class="f-foto" src="${n.foto}" alt="" loading="lazy" />` : ''}
           ${m && m.descripcion && m.descripcion.trim() ? `<p class="f-texto">${m.descripcion}</p>` : ''}
           ${m && m.transcripcion && m.transcripcion.trim() ? `<p class="f-texto f-cita">${m.transcripcion}</p>` : ''}
-          ${gente.length
-            ? fila('Quiénes aparecen', gente.map(p => enlace(p.id)).join('<br />'))
-            : '<p class="f-vacio">Todavía no sabemos quiénes aparecen. Si reconocés a alguien, contanos.</p>'}
+          ${fila('Quiénes aparecen', gente.length
+            ? gente.map(p => enlace(p.id)).join('<br />')
+            : falta())}
           ${donde.length ? fila('Dónde', donde.map(d => enlaceSitio(d.id)).join('<br />')) : ''}
-          ${m && !fecha ? fila('Cuándo', '<span class="f-falta">no lo sabemos todavía</span>') : ''}
+          ${m && !fecha ? fila('Cuándo', falta()) : ''}
           ${m && m.aportante ? fila('Aportó', m.aportante) : ''}
           ${aqui.length ? fila('Memorias', aqui.map(x => enlaceSitio(x.id)).join('<br />')) : ''}
           ${n.tipo === 'memoria'
@@ -961,13 +965,11 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
               return (otro.length ? fila('Cónyuge', otro.map(enlace).join('<br />')) : '')
                    + (hs.length ? fila('Hijos', hs.map(enlace).join('<br />')) : '');
             }).join('')
-          || '<p class="f-vacio">Todavía no hay parentescos cargados.</p>';
+          || fila('Parentesco', falta());
       } else if (pestana === 'Entorno') {
         const ls = ent.filter(x => x.tipo === 'lugar'), es = ent.filter(x => x.tipo === 'evento');
-        cuerpo = ent.length
-          ? fila('Lugares', ls.length ? ls.map(x => x.nombre).join('<br />') : '—')
-            + fila('Acontecimientos', es.length ? es.map(x => x.nombre).join('<br />') : '—')
-          : '<p class="f-vacio">Sus memorias todavía no están ubicadas.</p>';
+        cuerpo = fila('Lugares', ls.length ? ls.map(x => x.nombre).join('<br />') : falta())
+               + fila('Acontecimientos', es.length ? es.map(x => x.nombre).join('<br />') : falta());
       } else {
         cuerpo = fila('Nombre', n.nombre)
           + (n.nac ? fila('Nacimiento', n.nac) : '')
@@ -978,8 +980,8 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
              quién más estaba— es el recorrido que justifica el archivo. */
           + fila('Aparece en', ms.length
               ? ms.map(x => enlaceSitio(x.id)).join('<br />')
-              : '<span class="f-falta">ninguna memoria todavía</span>')
-          + (n.suelto ? '<p class="f-vacio anom">Todavía no está conectada con nadie.</p>' : '');
+              : falta())
+          + (n.suelto ? fila('Familia', falta()) : '');
       }
       ficha.hidden = false;
       ficha.innerHTML = `
@@ -1348,10 +1350,15 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     .f-tabs button:hover { color: var(--tinta); }
     .f-tabs button.act { color: var(--tinta); border-bottom-color: var(--cursor); }
     .f-cuerpo { padding: .4rem 1.05rem .85rem; }
-    .f-fila { display: grid; grid-template-columns: 6.5rem 1fr; gap: .5rem; padding: .55rem 0;
+    /* 7.4rem porque «ACONTECIMIENTOS» es una sola palabra y no puede partirse:
+       con 6.5rem se metía en la columna del valor y los dos textos se tocaban. */
+    .f-fila { display: grid; grid-template-columns: 7.4rem 1fr; gap: .5rem; padding: .55rem 0;
               border-bottom: 1px solid var(--linea); font-size: .8rem; }
     .f-fila:last-child { border-bottom: 0; }
-    .f-fila span { font-size: .64rem; letter-spacing: .09em; text-transform: uppercase;
+    /* Sólo el rótulo, que es el primer hijo. Sin el `> :first-child` la regla
+       también agarraba al `<span>` de «dato pendiente» que va en la columna
+       del valor, y el hueco salía en versalitas, leyéndose como un título. */
+    .f-fila > span:first-child { font-size: .64rem; letter-spacing: .09em; text-transform: uppercase;
                    color: var(--tinta-2); padding-top: .15rem; }
     .f-fila a { border-bottom-color: transparent; }
     .f-fila a:hover { border-bottom-color: var(--cursor); }

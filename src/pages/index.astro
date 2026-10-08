@@ -760,7 +760,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
           '<div class="t-cuerpo">' +
             (d.descripcion
               ? '<p>' + esc(d.descripcion) + '</p>'
-              : '<p class="t-dato">Esta memoria todavía no tiene relato. Si sabés algo de ella, se puede sumar.</p>') +
+              : '<p class="t-dato">Relato: <i>dato pendiente</i>.</p>') +
             (d.gente && d.gente.length
               ? '<p class="t-dato"><b>Aparecen:</b> ' + d.gente.map(esc).join(', ') + '</p>' : '') +
           '</div>' +

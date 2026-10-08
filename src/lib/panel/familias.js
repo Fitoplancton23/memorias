@@ -21,7 +21,7 @@ import { buscador, filtrar, nombreDe, sinTildes, unico } from './piezas.js';
 const UNIONES = [
   ['matrimonio', 'Matrimonio'],
   ['pareja', 'Pareja'],
-  ['desconocida', 'No sabemos'],
+  ['desconocida', 'Dato pendiente'],
 ];
 
 let nucleos = [];     /* [{ id, persona_a_id, persona_b_id, tipo_union, anio_union, hijos: [] }] */

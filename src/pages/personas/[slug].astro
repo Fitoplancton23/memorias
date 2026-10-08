@@ -43,7 +43,7 @@ const comoSeLee = f => {
   <h1>{nombre(p)}</h1>
   {p.apodo && <p class="bajada">«{p.apodo}»</p>}
   <p class="etiqueta">{p.vive
-    ? (p.vivePresunta ? 'Datos reservados: no sabemos si vive' : 'Datos reservados (persona viva)')
+    ? (p.vivePresunta ? 'Datos reservados (dato pendiente)' : 'Datos reservados (persona viva)')
     : vida(p) || 'Fechas desconocidas'}</p>
 
   {p.lugar_origen && L[p.lugar_origen] && (

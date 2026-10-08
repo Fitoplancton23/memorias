@@ -153,7 +153,11 @@ h2 { font-weight: 500; font-size: 1.05rem; margin: 2.5rem 0 .75rem; text-transfo
 .cifras b { display: block; font-size: 2rem; font-weight: 500; line-height: 1; color: var(--tinta); }
 .cifras span { font-size: .7rem; text-transform: uppercase; letter-spacing: .12em; color: var(--tinta-2); }
 
-.rejilla { display: grid; gap: 1px; background: var(--linea); border: 1px solid var(--linea); grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+/* auto-fit y no auto-fill: con tres datos y lugar para cuatro, auto-fill deja
+   una columna vacía que, con el fondo de la rejilla, se ve como una celda más
+   —un recuadro lleno que no dice nada—. auto-fit la colapsa y los tres datos
+   ocupan el ancho. */
+.rejilla { display: grid; gap: 1px; background: var(--linea); border: 1px solid var(--linea); grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
 .rejilla > * { background: var(--panel); padding: 1rem 1.1rem; border: 0; }
 .rejilla .meta { font-size: .68rem; text-transform: uppercase; letter-spacing: .12em; color: var(--tinta-2); margin-bottom: .4rem; }
 

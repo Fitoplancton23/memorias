@@ -882,7 +882,9 @@ function cablearFecha() {
   });
 }
 
-const SIN_FECHA = /^(pendiente|sin fecha|sin dato|no se sabe|desconocid)/;
+/* «dato pendiente» entra acá porque es lo que ahora dice la pantalla: si el
+   sitio lo escribe así, alguien lo va a tipear así. */
+const SIN_FECHA = /^(pendiente|dato pendiente|sin fecha|sin dato|no se sabe|desconocid)/;
 
 function legible(f) {
   if (f.precision === 'dia' || f.precision === 'mes') return f.texto;
@@ -1259,7 +1261,7 @@ function pintarResumen() {
     const dt = document.createElement('dt'); dt.textContent = k;
     const dd = document.createElement('dd');
     if (v) dd.textContent = v;
-    else { dd.textContent = 'no se sabe'; dd.className = 'falta'; huecos.push(k.toLowerCase()); }
+    else { dd.textContent = 'dato pendiente'; dd.className = 'falta'; huecos.push(k.toLowerCase()); }
     dl.append(dt, dd);
   }
   $('#faltan').textContent = huecos.length

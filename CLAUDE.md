@@ -154,6 +154,22 @@ también es una decisión, no una limitación.
 
 ---
 
+## Cómo se nombra un hueco
+
+Un dato que falta se dice **«dato pendiente»**, siempre con esas dos palabras,
+en cursiva y en la columna del valor. Nunca «no se sabe» ni «no sabemos»: eso
+pone al archivo a dar explicaciones y suena a que nadie se va a ocupar. «Dato
+pendiente» dice lo mismo y además dice que alguien lo va a completar, que es
+exactamente lo que pasa acá.
+
+Y la puerta para completarlo es una sola frase, igual en todo el sitio:
+**«¿Podés aportarnos algún dato? No dudes en escribirnos.»** Enumerar lo que
+podría faltar —quién es, de qué año, de quién era la casa— ya está dicho
+arriba, en la ficha, donde cada hueco se nombra solo. Repetirlo suena a
+instructivo.
+
+---
+
 ## El archivo muestra; interpretar es de quien mira
 
 No hace falta que el sistema registre el rol de cada persona en cada memoria

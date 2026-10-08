@@ -33,15 +33,12 @@ const mail = `mailto:${estudio.correo}?subject=${encodeURIComponent(asunto)}`
 ---
 
 <aside class={`aportar ${clase}`}>
-  <p class="aportar-que">
-    {titulo
-      ? <>¿Reconocés a alguien, sabés el año o de quién era el lugar?</>
-      : <>¿Tenés una foto, un relato o un dato del pueblo?</>}
-  </p>
-  <p class="aportar-como">
-    Lo que falta se completa con lo que la gente sabe. Escribinos y lo sumamos
-    al archivo con tu crédito.
-  </p>
+  {/* Una sola frase, igual en toda la web. La versión larga enumeraba lo que
+      podía faltar —quién, cuándo, de quién era— y eso ya está dicho arriba, en
+      la ficha, donde cada hueco se nombra solo. Repetirlo acá sonaba a
+      instructivo. */}
+  <p class="aportar-que">¿Podés aportarnos algún dato?</p>
+  <p class="aportar-como">No dudes en escribirnos.</p>
   <div class="aportar-botones">
     <a class="aportar-wa" href={wa} target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">

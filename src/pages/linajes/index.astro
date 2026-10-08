@@ -549,9 +549,21 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       const haySin = activos.includes(nodoSin);
       elSin.setAttribute('class', 'lin sin' + (haySin ? '' : ' oculto'));
       if (haySin) elSin.__n.textContent = nodoSin.cuenta;
+      /* El entorno del foco, y nada más.
+         Estaban dibujadas las 157 memorias del archivo a la vez: ciento
+         cuarenta de ellas como puntos grises sin nombre —porque el rótulo no
+         entraba— y con sus curvas cruzando la pantalla de lado a lado. Eso es
+         justo lo que las reglas prohíben: ni nodos sin lo que dicen, ni
+         decenas de conexiones con la misma intensidad.
+
+         El sistema visual ya lo tenía decidido: «los vínculos con el entorno,
+         y esos rótulos, aparecen sólo para la persona en foco». El código
+         sólo los atenuaba. Ahora se dibuja lo que cuelga del foco y de su
+         familia a la vista, que es lo que se puede leer y lo que se puede
+         tocar. Al resto se llega por el buscador o por otra memoria. */
       for (const n of entorno)
         elSitio.get(n.id).setAttribute('class',
-          'sit ' + n.tipo + (planos.sueltosSitio.has(n.id) ? ' lejano' : ''));
+          'sit ' + n.tipo + (planos.sueltosSitio.has(n.id) ? ' oculto' : ''));
 
       gCurva.innerHTML = '';
       for (const c of curvas) c.el = gCurva.appendChild(crear('path', { class: 'curva ' + c.clase }));
@@ -656,7 +668,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       for (const n of entorno) {
         const t = elNom.get(n.id);
         if (!t || n.px == null) continue;
-        if (planos.sueltosSitio.has(n.id)) { t.setAttribute('opacity', '0'); continue; }
+        if (planos.sueltosSitio.has(n.id)) { t.setAttribute('opacity', '0'); continue; }  /* ni dibujado */
         cands.push(n);
       }
       const f = foco && planos.deId ? planos.deId[foco] : null;
@@ -845,6 +857,12 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       conectarFicha(null);
     }
 
+    /* De alguien sin ninguna fecha, el archivo no sabe cuándo vivió. Escribir
+       «(? - )» no dice eso: dice que hay un campo y está roto. Mejor no
+       escribir nada — el hueco ya se nombra abajo, con palabras. */
+    const vida = n => (n.nac || n.def)
+      ? `<em>(${n.nac || '?'} - ${n.def || ''})</em>` : '';
+
     function mostrarFicha(n, pestana) {
       const us = (unionesDe[n.id] || []).map(i => famPorId[i]);
       const origen = origenDe[n.id] ? famPorId[origenDe[n.id]] : null;
@@ -886,7 +904,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       ficha.innerHTML = `
         <div class="f-cab">
           <span class="f-ret persona"></span>
-          <div><strong>${n.nombre}</strong><em>(${n.nac || '?'} - ${n.def || ''})</em></div>
+          <div><strong>${n.nombre}</strong>${vida(n)}</div>
           <button class="f-cerrar" aria-label="Cerrar">×</button>
         </div>
         <nav class="f-tabs">${['Información', 'Familia', 'Entorno']
@@ -1070,7 +1088,15 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     .nodo .nom { font: 500 12.5px var(--texto); fill: var(--tinta); text-anchor: middle; }
     .nodo .fec { font: 400 10.5px var(--texto); fill: var(--tinta-2); text-anchor: middle; }
     .nodo:hover .aro { stroke-width: 2.2; }
-    .nodo:focus-visible { outline: none; }
+    /* El recuadro negro del navegador.
+       Con el mouse, un <g tabindex> queda en :focus pero NO en :focus-visible
+       —eso último es sólo el teclado—, así que apagarlo en :focus-visible no
+       apagaba nada: cada clic dibujaba un rectángulo negro de 5px alrededor
+       del nodo, el nombre incluido. La paleta dice que el foco es terracota y
+       nada más; ese negro no es un color del sistema.
+       Se apaga en los dos estados y se repone en :focus-visible, donde sí hace
+       falta: quien navega con Tab tiene que ver dónde está parado. */
+    .nodo:focus, .nodo:focus-visible { outline: none; }
     .nodo:focus-visible .aro { stroke: var(--cursor); stroke-width: 2.4; }
     .nodo.foco .aro     { stroke: var(--cursor); stroke-width: 2.6; fill-opacity: .14; fill: var(--cursor); }
     .nodo.foco .retrato { fill: var(--cursor); opacity: .5; }
@@ -1083,7 +1109,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     .brd .brd-nom { font: 400 11px var(--texto); fill: var(--tinta-2); text-anchor: middle; }
     .brd:hover .brd-aro, .brd:focus-visible .brd-aro { stroke: var(--cursor); stroke-width: 2; }
     .brd:hover .brd-nom { fill: var(--tinta); }
-    .brd:focus-visible { outline: none; }
+    .brd:focus, .brd:focus-visible { outline: none; }
     /* lo incompleto se dice con línea discontinua, no con color */
     .brd.suelto .brd-aro { stroke: var(--tinta-2); stroke-dasharray: 3 3; }
 
@@ -1095,7 +1121,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     .lin .lin-n   { font: 400 10px var(--texto); fill: var(--tinta-2); text-anchor: end; }
     .lin:hover .lin-caja, .lin:focus-visible .lin-caja {
       fill: rgba(191, 67, 64, .08); stroke: var(--cursor); stroke-opacity: 1; }
-    .lin:focus-visible { outline: none; }
+    .lin:focus, .lin:focus-visible { outline: none; }
     /* los que todavía no se conectaron con nadie: una marca, no una nube */
     .lin.sin .lin-caja { fill: none; stroke: var(--tinta-2); stroke-opacity: .55;
                          stroke-dasharray: 4 4; }
@@ -1119,7 +1145,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     .sit .sit-nom { transition: opacity .15s ease; }
     .sit:hover .sit-nom, .sit:focus-visible .sit-nom { opacity: 1 !important; }
     .sit:hover, .sit:focus-visible { opacity: 1; }
-    .sit:focus-visible { outline: none; }
+    .sit:focus, .sit:focus-visible { outline: none; }
     .sit:hover .sit-nom { fill: var(--cursor); }
 
     /* --- curvas: finas, de peso y opacidad distintos ----------------- */
@@ -1210,8 +1236,15 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
                                        color: var(--tinta-2); }
 
     /* --- ficha ------------------------------------------------------ */
+    /* Lo que scrollea es el cuerpo, no la tarjeta entera: con ocho memorias,
+       «Ver su ficha completa» se iba por abajo del borde y quedaba
+       inalcanzable. La cabecera, las pestañas y el enlace del pie se quedan
+       quietos; la lista corre entre ellos. Y el alto deja libre la esquina del
+       minimapa, que antes se le montaba encima. */
     .red-ficha { position: absolute; right: 1.9rem; top: 5.1rem; width: 21rem; border-radius: 4px;
-                 max-height: calc(100% - 12rem); overflow-y: auto; }
+                 max-height: calc(100% - 16rem); display: flex; flex-direction: column; }
+    .red-ficha .f-cuerpo { overflow-y: auto; min-height: 0; }
+    .red-ficha .f-cab, .red-ficha .f-tabs, .red-ficha .f-ficha { flex: none; }
     .f-cab { display: flex; gap: .75rem; align-items: flex-start; padding: .95rem 1.05rem;
              border-bottom: 1px solid var(--linea); }
     .f-ret { width: 30px; height: 30px; border-radius: 50%; flex: none;

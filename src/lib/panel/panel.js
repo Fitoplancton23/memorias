@@ -14,6 +14,7 @@ import * as api from './api.js';
 import { parseFecha } from '../../../scripts/fechas.mjs';
 import { montarSelector, leerCoordenadas } from './selector-mapa.js';
 import { cablearFichero, abrirFichero } from './fichero.js';
+import { buscador, filtrar, sinTildes, unico } from './piezas.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -113,6 +114,11 @@ export async function arrancar() {
       personas: () => cachePersonas,
       lugares: () => cacheLugares,
       alias: () => cacheAlias,
+      /* Una persona creada desde el taller tiene que entrar a la caché en el
+         acto. Sin esto la fila ya existe en la base pero la pantalla no la
+         conoce, y el chip recién agregado aparece como «(sin nombre)»: el
+         nombre está guardado y aun así nadie lo ve. */
+      altaPersona: fila => { cachePersonas.push(fila); return fila; },
     },
     refrescar: precargar,
   });
@@ -1452,66 +1458,6 @@ async function guardarVinculos(id, urls) {
 /* Piezas compartidas                                                  */
 /* ------------------------------------------------------------------ */
 
-const sinTildes = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-
-function filtrar(filas, texto, campos) {
-  const t = sinTildes(texto);
-  if (!t) return [];
-  return filas.filter(f => campos(f).filter(Boolean).some(v => sinTildes(v).includes(t)));
-}
-
-/* Un buscador con navegación por teclado. Quien carga cien memorias trabaja
-   con las manos en el teclado; obligarlo al mouse en cada nombre es lo que
-   convierte la carga en una tarea insoportable. */
-function buscador(campo, lista, buscar, mostrar, elegir) {
-  let opciones = [], cursor = -1;
-
-  const pintar = () => {
-    lista.innerHTML = '';
-    opciones.forEach((o, i) => {
-      const { principal, secundario } = mostrar(o);
-      const li = document.createElement('li');
-      li.textContent = principal;
-      li.setAttribute('aria-selected', String(i === cursor));
-      if (secundario) {
-        const s = document.createElement('small');
-        s.textContent = secundario;
-        li.append(s);
-      }
-      li.addEventListener('mousedown', e => { e.preventDefault(); elegir(o); });
-      lista.append(li);
-    });
-  };
-
-  campo.addEventListener('input', () => {
-    opciones = campo.value.trim() ? buscar(campo.value.trim()) : [];
-    cursor = -1;
-    pintar();
-  });
-
-  campo.addEventListener('keydown', e => {
-    if (!opciones.length) return;
-    if (e.key === 'ArrowDown') { e.preventDefault(); cursor = (cursor + 1) % opciones.length; pintar(); }
-    if (e.key === 'ArrowUp') { e.preventDefault(); cursor = (cursor - 1 + opciones.length) % opciones.length; pintar(); }
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      elegir(opciones[cursor >= 0 ? cursor : 0]);
-      opciones = []; pintar();
-    }
-    if (e.key === 'Escape') { opciones = []; pintar(); }
-  });
-
-  campo.addEventListener('blur', () => setTimeout(() => { opciones = []; pintar(); }, 150));
-}
-
-/* El código corto no se repite nunca: si ya existe, se le suma un número. Una
-   vez usado no se cambia, así que es la única oportunidad de hacerlo bien. */
-function unico(base, existentes) {
-  const usados = new Set(existentes.map(x => x.slug));
-  if (!base) base = 'sin-nombre';
-  if (!usados.has(base)) return base;
-  for (let i = 2; ; i++) if (!usados.has(`${base}-${i}`)) return `${base}-${i}`;
-}
 
 function avisar(boton, texto) {
   const p = document.createElement('p');

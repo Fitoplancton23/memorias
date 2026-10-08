@@ -14,12 +14,12 @@
 
 import * as api from './api.js';
 import { montarSelector, leerCoordenadas } from './selector-mapa.js';
+import { sinTildes } from './piezas.js';
+import { cargarNucleos, filasFamilias, formularioFamilia, resumenFamilia } from './familias.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const ver = (el, si) => el && (el.hidden = !si);
-
-const sinTildes = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 /* Cuántas filas se pintan de una. Con el buscador vacío la lista completa no
    sirve para nada —nadie lee trescientos nombres— y pintarla cuesta. */
@@ -28,6 +28,12 @@ const TOPE = 40;
 let datos = null;        /* { personas, lugares, alias } vivos, de panel.js */
 let refrescar = null;    /* para que panel.js vuelva a bajar sus caches */
 let que = 'personas';
+
+const PISTA = {
+  personas: 'Buscar por nombre, apellido o apodo',
+  lugares: 'Buscar un lugar por su nombre',
+  familias: 'Buscar una familia por el nombre de cualquiera de sus integrantes',
+};
 let abierta = null;      /* el id de la ficha abierta, para no cerrarla al repintar */
 
 export function cablearFichero(opciones) {
@@ -39,13 +45,28 @@ export function cablearFichero(opciones) {
       $$('.ficha-tab').forEach(o => o.classList.toggle('activo', o === t));
       que = t.dataset.que;
       abierta = null;
-      $('#buscarFicha').placeholder = que === 'personas'
-        ? 'Buscar por nombre, apellido o apodo'
-        : 'Buscar un lugar por su nombre';
+      if (que === 'familias') traerFamilias();
+      $('#buscarFicha').placeholder = PISTA[que];
+      ver($('#nuevaFamiliaCaja'), que === 'familias');
       pintar();
     });
   }
   $('#buscarFicha').addEventListener('input', () => { abierta = null; pintar(); });
+
+  /* Armar una familia que todavía no existe: va arriba de la lista y no dentro
+     de ella, porque no es corregir algo, es crear. */
+  $('#nuevaFamilia').addEventListener('click', () => { abierta = 'nueva'; pintar(); });
+}
+
+/* Los núcleos no vienen en la precarga de panel.js: sólo los usa esta
+   pantalla, y bajarlos en cada arranque del panel sería trabajo de red para
+   algo que la mayoría de las sesiones no abre. */
+async function traerFamilias() {
+  try { await cargarNucleos(); } catch (x) {
+    $('#errFichero').textContent = 'No se pudieron traer las familias: ' + x.message;
+    ver($('#errFichero'), true);
+  }
+  pintar();
 }
 
 export function abrirFichero() {
@@ -54,7 +75,9 @@ export function abrirFichero() {
   ver($('#errFichero'), false);
   abierta = null;
   $('#buscarFicha').value = '';
+  ver($('#nuevaFamiliaCaja'), que === 'familias');
   pintar();
+  if (que === 'familias') traerFamilias();
   $('#buscarFicha').focus();
 }
 
@@ -64,6 +87,7 @@ export function abrirFichero() {
 
 function filas() {
   const t = sinTildes($('#buscarFicha').value.trim());
+  if (que === 'familias') return filasFamilias(datos, $('#buscarFicha').value.trim());
   const lista = que === 'personas' ? datos.personas() : datos.lugares();
   if (!t) return lista;
   const alias = datos.alias();
@@ -79,16 +103,28 @@ function pintar() {
   const todas = filas();
   const muestra = todas.slice(0, TOPE);
 
-  ver($('#vacioFichero'), todas.length === 0);
+  /* Con el formulario de una familia nueva abierto, «todavía no hay ninguna»
+     es falso: hay una, se está armando. */
+  const armando = que === 'familias' && abierta === 'nueva';
+  ver($('#vacioFichero'), todas.length === 0 && !armando);
   $('#vacioFichero').textContent = $('#buscarFicha').value.trim()
     ? 'No hay nada con ese nombre.'
-    : (que === 'personas' ? 'Todavía no hay personas cargadas.' : 'Todavía no hay lugares cargados.');
+    : VACIO[que];
 
   /* Regla 3 también acá: la lista dice cuánto no está mostrando. Una lista
      recortada en silencio hace buscar dos veces la misma persona. */
   $('#cuentaFichero').textContent = todas.length > TOPE
     ? `Se muestran ${TOPE} de ${todas.length}. Escribí para achicar la búsqueda.`
     : todas.length ? `${todas.length} ${rotulo(todas.length)}` : '';
+
+  /* Una familia nueva se arma arriba de todo, no al final: lo que se acaba de
+     pedir tiene que estar donde ya están los ojos. */
+  if (que === 'familias' && abierta === 'nueva') {
+    const li = document.createElement('li');
+    li.className = 'abierta';
+    formularioFamilia(li, { hijos: [] }, contexto());
+    ul.append(li);
+  }
 
   for (const o of muestra) {
     const li = document.createElement('li');
@@ -98,11 +134,26 @@ function pintar() {
   }
 }
 
-const rotulo = n => que === 'personas'
-  ? (n === 1 ? 'persona' : 'personas')
-  : (n === 1 ? 'lugar' : 'lugares');
+const VACIO = {
+  personas: 'Todavía no hay personas cargadas.',
+  lugares: 'Todavía no hay lugares cargados.',
+  familias: 'Todavía no hay ninguna familia armada. El árbol del sitio se dibuja con esto.',
+};
+
+const rotulo = n => ({
+  personas: n === 1 ? 'persona' : 'personas',
+  lugares: n === 1 ? 'lugar' : 'lugares',
+  familias: n === 1 ? 'familia' : 'familias',
+}[que]);
+
+const contexto = () => ({
+  datos,
+  cerrar: () => { abierta = null; pintar(); },
+  refrescar: async () => { await refrescar(); await cargarNucleos(); },
+});
 
 function resumen(li, o) {
+  if (que === 'familias') return resumenFamilia(li, o, datos, id => { abierta = id; pintar(); });
   const txt = document.createElement('div');
   txt.className = 'crece';
   const b = document.createElement('b');
@@ -144,6 +195,7 @@ function campo(etiqueta, valor, extra = {}) {
 }
 
 function formulario(li, o) {
+  if (que === 'familias') return formularioFamilia(li, o, contexto());
   const caja = document.createElement('div');
   caja.className = 'ficha-form';
   li.append(caja);

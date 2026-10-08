@@ -62,6 +62,15 @@ ninguno.
 
 ---
 
+## Lo que cambió después del volcado
+
+`db/19_alias.sql` abrió el borrado de `persona_alias`, y `db/20_familias.sql` el
+de `nucleos_familiares` y `nucleo_hijos` — sin eso el taller podía armar una
+familia y no podía deshacerla, y un parentesco equivocado quedaba puesto para
+siempre.
+
+---
+
 ## Lo que este volcado dejó a la vista
 
 **`personas.estado` existe y el panel no lo usa.** Su valor por defecto es

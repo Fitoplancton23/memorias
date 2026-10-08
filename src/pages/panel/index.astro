@@ -81,7 +81,7 @@ import { tituloSitio } from '../../lib/sitio.js';
     <div class="bandeja-cabeza">
       <h1>Memorias</h1>
       <span class="cabeza-mandos">
-        <button type="button" class="enlace" id="irFichero">Personas y lugares</button>
+        <button type="button" class="enlace" id="irFichero">Personas, lugares y familias</button>
         <button type="button" class="principal" id="nueva">Cargar una memoria</button>
       </span>
     </div>
@@ -119,22 +119,30 @@ import { tituloSitio } from '../../lib/sitio.js';
        necesitando que alguien tocara SQL. -->
   <main id="fichero" class="ancho" hidden>
     <div class="bandeja-cabeza">
-      <h1>Personas y lugares</h1>
+      <h1>Personas, lugares y familias</h1>
       <button type="button" class="enlace" id="volverMemorias">← Volver a las memorias</button>
     </div>
     <p class="ayuda">
-      Para corregir un nombre mal escrito, sumar un apodo o mover una coordenada.
-      La dirección pública no cambia aunque cambie el nombre: los enlaces que
-      alguien ya compartió siguen funcionando.
+      Para corregir un nombre mal escrito, sumar un apodo, mover una coordenada
+      o armar una familia. La dirección pública no cambia aunque cambie el
+      nombre: los enlaces que alguien ya compartió siguen funcionando.
     </p>
 
     <div class="filtros" role="tablist">
       <button type="button" class="ficha-tab activo" data-que="personas">Personas</button>
       <button type="button" class="ficha-tab" data-que="lugares">Lugares</button>
+      <button type="button" class="ficha-tab" data-que="familias">Familias</button>
     </div>
 
     <input type="search" id="buscarFicha" autocomplete="off"
            placeholder="Buscar por nombre, apellido o apodo" />
+
+    <!-- Armar una familia es crear, no corregir: por eso el botón está afuera
+         de la lista. Es también la única carga del panel que no sale de una
+         memoria, sino de lo que alguien cuenta. -->
+    <p class="mandos" id="nuevaFamiliaCaja" hidden>
+      <button type="button" id="nuevaFamilia">Armar una familia</button>
+    </p>
 
     <p class="error" id="errFichero" hidden></p>
     <p class="ayuda" id="cuentaFichero"></p>
@@ -774,6 +782,17 @@ import { tituloSitio } from '../../lib/sitio.js';
     .ficha-tab { background: 0; border: 0; font: inherit; color: var(--tinta-2);
                  padding: .45rem .1rem; cursor: pointer; border-bottom: 2px solid transparent; }
     .ficha-tab.activo { color: var(--tinta); border-bottom-color: var(--marca); }
+    /* Los bloques del formulario de familia: la pareja arriba, los hijos
+       abajo. Un título chico alcanza para separarlos; no hacen falta cajas. */
+    .ficha-titulo { margin: 1.1rem 0 .35rem; font-size: .78rem; text-transform: uppercase;
+                    letter-spacing: .08em; color: var(--tinta-2); }
+    .ficha-titulo:first-child { margin-top: 0; }
+    /* El select y el año van debajo de su etiqueta, como todos los campos del
+       panel. En línea, «Año de la unión» quedaba pegado al número. */
+    .ficha-form select, .ficha-form input[type=number] { display: block; width: 100%;
+      margin-top: .25rem; padding: .5rem .6rem; border: 1px solid var(--linea);
+      border-radius: 3px; background: var(--placa); font: inherit; color: inherit; }
+    .enlace.peligro { color: var(--cursor); margin-left: auto; }
     #buscarFicha { margin-top: 1rem; }
     .fichas li { align-items: flex-start; }
     .fichas .crece { padding-top: .15rem; }

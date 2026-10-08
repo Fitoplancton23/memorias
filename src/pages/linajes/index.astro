@@ -122,7 +122,8 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     import { forceSimulation, forceManyBody, forceCollide, forceX, forceY, forceLink, forceRadial } from 'd3-force';
     import { select } from 'd3-selection';
     import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
-    import { construirGrilla, fijarGrilla, GRILLA } from '../../lib/grilla.js';
+    import { construirGrilla, alinearGrilla, GRILLA } from '../../lib/grilla.js';
+    import { despejar } from '../../lib/despejar.js';
     import { calza, plano } from '../../lib/buscar.js';
 
     const RED = window.__RED;
@@ -366,7 +367,9 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       const previas = new Map();
       for (const [k, v] of enGrilla) previas.set(k, { x: v.x, y: v.y });
       G = construirGrilla(id, personas, familias, { arriba: 2, abajo: 2 });
-      G.fijada = fijarGrilla(G, previas);
+      const pegada = alinearGrilla(G, previas);
+      G.fijada = pegada.igual;      /* el mismo dibujo: no hay nada que mover */
+      G.pegada = pegada.alineada;   /* parecido y ya puesto donde estaba */
       enGrilla.clear();
       for (const n of G.nodos) enGrilla.set(n.id, n);
 
@@ -465,20 +468,54 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       const { x0, x1, y0, y1 } = G.caja;
       const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
       sim.force('anillo').x(cx).y(cy).radius(Math.max(420, (y1 - y0) / 2 + 420));
-      /* Si la familia no se movió, el contexto tampoco tiene por qué saltar:
-         las memorias cambian de vínculo pero ya están acomodadas, y basta con
-         dejar que se reacomoden un poco. Con alpha 1 y 260 pasos se barajaban
-         de nuevo enteras en cada clic. */
+      /* Si la familia no se movió, NADA se mueve.
+         Acomodar el contexto "un poco" no alcanzaba: medido, 156 memorias y
+         lugares se corrían en cada clic entre hermanos, uno de ellos 653
+         píxeles. Las curvas nuevas salen de esos puntos, así que lo que se ve
+         es una conexión que entra deslizándose desde afuera de la pantalla.
+
+         El contexto ya está acomodado y sus posiciones son absolutas, no
+         relativas al foco: dejarlo donde está no empeora nada y es lo único
+         que cumple la regla. Las fuerzas vuelven a correr sólo cuando el
+         dibujo de la familia cambió de verdad. */
+      /* El contexto se arma UNA vez y después se queda quieto.
+
+         Las memorias y los lugares no son decoración alrededor de quien hiciste
+         clic: son entidades con su lugar en la pantalla, y ese lugar es
+         absoluto, no relativo al foco. Mientras las fuerzas volvían a correr en
+         cada clic, cambiar de persona reacomodaba las memorias de los dos —las
+         que dejaban de estar enganchadas y las que empezaban— y una memoria
+         viajaba mil píxeles para decir que ahora cuelga de otro. Eso es lo que
+         se veía como una conexión que entra deslizándose desde afuera.
+
+         Después de esa primera vez sólo quedan las dos fuerzas que impiden que
+         algo quede encima de otra cosa: el choque entre nodos y la banda que
+         mantiene el contexto fuera del bloque de la familia. Los vínculos y la
+         carga —las que mueven lejos— se apagan. */
       const fija = G.fijada;
-      sim.alpha(fija ? .22 : 1);
-      for (let i = 0; i < (fija ? 90 : 260); i++) sim.tick();
-      sim.stop();
+      if (!G.pegada) {
+        /* La primera vez no hay nada puesto: ahí sí, las fuerzas arman el mapa
+           del contexto, con los vínculos acercando cada memoria a su gente. */
+        sim.alpha(1);
+        for (let i = 0; i < 260; i++) sim.tick();
+        sim.stop();
+      } else if (!fija) {
+        /* Después, nunca más. Lo único que puede hacer falta es destapar a
+           quien haya quedado debajo del bloque nuevo de la familia, y eso se
+           hace corriendo a ese nodo y a ninguno más. Está en
+           src/lib/despejar.js, con tests, porque es un invariante: si se rompe
+           no se nota mirando, se nota cuando alguien busca una memoria que
+           quedó debajo de un apellido. */
+        despejar(G.caja, activos);
+      }
       for (const n of activos) {
         const a = antes.get(n.id);
         const hx = n.fijo ? n.fx : n.x, hy = n.fijo ? n.fy : n.y;
         n.dx = a ? a[0] : hx; n.dy = a ? a[1] : hy;   /* lo nuevo no viaja: aparece */
       }
-      t0 = performance.now();
+      /* Sin transición cuando no hay nada que transicionar: animar cero
+         movimiento igual gasta 760 ms en los que la pantalla parece ocupada. */
+      t0 = fija ? -1e9 : performance.now();
       pintar(); mostrarFicha(porId[id], 'Información');
       /* Y si nada se movió, la cámara tampoco: sólo se acomoda si el foco
          nuevo quedó fuera de lo que se está viendo. */

@@ -173,27 +173,40 @@ export function construirGrilla(foco, personas, familias, opciones = {}) {
   };
 }
 
-/* La grilla se construye alrededor del foco y después se centra en él, así que
-   entre dos hermanos da el mismo dibujo corrido unos píxeles. Mover a toda la
-   familia de costado para recentrar no dice nada, y tapa el movimiento que sí
-   dice algo: el de cuando al elegir a otra persona se abre una generación.
+/* La grilla se construye alrededor del foco y después se centra en él. Entre
+   dos hermanos eso da el mismo dibujo corrido una columna; entre un hijo y su
+   abuelo, un dibujo parecido corrido mucho más. En los dos casos la pantalla
+   entera se desplazaba para recentrar, y ese desplazamiento no dice nada: lo
+   único que hay que poder leer es QUÉ cambió en la familia.
 
-   Acá se detecta ese caso —misma gente y todos corridos lo mismo— y se deshace
-   la traslación, dejando la grilla pegada donde ya estaba. Devuelve true si la
-   fijó. Si alguien se movió distinto, el dibujo cambió de verdad y no se toca. */
-export function fijarGrilla(g, previas) {
-  if (!g || !previas || !previas.size) return false;
-  if (g.nodos.length !== previas.size) return false;
-  if (!g.nodos.every(n => previas.has(n.id))) return false;
-  const p0 = previas.get(g.nodos[0].id);
-  const ox = g.nodos[0].x - p0.x, oy = g.nodos[0].y - p0.y;
-  for (const n of g.nodos) {
-    const a = previas.get(n.id);
-    if (Math.abs(n.x - a.x - ox) > 0.5 || Math.abs(n.y - a.y - oy) > 0.5) return false;
+   Acá la grilla nueva se pega a la vieja usando a la gente que está en las dos:
+   se la corre el desplazamiento mediano, que es el que deja a la mayoría donde
+   ya estaba. Quien cambió de lugar de verdad —porque se abrió una generación,
+   porque entró alguien— se mueve, y ahí el movimiento sí significa algo.
+
+   Devuelve:
+     alineada — se pudo pegar a algo previo
+     igual    — además es exactamente el mismo dibujo, nada más que corrido.
+                Entonces no hay nada que animar y nada que reacomodar.        */
+export function alinearGrilla(g, previas) {
+  const nada = { alineada: false, igual: false };
+  if (!g || !previas || !previas.size) return nada;
+  const comunes = g.nodos.filter(n => previas.has(n.id));
+  if (!comunes.length) return nada;
+
+  const mediana = xs => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+  const ox = mediana(comunes.map(n => n.x - previas.get(n.id).x));
+  const oy = mediana(comunes.map(n => n.y - previas.get(n.id).y));
+
+  const igual = g.nodos.length === previas.size
+    && comunes.length === g.nodos.length
+    && comunes.every(n => Math.abs(n.x - previas.get(n.id).x - ox) < 0.5
+                       && Math.abs(n.y - previas.get(n.id).y - oy) < 0.5);
+
+  if (ox || oy) {
+    for (const n of g.nodos) { n.x -= ox; n.y -= oy; }
+    for (const u of g.uniones) { u.x -= ox; u.y -= oy; }
+    g.caja.x0 -= ox; g.caja.x1 -= ox; g.caja.y0 -= oy; g.caja.y1 -= oy;
   }
-  if (!ox && !oy) return true;
-  for (const n of g.nodos) { n.x -= ox; n.y -= oy; }
-  for (const u of g.uniones) { u.x -= ox; u.y -= oy; }
-  g.caja.x0 -= ox; g.caja.x1 -= ox; g.caja.y0 -= oy; g.caja.y1 -= oy;
-  return true;
+  return { alineada: true, igual };
 }

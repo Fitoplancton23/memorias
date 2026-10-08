@@ -1,4 +1,4 @@
-import { fijarGrilla, construirGrilla, GRILLA } from '../src/lib/grilla.js';
+import { alinearGrilla, construirGrilla, GRILLA } from '../src/lib/grilla.js';
 const { COL, FILA, HUECO } = GRILLA;
 let fallos = 0;
 const ok = (n, c) => { if (!c) { fallos++; console.log('FALLA  ' + n); } };
@@ -80,8 +80,8 @@ if (fallos) { console.log(`${fallos} caso(s) fallan`); process.exit(1); }
   const corrido = otro.nodos.find(n => n.id === 'foco').x !== prev.get('foco').x;
   ok('sin fijar, elegir a la hermana corre a la familia', corrido);
 
-  const fijada = fijarGrilla(otro, prev);
-  ok('la grilla de la hermana se reconoce como la misma', fijada === true);
+  const r = alinearGrilla(otro, prev);
+  ok('la grilla de la hermana se reconoce como la misma', r.igual === true);
   ok('y nadie queda en otro lugar',
      otro.nodos.every(n => Math.abs(n.x - prev.get(n.id).x) < .001
                         && Math.abs(n.y - prev.get(n.id).y) < .001));
@@ -90,16 +90,24 @@ if (fallos) { console.log(`${fallos} caso(s) fallan`); process.exit(1); }
      transición queda, que es lo que hace legible que algo cambió. */
   const recortada = new Map(prev); recortada.delete('hermana');
   const otra2 = construirGrilla('hermana', personas, familias, { arriba: 2, abajo: 2 });
-  ok('con distinta gente no se fija', fijarGrilla(otra2, recortada) === false);
-  ok('sin posiciones previas no se fija', fijarGrilla(otra2, new Map()) === false);
+  /* Con distinta gente no es «la misma», pero igual se la pega a lo que había:
+     mover a los que no cambiaron es el deslizamiento que no dice nada. */
+  const r2 = alinearGrilla(otra2, recortada);
+  ok('con distinta gente no es la misma', r2.igual === false);
+  ok('pero igual se alinea con lo que ya estaba', r2.alineada === true);
+  ok('y los que estaban quedan donde estaban',
+     otra2.nodos.filter(n => recortada.has(n.id))
+       .every(n => Math.abs(n.x - recortada.get(n.id).x) < .001));
+  const r3 = alinearGrilla(construirGrilla('hermana', personas, familias, { arriba: 2, abajo: 2 }), new Map());
+  ok('sin posiciones previas no hay con qué alinear', r3.alineada === false);
 
   /* Una grilla movida de forma despareja no es una traslación. */
   const torcida = new Map();
   for (const n of base.nodos) torcida.set(n.id, { x: n.x + (n.id === 'foco' ? 40 : 0), y: n.y });
   const otra3 = construirGrilla('foco', personas, familias, { arriba: 2, abajo: 2 });
   ok('un corrimiento desparejo no cuenta como la misma grilla',
-     fijarGrilla(otra3, torcida) === false);
+     alinearGrilla(otra3, torcida).igual === false);
 }
 
 if (fallos) { console.log(`${fallos} caso(s) fallan`); process.exit(1); }
-console.log('23 casos de grilla: todos pasan');
+console.log('25 casos de grilla: todos pasan');

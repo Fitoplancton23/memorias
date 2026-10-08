@@ -5,6 +5,7 @@ import { sitio, tituloSitio, parajes, estudio } from '../lib/sitio.js';
 import Isotipo from '../components/Isotipo.astro';
 import Ondas from '../components/Ondas.astro';
 import Conecta from '../components/Conecta.astro';
+import Fondo from '../components/Fondo.astro';
 const { titulo, descripcion, suelto = false } = Astro.props;
 const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
 ---
@@ -34,6 +35,10 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
   </script>
 </head>
 <body>
+  {/* El papel va primero y detrás de todo. En las pantallas de lienzo completo
+      —el mapa, los linajes— se atenúa: ahí el dibujo es lo que hay que leer. */}
+  <Fondo intensidad={suelto ? 'tenue' : 'normal'} />
+
   <div class="cargando" id="cargando">
     <Isotipo clase="cargando-marca" dibujable />
     <span class="cargando-puntos" aria-hidden="true"><i></i><i></i><i></i></span>

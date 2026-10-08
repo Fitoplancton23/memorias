@@ -7,12 +7,18 @@
    rojo/verde de siempre. Trabaja como acento de interacción.
    ============================================================ */
 :root {
-  /* --- superficie --- */
-  --fondo: #edf9f4;        /* el blanco verdoso de la guía */
-  --panel: #e2f0ea;
-  --panel-2: #d6e9e1;
-  --linea: #cfe3db;
-  --linea-viva: #a7c5ba;
+  /* --- superficie --- papel, no pantalla.
+     El fondo era #edf9f4, un blanco verdoso plano. La idea rectora del sistema
+     siempre dijo "lámina impresa", y esto la termina de cumplir: un crema de
+     papel con pigmento de acuarela encima (src/components/Fondo.astro).
+     Medido antes de cambiarlo: la tinta pasa de 15,69 a 15,36 de contraste y
+     ningún color del juego categórico cambia de banda. El crema más cálido
+     —#f4f2e8— costaba el doble; éste es el que menos cuesta. */
+  --fondo: #f6f4ea;        /* el papel */
+  --panel: #eef0e5;
+  --panel-2: #e4e7d9;
+  --linea: #dcdfcf;
+  --linea-viva: #b4bda6;
 
   /* --- tinta --- */
   --tinta: #181e1b;        /* el negro de la guía */
@@ -88,7 +94,9 @@
 }
 
 body {
-  background-image: var(--grano);
+  /* El grano lo pone ahora la capa de papel, que además trae el pigmento. Acá
+     queda sólo el color de base: si esa capa no estuviera, el sitio sigue
+     siendo legible sobre el crema y no sobre blanco. */
   margin: 0;
   display: flex;
   flex-direction: column;

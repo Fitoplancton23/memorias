@@ -58,7 +58,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     <div class="leyenda">
       <ul class="ley-tipos">
         <li><i class="pt persona"></i>Persona</li>
-        <li><i class="pt memoria"></i>Memoria</li>
+        <li><i class="pastilla"></i>Memoria</li>
         <li><i class="pt lugar"></i>Lugar</li>
         <li><i class="pt evento"></i>Acontecimiento</li>
       </ul>
@@ -124,7 +124,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
     import { construirGrilla, alinearGrilla, GRILLA } from '../../lib/grilla.js';
     import { despejar } from '../../lib/despejar.js';
-    import { arco, masAfuera } from '../../lib/arco.js';
+    import { arco, masAfuera, apilar } from '../../lib/arco.js';
     import { calza, plano } from '../../lib/buscar.js';
 
     const RED = window.__RED;
@@ -167,18 +167,6 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
        cambia nunca, y no del orden de las que estén a la vista. */
     const anios = entorno.filter(n => n.tipo === 'memoria' && n.anio != null).map(n => n.anio);
     const RANGO = anios.length ? { min: Math.min(...anios), max: Math.max(...anios) } : null;
-    /* Dos memorias del mismo año caen en la misma columna. Se las apila, y la
-       fila sale del archivo entero —no de las que estén a la vista— para que
-       una memoria no cambie de altura según a quién estés mirando. */
-    const FILA = {};
-    {
-      const porAnio = {};
-      for (const n of entorno) {
-        if (n.tipo !== 'memoria' || n.anio == null) continue;
-        FILA[n.id] = (porAnio[n.anio] = (porAnio[n.anio] ?? -1) + 1);
-      }
-    }
-
     const unionesDe = {}, origenDe = {};
     for (const f of familias) {
       for (const c of f.conyuges) if (porId[c]) (unionesDe[c] ||= []).push(f.id);
@@ -214,7 +202,13 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       <linearGradient id="halo-grad" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0%" stop-color="#29abe2" />
         <stop offset="100%" stop-color="#007f68" />
-      </linearGradient>`;
+      </linearGradient>
+      <!-- Sombra de la pastilla: muy baja y muy abierta. Despega la placa del
+           papel; no la convierte en un botón. -->
+      <filter id="sombra-pastilla" x="-20%" y="-60%" width="140%" height="220%">
+        <feDropShadow dx="0" dy="1.5" stdDeviation="3"
+                      flood-color="#2b3a30" flood-opacity=".16" />
+      </filter>`;
     const raiz   = crear('g', { id: 'mundo' });
     const gHalo  = crear('g', { id: 'halos', filter: 'url(#suave)' });
     const gRot   = crear('g', { id: 'rotulos-familia' });
@@ -290,38 +284,73 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
 
     const elSitio = new Map();
     const elNom = new Map();     /* el rótulo de cada sitio, para repartirlos sin que se tapen */
+
+    /* Una memoria es una pastilla, no un punto con un rótulo al lado.
+       -----------------------------------------------------------------------
+       El punto y el texto suelto eran dos cosas: había que mirar cuál rótulo
+       correspondía a cuál punto, y al cruzarse una curva por el medio se
+       perdía el par. La pastilla los vuelve una sola cosa que se puede tocar
+       entera, con la fotografía adentro — que en un archivo de fotografías es
+       lo único que de verdad da ganas de tocar.
+
+       El ancho se calcula del largo del título. Es una estimación, no una
+       medida: medir texto en SVG obliga a pintarlo y leerlo de vuelta, dos
+       veces por nodo y en cada foco. Con una tipografía de ancho conocido, la
+       estimación se pasa por poco y de más, que es el lado seguro. */
+    const ALTO_P = 34, R_THUMB = 13, PAD_P = 13;
+    const anchoPastilla = txt => Math.round(R_THUMB * 2 + PAD_P * 2 + 6 + (txt.length * 5.75));
+
+    /* Un título larguísimo haría una pastilla que cruza media pantalla. Se
+       recorta con puntos suspensivos, que es la señal de que hay más — el
+       título entero está en la ficha, a un clic. */
+    const TOPE_ROTULO = 30;
+    const recortar = t => t.length > TOPE_ROTULO ? t.slice(0, TOPE_ROTULO - 1).trimEnd() + '…' : t;
+
     for (const n of entorno) {
       const g = crear('g', { class: 'sit ' + n.tipo, tabindex: '0', role: 'button' });
+      const rotulo = recortar(n.nombre) + (n.anio ? '  ·  ' + n.anio : '');
 
-      if (n.tipo === 'memoria' && n.foto) {
-        /* La memoria se dibuja con su foto. Es un archivo de fotografías: el
-           nodo de una memoria tiene que poder ser la memoria, no una etiqueta
-           que la nombra. Es lo único que convierte este dibujo en algo que da
-           ganas de tocar. */
-        const rec = 'rec-' + n.ref;
-        const clip = crear('clipPath', { id: rec });
-        clip.appendChild(crear('circle', { r: n.r || 14 }));
-        defs.appendChild(clip);
-        const img = crear('image', {
-          href: n.foto, x: -(n.r || 14), y: -(n.r || 14),
-          width: (n.r || 14) * 2, height: (n.r || 14) * 2,
-          preserveAspectRatio: 'xMidYMid slice', 'clip-path': `url(#${rec})`,
-        });
-        g.appendChild(img);
-        g.appendChild(crear('circle', { class: 'mem-aro', r: n.r || 14 }));
+      if (n.tipo === 'memoria') {
+        const w = anchoPastilla(rotulo);
+        n.w = w; n.h = ALTO_P;
+        g.appendChild(crear('rect', { class: 'mem-caja', x: -w / 2, y: -ALTO_P / 2,
+                                      width: w, height: ALTO_P, rx: ALTO_P / 2, ry: ALTO_P / 2 }));
+        const cx = -w / 2 + PAD_P + R_THUMB;
+        if (n.foto) {
+          const rec = 'rec-' + n.ref;
+          const clip = crear('clipPath', { id: rec });
+          clip.appendChild(crear('circle', { cx, r: R_THUMB }));
+          defs.appendChild(clip);
+          g.appendChild(crear('image', {
+            href: n.foto, x: cx - R_THUMB, y: -R_THUMB,
+            width: R_THUMB * 2, height: R_THUMB * 2,
+            preserveAspectRatio: 'xMidYMid slice', 'clip-path': `url(#${rec})`,
+          }));
+        } else {
+          /* Sin foto no se inventa una imagen: queda el disco del tipo de
+             entidad, que es lo que el archivo sí tiene. */
+          g.appendChild(crear('circle', { class: 'mem-vacio', cx, r: R_THUMB }));
+        }
+        g.appendChild(crear('circle', { class: 'mem-aro', cx, r: R_THUMB }));
+        const t = crear('text', { class: 'sit-nom', x: cx + R_THUMB + 9, y: 4 });
+        t.textContent = rotulo;
+        g.appendChild(t);
+        elNom.set(n.id, t);
       } else {
-        g.appendChild(crear('circle', { class: 'sit-pt', r: n.tipo === 'memoria' ? 7.5 : 5.5 }));
+        /* Un lugar y un acontecimiento siguen siendo un punto con su nombre:
+           son el contexto del contexto, y una pastilla los pondría al mismo
+           peso que la memoria, que es lo que hay que mirar. */
+        n.w = 0; n.h = 0;
+        g.appendChild(crear('circle', { class: 'sit-pt', r: 5.5 }));
+        const t = crear('text', { class: 'sit-nom', x: 11, y: 4 });
+        t.textContent = rotulo;
+        g.appendChild(t);
+        elNom.set(n.id, t);
       }
-
-      const t = crear('text', { class: 'sit-nom', x: (n.tipo === 'memoria' ? (n.r || 14) + 6 : 11), y: 4 });
-      /* El año va con el título: en un archivo histórico, "cuándo" es la mitad
-         de lo que se pregunta al ver una foto. */
-      t.textContent = n.nombre + (n.anio ? '  ·  ' + n.anio : '');
-      g.appendChild(t);
       gSitio.appendChild(g);
       elSitio.set(n.id, g);
-      elNom.set(n.id, t);
     }
+
     const elEstr = new Map(), elHalo = new Map(), elRot = new Map();
     for (const f of familias) {
       const barra = crear('path', { class: 'barra' });
@@ -422,8 +451,11 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
          así que no se mueve nada, y que la posición dice cuándo. */
       const cercaAhora = new Set(contextoDe(id));
       const memsFoco = entorno.filter(n => n.tipo === 'memoria' && cercaAhora.has(n.id));
-      const puestos = arco(G.caja,
-        memsFoco.map(n => ({ id: n.id, anio: n.anio, fila: FILA[n.id] || 0 })), RANGO);
+      const puestos = arco(G.caja, memsFoco.map(n => ({ id: n.id, anio: n.anio })), RANGO);
+      /* Y se sube de renglón lo que se tapa. La pastilla de una memoria mide
+         unos doscientos píxeles: dos años cercanos caen en columnas cercanas
+         y se pisan. La X no se toca — la X es el año. */
+      apilar(puestos, new Map(memsFoco.map(n => [n.id, n.w || 0])));
       for (const n of entorno) {
         n.fijo = true; n.cerca = false; n.radio = 22 + n.nombre.length * 2.6;
         const p = puestos.get(n.id);
@@ -652,10 +684,29 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
         const hs = u.hijos.map(h => enGrilla.get(h)).filter(Boolean);
         if (!hs.length || !a) e.peine.setAttribute('d', 'M0,0');
         else {
-          const yU = a.y, yM = yU + (hs[0].y - yU) * .5, xs = hs.map(h => h.x);
+          /* Codos redondeados. El peine era ortogonal con ángulos rectos
+             duros, y en una lámina de acuarela un ángulo recto es lo único
+             que se ve hecho por una máquina. El radio es chico —no es una
+             curva, es un ángulo ablandado— así que la lectura genealógica no
+             cambia: siguen siendo verticales y horizontales, sin diagonales.
+
+             Cada hijo se dibuja como su propia ele desde el tronco. Los
+             tramos horizontales se superponen entre sí, que con un trazo
+             opaco no se nota, y a cambio no hay que calcular dónde empieza y
+             dónde termina el travesaño. */
+          const R = 13;
+          const yU = a.y, yM = yU + (hs[0].y - yU) * .5;
           let d = `M${u.x.toFixed(1)},${yU.toFixed(1)} V${yM.toFixed(1)} `;
-          if (hs.length > 1) d += `M${Math.min(...xs).toFixed(1)},${yM.toFixed(1)} H${Math.max(...xs).toFixed(1)} `;
-          for (const h of hs) d += `M${h.x.toFixed(1)},${yM.toFixed(1)} V${h.y.toFixed(1)} `;
+          for (const h of hs) {
+            const dx = h.x - u.x;
+            if (Math.abs(dx) < 1) { d += `M${h.x.toFixed(1)},${yM.toFixed(1)} V${h.y.toFixed(1)} `; continue; }
+            const sg = Math.sign(dx);
+            const r = Math.min(R, Math.abs(dx), Math.abs(h.y - yM));
+            d += `M${u.x.toFixed(1)},${yM.toFixed(1)} `
+               + `H${(h.x - sg * r).toFixed(1)} `
+               + `A${r},${r} 0 0 ${sg > 0 ? 1 : 0} ${h.x.toFixed(1)},${(yM + r).toFixed(1)} `
+               + `V${h.y.toFixed(1)} `;
+          }
           e.peine.setAttribute('d', d);
         }
         if (!a) continue;
@@ -693,9 +744,21 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       for (const c of curvas) {
         const A = planos.deId?.[c.a], B = planos.deId?.[c.b];
         if (!A || !B || A.px == null || B.px == null) continue;
-        const mx = (A.px + B.px) / 2, my = (A.py + B.py) / 2;
+        /* La curva arranca en el BORDE de cada nodo, no en su centro. Saliendo
+           del centro, el trazo pasaba por debajo del retrato y de la pastilla
+           y asomaba del otro lado: se leía como si atravesara a la persona en
+           vez de tocarla. Recortada, cada punta queda apoyada contra el nodo,
+           que es como se dibuja una conexión en papel. */
         const dx = B.px - A.px, dy = B.py - A.py;
-        c.el.setAttribute('d', `M${A.px.toFixed(1)},${A.py.toFixed(1)} Q${(mx - dy * .18).toFixed(1)},${(my + dx * .18).toFixed(1)} ${B.px.toFixed(1)},${B.py.toFixed(1)}`);
+        const d = Math.hypot(dx, dy) || 1;
+        const ux = dx / d, uy = dy / d;
+        const ra = salida(A, ux, uy), rb = salida(B, -ux, -uy);
+        if (d <= ra + rb + 6) { c.el.setAttribute('d', 'M0,0'); continue; }
+        const ax = A.px + ux * ra, ay = A.py + uy * ra;
+        const bx = B.px - ux * rb, by = B.py - uy * rb;
+        const mx = (ax + bx) / 2, my = (ay + by) / 2;
+        const cx = mx - (by - ay) * .16, cy = my + (bx - ax) * .16;
+        c.el.setAttribute('d', `M${ax.toFixed(1)},${ay.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)}`);
         if (c.grosor) c.el.setAttribute('stroke-width', c.grosor.toFixed(2));
       }
       repartirRotulos();
@@ -725,13 +788,32 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
         ((a.px - cx) ** 2 + (a.py - cy) ** 2) - ((b.px - cx) ** 2 + (b.py - cy) ** 2));
       for (const n of cands) {
         const t = elNom.get(n.id);
-        const x = n.px + (n.tipo === 'memoria' ? (n.r || 14) + 6 : 11);
+        /* El rótulo de una memoria va adentro de su pastilla y no se esconde:
+           una pastilla sin título es una placa en blanco. El apilado ya
+           garantiza que ninguna quede debajo de otra. */
+        if (n.w) { t.setAttribute('opacity', '1'); continue; }
+        const x = n.px + 11;
         const ancho = (t.textContent || '').length * 5.7;
         const caja = { a: x, b: x + ancho, c: n.py - ALTO_ROT / 2, d: n.py + ALTO_ROT / 2 };
         const choca = puestos.some(q => caja.a < q.b && caja.b > q.a && caja.c < q.d && caja.d > q.c);
         t.setAttribute('opacity', choca ? '0' : '1');
         if (!choca) puestos.push(caja);
       }
+    }
+
+    /* Cuánto hay que correrse desde el centro de un nodo para salir de él, en
+       una dirección dada. Para un disco es el radio; para una pastilla es la
+       distancia al borde del rectángulo, que depende de hacia dónde se va —por
+       el lado corto se sale antes que por el largo—. */
+    function salida(n, ux, uy) {
+      if (n.w) {
+        const ex = Math.abs(ux) > 1e-4 ? (n.w / 2) / Math.abs(ux) : Infinity;
+        const ey = Math.abs(uy) > 1e-4 ? (n.h / 2) / Math.abs(uy) : Infinity;
+        return Math.min(ex, ey) + 3;
+      }
+      if (n.tipo === 'persona') return (enGrilla.has(n.id) ? 24 : 12);
+      if (n.tipo === 'linaje') return 18;
+      return 9;
     }
 
     function bucle(t) { dibujar(t); requestAnimationFrame(bucle); }
@@ -805,7 +887,8 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       if (!dentro(x0, y0) || !dentro(x1, y1)) return false;
       for (const n of entorno) {
         if (planos.sueltosSitio.has(n.id) || n.fx == null) continue;
-        if (!dentro(n.fx, n.fy)) return false;
+        const mw = (n.w || 0) / 2, mh = (n.h || 0) / 2;
+        if (!dentro(n.fx - mw, n.fy - mh) || !dentro(n.fx + mw, n.fy + mh)) return false;
       }
       return true;
     }
@@ -824,8 +907,11 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
         ({ x0, x1, y0, y1 } = G.caja);
         for (const n of entorno) {
           if (planos.sueltosSitio.has(n.id) || n.fx == null) continue;
-          x0 = Math.min(x0, n.fx); x1 = Math.max(x1, n.fx);
-          y0 = Math.min(y0, n.fy); y1 = Math.max(y1, n.fy);
+          /* Con el tamaño de la pastilla, no con su centro: encuadrando por el
+             centro, media pastilla quedaba cortada contra el borde. */
+          const mw = (n.w || 0) / 2 + 12, mh = (n.h || 0) / 2 + 10;
+          x0 = Math.min(x0, n.fx - mw); x1 = Math.max(x1, n.fx + mw);
+          y0 = Math.min(y0, n.fy - mh); y1 = Math.max(y1, n.fy + mh);
         }
       }
       const m = todoEl ? 110 : 150;
@@ -1216,11 +1302,20 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     .sit { cursor: pointer; }
     .sit .sit-pt { fill: var(--tipo-lugar); }
     .sit.evento .sit-pt { fill: var(--tipo-evento); }
-    .sit.memoria .sit-pt { fill: var(--marca); }
-    /* El aro de la foto: la despega del fondo sin taparla. */
-    .mem-aro { fill: none; stroke: var(--placa); stroke-width: 2.5; }
-    .sit.memoria:hover .mem-aro, .sit.memoria:focus-visible .mem-aro { stroke: var(--cursor); }
-    .sit.memoria .sit-nom { fill: var(--tinta); }
+
+    /* --- la pastilla de una memoria ---------------------------------
+       Placa blanca sobre el papel: es la misma superficie que la ficha de una
+       memoria en el resto del sitio —la única sin tramar—, así que acá
+       también la memoria es lo único que se apoya limpio sobre el pigmento.
+       La sombra es muy baja y muy abierta: la despega del fondo sin que
+       parezca un botón. */
+    .mem-caja { fill: var(--placa); stroke: var(--linea); stroke-width: 1;
+                filter: url(#sombra-pastilla); }
+    .sit.memoria:hover .mem-caja, .sit.memoria:focus-visible .mem-caja { stroke: var(--cursor); }
+    .mem-vacio { fill: var(--panel-2); }
+    /* El aro de la foto: la despega de la placa sin taparla. */
+    .mem-aro { fill: none; stroke: var(--placa); stroke-width: 2; }
+    .sit.memoria .sit-nom { fill: var(--tinta); font-weight: 500; }
     .sit .sit-nom { font: 400 10.5px var(--texto); fill: var(--tinta-2); }
     .sit.lejano { opacity: .5; }
     /* El rótulo que no entró se recupera al pasar por encima: la memoria nunca
@@ -1232,7 +1327,9 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     .sit:hover .sit-nom { fill: var(--cursor); }
 
     /* --- curvas: finas, de peso y opacidad distintos ----------------- */
-    .curva { fill: none; }
+    /* Punta redonda. Una curva que termina en escuadra deja un canto recto
+       apoyado contra el nodo; redonda, se apoya. */
+    .curva { fill: none; stroke-linecap: round; }
     /* El grosor dice cuántas memorias comparten. Una conexión sin memorias es
        parentesco puro: línea fina y discontinua, porque es de otra naturaleza. */
     .curva.por-memoria     { stroke: var(--halo-familia); opacity: .55; }
@@ -1240,7 +1337,13 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
        marca y sólida, porque es la única cosa de la pantalla que hay que
        explicar y tiene que distinguirse sin esfuerzo de la estructura
        familiar, que es gris y se lee por posición. */
-    .curva.aparece { stroke: var(--marca); stroke-width: 1.6; opacity: .5; }
+    /* Probé un degradado a lo largo de la curva y lo saqué: un gradiente en SVG
+       corre sobre la caja del trazo, no sobre el recorrido, así que en una
+       curva casi horizontal el degradado va de arriba abajo de una franja
+       finita y no se ve nada de lo que uno quería. Hacerlo bien pide un
+       degradado por curva con sus coordenadas, recalculado en cada cuadro.
+       Tinta sólida y fina alcanza, y es lo que hacen los dibujos de la guía. */
+    .curva.aparece { stroke: var(--marca); stroke-width: 1.4; opacity: .42; }
     .curva.por-parentesco  { stroke: var(--tinta-2); stroke-width: 1.1; opacity: .3;
                              stroke-dasharray: 6 3; }
 
@@ -1269,7 +1372,14 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     i.pt.lugar   { background: var(--tipo-lugar); }
     i.pt.evento  { background: var(--tipo-evento); }
     i.pt.familia { background: var(--halo-familia); }
-    i.pt.memoria { background: var(--marca); }
+    /* La memoria se dibuja como pastilla, así que en la leyenda es una
+       pastilla. Una leyenda que muestra un punto donde la pantalla muestra
+       otra cosa obliga a traducir, y es justo lo que una leyenda evita. */
+    i.pastilla { width: 22px; height: 11px; border-radius: 6px; display: block; flex: none;
+                 background: var(--placa); border: 1px solid var(--linea-viva);
+                 position: relative; }
+    i.pastilla::before { content: ''; position: absolute; left: 1.5px; top: 1.5px;
+                         width: 6px; height: 6px; border-radius: 50%; background: var(--panel-2); }
     .ley-lineas svg { width: 34px; height: 8px; flex: none; overflow: visible; }
     /* La única línea de la leyenda va del color de la marca, igual que la curva
        que nombra: si la muestra no se ve como lo que explica, no explica nada. */

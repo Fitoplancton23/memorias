@@ -1,4 +1,4 @@
-import { arco, masAfuera, dentro, ARCO } from '../src/lib/arco.js';
+import { arco, masAfuera, dentro, apilar, encimadas, ARCO } from '../src/lib/arco.js';
 
 let fallos = 0;
 const ok = (q, bien) => { if (!bien) { fallos++; console.log('FALLA  ' + q); } };
@@ -66,12 +66,10 @@ const rango = { min: 1900, max: 2000 };
   ok('la banda no es más ancha que la familia',
      Math.abs(fuera.get('a').x) < (caja.x1 - caja.x0) / 2
      && Math.abs(fuera.get('b').x) < (caja.x1 - caja.x0) / 2);
-  /* Dos memorias del mismo año no pueden caer en el mismo punto. */
-  const mismo = arco(caja, [{ id: 'a', anio: 1950, fila: 0 },
-                            { id: 'b', anio: 1950, fila: 1 }], rango);
-  ok('dos del mismo año se apilan, no se encinan',
-     Math.abs(mismo.get('a').x - mismo.get('b').x) < .001
-     && Math.abs(mismo.get('a').y - mismo.get('b').y) > 20);
+  /* Dos memorias del mismo año caen en el mismo punto: las separa apilar(). */
+  const mismo = arco(caja, [{ id: 'a', anio: 1950 }, { id: 'b', anio: 1950 }], rango);
+  ok('dos del mismo año caen en la misma columna',
+     Math.abs(mismo.get('a').x - mismo.get('b').x) < .001);
 }
 
 /* --- el lugar cuelga de la memoria, un paso más afuera ------------------ */
@@ -93,7 +91,7 @@ const rango = { min: 1900, max: 2000 };
     const r = { min: 1880 + Math.floor(Math.random() * 40),
                 max: 1980 + Math.floor(Math.random() * 50) };
     const ms = Array.from({ length: 1 + Math.floor(Math.random() * 12) }, (_, i) => ({
-      id: i, fila: Math.floor(Math.random() * 3),
+      id: i,
       anio: Math.random() < .2 ? null
         : r.min + Math.floor(Math.random() * (r.max - r.min + 1)),
     }));
@@ -110,5 +108,50 @@ const rango = { min: 1900, max: 2000 };
   ok(`las del arco no se mueven al sacar otra (${inestables} fallas en 500)`, inestables === 0);
 }
 
+/* --- apilar: ninguna pastilla debajo de otra ---------------------------- */
+{
+  const ms = [{ id: 'a', anio: 1950 }, { id: 'b', anio: 1950 }, { id: 'c', anio: 1951 }];
+  const s = arco(caja, ms, rango);
+  const anchos = new Map([['a', 200], ['b', 200], ['c', 200]]);
+  const xs = new Map([...s].map(([k, p]) => [k, p.x]));
+  ok('antes de apilar hay encimadas', encimadas(s, anchos).length > 0);
+  const filas = apilar(s, anchos);
+  ok('sube a alguna de renglón', filas > 0);
+  ok('después no queda ninguna encimada', encimadas(s, anchos).length === 0);
+  ok('y ninguna cambió de columna: la X es el año',
+     [...xs].every(([k, x]) => Math.abs(s.get(k).x - x) < .001));
+}
+{
+  const s = arco(caja, [{ id: 'sola', anio: 1950 }], rango);
+  const antes = s.get('sola').y;
+  apilar(s, new Map([['sola', 200]]));
+  ok('una sola no se mueve de renglón', s.get('sola').y === antes);
+}
+{
+  /* Determinístico: el mismo conjunto da siempre el mismo dibujo. */
+  const arma = () => {
+    const ms = [{ id: 'x', anio: 1930 }, { id: 'y', anio: 1932 }, { id: 'z', anio: 1934 },
+                { id: 'w', anio: 1970 }];
+    const s = arco(caja, ms, rango);
+    apilar(s, new Map(ms.map(m => [m.id, 180])));
+    return [...s].map(([k, p]) => `${k}:${p.x.toFixed(2)},${p.y.toFixed(2)}`).join('|');
+  };
+  ok('el apilado es determinístico', arma() === arma());
+}
+{
+  /* Con muchas y anchas, igual no queda ninguna tapada. */
+  let mal = 0;
+  for (let v = 0; v < 300; v++) {
+    const ms = Array.from({ length: 2 + Math.floor(Math.random() * 10) }, (_, i) => ({
+      id: i, anio: rango.min + Math.floor(Math.random() * (rango.max - rango.min + 1)),
+    }));
+    const s = arco(caja, ms, rango);
+    const anchos = new Map(ms.map(m => [m.id, 120 + Math.floor(Math.random() * 160)]));
+    apilar(s, anchos);
+    if (encimadas(s, anchos).length) mal++;
+  }
+  ok(`nunca queda una pastilla debajo de otra (${mal} fallas en 300)`, mal === 0);
+}
+
 if (fallos) { console.log(`${fallos} caso(s) fallan`); process.exit(1); }
-console.log('22 casos de banda cronológica + 500 al azar: todos pasan');
+console.log('29 casos de banda cronológica + 800 al azar: todos pasan');

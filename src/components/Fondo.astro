@@ -1,0 +1,140 @@
+---
+/* El papel.
+   -------------------------------------------------------------------------
+   Lámina impresa, no pantalla de instrumento: ésa era la idea rectora del
+   sistema visual desde el principio, y hasta ahora el fondo era un color
+   plano con una pizca de grano. Acá se termina de cumplir — papel con
+   pigmento, de la guía en acuarela de Facundo.
+
+   Tres capas, todas estáticas y ninguna interactiva:
+
+     1. el pigmento   — manchas de acuarela en los márgenes, de verde y
+                        turquesa, que le sacan el plano al color;
+     2. la botánica   — hojas dibujadas a trazo en las esquinas;
+     3. el grano      — la textura fina del papel, que ya existía.
+
+   Va `fixed` y no `absolute`: una hoja de papel no scrollea, y así tampoco
+   hay que recomponer el degradado en cada scroll. `pointer-events: none` y
+   `aria-hidden` porque no es contenido: nada de esto se puede tocar ni se
+   lee en voz alta.
+
+   Sin `filter: blur()`. La guía lo usaba para ablandar los bordes, pero un
+   desenfoque sobre una capa de pantalla completa se recalcula cada vez que
+   algo la invalida. Los mismos bordes salen de paradas de degradado largas,
+   que el navegador rasteriza una sola vez y no vuelve a mirar.
+
+   `intensidad="tenue"` para las pantallas de lienzo completo —el mapa, los
+   linajes— donde el dibujo es lo que hay que leer y el papel tiene que
+   quedar debajo sin pelear.                                                 */
+const { intensidad = 'normal' } = Astro.props;
+---
+<div class={`papel ${intensidad === 'tenue' ? 'papel-tenue' : ''}`} aria-hidden="true">
+  <div class="papel-pigmento"></div>
+  <div class="papel-grano"></div>
+
+  <svg class="papel-hoja hoja-sup-izq" viewBox="0 0 300 300" fill="none">
+    <g stroke="#6f9476" stroke-width="1.2" stroke-linecap="round">
+      <path d="M15 290 Q85 170 120 15" stroke-width="2" />
+      <path d="M56 220 Q-5 192 5 133 Q53 148 56 220Z" fill="#9dbb97" fill-opacity=".6" />
+      <path d="M66 195 Q30 164 38 126" opacity=".6" />
+      <path d="M75 170 Q132 153 140 98 Q89 112 75 170Z" fill="#86aa8a" fill-opacity=".65" />
+      <path d="M82 153 L126 112" opacity=".65" />
+      <path d="M94 126 Q55 95 72 47 Q110 75 94 126Z" fill="#b1c8a4" fill-opacity=".65" />
+      <path d="M96 115 L82 65" opacity=".65" />
+      <path d="M107 92 Q151 69 146 30 Q111 49 107 92Z" fill="#739d80" fill-opacity=".6" />
+      <path d="M110 80 L137 40" opacity=".65" />
+      <path d="M45 239 Q-4 232 0 191 Q40 197 45 239Z" fill="#8aaf94" fill-opacity=".5" />
+    </g>
+  </svg>
+
+  <svg class="papel-hoja hoja-inf-izq" viewBox="0 0 300 300" fill="none">
+    <g stroke="#71977b" stroke-width="1.3" stroke-linecap="round">
+      <path d="M5 300 Q85 190 170 25" stroke-width="2" />
+      <path d="M48 245 Q-2 215 12 168 Q57 187 48 245Z" fill="#8bb29b" fill-opacity=".7" />
+      <path d="M48 229 L22 183" />
+      <path d="M75 204 Q27 159 58 113 Q98 158 75 204Z" fill="#aec7a2" fill-opacity=".65" />
+      <path d="M76 190 L68 132" />
+      <path d="M100 162 Q161 146 162 87 Q111 103 100 162Z" fill="#779f88" fill-opacity=".7" />
+      <path d="M112 150 L149 99" />
+      <path d="M126 124 Q92 83 120 42 Q153 82 126 124Z" fill="#b8cba8" fill-opacity=".65" />
+      <path d="M130 110 L126 56" />
+      <path d="M25 268 Q-10 250 2 219 Q35 233 25 268Z" fill="#91b8aa" fill-opacity=".6" />
+    </g>
+  </svg>
+
+  <svg class="papel-hoja hoja-der" viewBox="0 0 300 300" fill="none">
+    <g stroke="#648f7d" stroke-width="1.3" stroke-linecap="round">
+      <path d="M15 295 Q105 190 175 15" stroke-width="2" />
+      <path d="M62 235 Q8 219 12 166 Q58 183 62 235Z" fill="#9cbea4" fill-opacity=".7" />
+      <path d="M63 218 L28 180" />
+      <path d="M92 196 Q47 150 76 105 Q115 151 92 196Z" fill="#77a99a" fill-opacity=".65" />
+      <path d="M92 182 L85 120" />
+      <path d="M117 153 Q179 139 179 80 Q128 96 117 153Z" fill="#a8c9b0" fill-opacity=".7" />
+      <path d="M130 141 L165 91" />
+      <path d="M144 112 Q109 74 136 35 Q170 71 144 112Z" fill="#779e83" fill-opacity=".65" />
+      <path d="M148 100 L144 48" />
+      <path d="M40 263 Q-2 250 2 210 Q42 225 40 263Z" fill="#8eb7a9" fill-opacity=".65" />
+    </g>
+  </svg>
+
+  <svg class="papel-hoja hoja-der-media" viewBox="0 0 300 300" fill="none">
+    <g stroke="#7ba18c" stroke-width="1.2" stroke-linecap="round">
+      <path d="M20 285 Q120 175 210 10" stroke-width="2" />
+      <path d="M85 211 Q25 188 36 135 Q82 156 85 211Z" fill="#b1c8a8" fill-opacity=".7" />
+      <path d="M85 197 L49 151" />
+      <path d="M123 154 Q177 143 183 91 Q134 103 123 154Z" fill="#91b6a3" fill-opacity=".65" />
+      <path d="M137 141 L169 101" />
+      <path d="M158 111 Q124 75 153 34 Q183 72 158 111Z" fill="#a3c4ad" fill-opacity=".65" />
+    </g>
+  </svg>
+</div>
+
+<style is:global>
+  .papel { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;
+           background: radial-gradient(ellipse at 50% 38%,
+                       #fdfcf6 0%, #f8f6ec 55%, #f1f1e4 100%); }
+
+  /* El pigmento: manchas en los márgenes, nunca en el medio, que es donde se
+     lee. Las paradas son largas a propósito — reemplazan al desenfoque. */
+  .papel-pigmento { position: absolute; inset: -10%;
+    background:
+      radial-gradient(ellipse at 3% 3%,   rgba(144,177,140,.34) 0%, rgba(144,177,140,.14) 16%, transparent 38%),
+      radial-gradient(ellipse at 100% 12%, rgba(111,175,184,.30) 0%, rgba(111,175,184,.12) 22%, transparent 44%),
+      radial-gradient(ellipse at 0% 80%,  rgba(140,190,193,.28) 0%, rgba(140,190,193,.10) 21%, transparent 43%),
+      radial-gradient(ellipse at 97% 100%, rgba(141,177,137,.30) 0%, rgba(141,177,137,.13) 20%, transparent 42%),
+      radial-gradient(ellipse at 45% 100%, rgba(219,206,167,.20) 0%, transparent 38%); }
+
+  /* El grano ya existía y es el mismo: un filtro SVG embebido que el navegador
+     repite, sin pedido de red. */
+  .papel-grano { position: absolute; inset: 0; background-image: var(--grano); opacity: .9; }
+
+  /* Muy tenues en las páginas de lectura. La columna de texto ocupa casi todo
+     el ancho y el papel no scrollea, así que una hoja fuerte termina pasando
+     por detrás de todos los nombres de una lista larga. Numéricamente el
+     contraste aguanta —la tinta sigue arriba de 13:1—, pero una hoja cruzando
+     un apellido se ve descuidado, y buena parte del público va a tener setenta
+     años. En el lienzo hay espacio vacío de verdad y ahí pueden respirar. */
+  .papel-hoja { position: absolute; width: clamp(120px, 22vw, 330px); height: auto; opacity: .2; }
+  .hoja-sup-izq   { top: -3%; left: -4%; transform: rotate(-8deg); }
+  .hoja-inf-izq   { bottom: -4%; left: -3%; transform: rotate(7deg); }
+  .hoja-der       { right: -4%; bottom: 2%; transform: rotate(-9deg) scaleX(-1); }
+  .hoja-der-media { right: -5%; top: 26%; transform: rotate(12deg) scale(.8); opacity: .12; }
+
+  /* En el mapa y en los linajes el dibujo flota sobre espacio vacío: ahí las
+     hojas tienen dónde estar sin tocar un nombre, y el pigmento se baja un
+     poco para no competirle a la cartografía ni a las curvas. */
+  .papel-tenue .papel-pigmento { opacity: .6; }
+  .papel-tenue .papel-hoja { opacity: .34; }
+  .papel-tenue .hoja-der-media { opacity: .2; }
+
+  /* En pantalla angosta las hojas de la derecha se van: ahí el ancho es todo
+     lo que hay, y una hoja detrás de un nombre es una hoja de más. */
+  @media (max-width: 46rem) {
+    .papel-hoja { width: clamp(100px, 30vw, 180px); opacity: .4; }
+    .hoja-der-media, .hoja-der { display: none; }
+  }
+
+  /* Imprimir el archivo es algo que alguien de setenta años va a querer hacer:
+     el papel de verdad no necesita papel dibujado. */
+  @media print { .papel { display: none; } }
+</style>

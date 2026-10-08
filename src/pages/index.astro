@@ -978,7 +978,13 @@ const apellidosPortada = Object.entries(cuentaApellidos)
        mide y escribe --alto-hero; el 100svh queda de red por si no corre. */
     .mapa-lienzo { position: relative; width: 100vw; margin-left: calc(50% - 50vw);
                    height: var(--alto-hero, 100svh); overflow: hidden;
-                   background-color: #fbfdfc; background-image: var(--grano);
+                   /* Sin fondo propio: el papel con pigmento está detrás y tiene
+                      que verse. Antes acá había un blanco casi opaco con su
+                      propio grano, que es lo que tapaba la lámina — el pueblo
+                      quedaba dibujado sobre una hoja distinta a la del resto
+                      del sitio. El velo que la cartografía necesita para que
+                      el grano no le compita a las calles finas lo pone ahora
+                      `#base #fondo`, que es parte del dibujo. */
                    /* El gesto sobre el mapa es del mapa. Estaba sólo en el SVG,
                       y todo lo que flota encima —marcadores, recuento, ficha—
                       dejaba pasar el pellizco al navegador, que zoomeaba la
@@ -1001,7 +1007,12 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     /* Los trazos de la base no engordan al acercarse: una calle es una calle,
        no un dato que crece. Sin esto, a zoom 10 las calles son bandas. */
     #base path, #base polyline, #base line { vector-effect: non-scaling-stroke; }
-    #base #fondo    { fill: #fbfdfc; }
+    /* El fondo de la base era un blanco casi opaco que tapaba el papel. Queda
+       un velo, no una tapa: el pigmento y el grano se ven por debajo de la
+       cartografía, y el pueblo queda dibujado sobre la lámina en vez de sobre
+       una hoja distinta. El velo igual hace falta — sin nada, el grano le
+       compite a las calles finas. */
+    #base #fondo    { fill: rgba(255, 255, 255, .40); }
     #base #verde    { fill: rgba(15, 143, 103, .15); }
     #base #agua     { fill: rgba(41, 171, 226, .26); stroke: rgba(41, 171, 226, .5); stroke-width: 1; }
     #base #cursos   { stroke: rgba(41, 171, 226, .62); stroke-width: 1.5; fill: none; }

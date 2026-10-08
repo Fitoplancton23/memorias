@@ -172,3 +172,28 @@ export function construirGrilla(foco, personas, familias, opciones = {}) {
             y0: Math.min(...ys) - FILA / 2, y1: Math.max(...ys) + FILA / 2 }
   };
 }
+
+/* La grilla se construye alrededor del foco y después se centra en él, así que
+   entre dos hermanos da el mismo dibujo corrido unos píxeles. Mover a toda la
+   familia de costado para recentrar no dice nada, y tapa el movimiento que sí
+   dice algo: el de cuando al elegir a otra persona se abre una generación.
+
+   Acá se detecta ese caso —misma gente y todos corridos lo mismo— y se deshace
+   la traslación, dejando la grilla pegada donde ya estaba. Devuelve true si la
+   fijó. Si alguien se movió distinto, el dibujo cambió de verdad y no se toca. */
+export function fijarGrilla(g, previas) {
+  if (!g || !previas || !previas.size) return false;
+  if (g.nodos.length !== previas.size) return false;
+  if (!g.nodos.every(n => previas.has(n.id))) return false;
+  const p0 = previas.get(g.nodos[0].id);
+  const ox = g.nodos[0].x - p0.x, oy = g.nodos[0].y - p0.y;
+  for (const n of g.nodos) {
+    const a = previas.get(n.id);
+    if (Math.abs(n.x - a.x - ox) > 0.5 || Math.abs(n.y - a.y - oy) > 0.5) return false;
+  }
+  if (!ox && !oy) return true;
+  for (const n of g.nodos) { n.x -= ox; n.y -= oy; }
+  for (const u of g.uniones) { u.x -= ox; u.y -= oy; }
+  g.caja.x0 -= ox; g.caja.x1 -= ox; g.caja.y0 -= oy; g.caja.y1 -= oy;
+  return true;
+}

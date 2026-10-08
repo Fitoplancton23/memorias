@@ -122,7 +122,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     import { forceSimulation, forceManyBody, forceCollide, forceX, forceY, forceLink, forceRadial } from 'd3-force';
     import { select } from 'd3-selection';
     import { zoom, zoomIdentity, zoomTransform } from 'd3-zoom';
-    import { construirGrilla, GRILLA } from '../../lib/grilla.js';
+    import { construirGrilla, fijarGrilla, GRILLA } from '../../lib/grilla.js';
     import { calza, plano } from '../../lib/buscar.js';
 
     const RED = window.__RED;
@@ -353,7 +353,20 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
        El único plano desenfocado es el de quienes todavía no se conectaron con nadie:
        ahí el desenfoque es honesto, porque de esa gente el archivo no sabe nada más. */
     function clasificar(id) {
+      /* La grilla se construye alrededor del foco y después se centra en él.
+         Entre dos hermanos —o entre un hijo y su madre— eso da exactamente el
+         mismo dibujo corrido unos píxeles: la familia entera se deslizaba de
+         costado para que el nuevo foco quedara en el centro, y el movimiento no
+         significaba nada. Peor: tapaba el movimiento que sí significa algo,
+         cuando al elegir a otra persona aparece una generación nueva.
+
+         Así que si la grilla nueva tiene la misma gente y el mismo dibujo, se
+         la vuelve a pegar donde ya estaba. Nadie se mueve. Cuando el dibujo
+         cambia de verdad, la transición queda como estaba. */
+      const previas = new Map();
+      for (const [k, v] of enGrilla) previas.set(k, { x: v.x, y: v.y });
       G = construirGrilla(id, personas, familias, { arriba: 2, abajo: 2 });
+      G.fijada = fijarGrilla(G, previas);
       enGrilla.clear();
       for (const n of G.nodos) enGrilla.set(n.id, n);
 
@@ -452,14 +465,24 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
       const { x0, x1, y0, y1 } = G.caja;
       const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
       sim.force('anillo').x(cx).y(cy).radius(Math.max(420, (y1 - y0) / 2 + 420));
-      sim.alpha(1); for (let i = 0; i < 260; i++) sim.tick(); sim.stop();
+      /* Si la familia no se movió, el contexto tampoco tiene por qué saltar:
+         las memorias cambian de vínculo pero ya están acomodadas, y basta con
+         dejar que se reacomoden un poco. Con alpha 1 y 260 pasos se barajaban
+         de nuevo enteras en cada clic. */
+      const fija = G.fijada;
+      sim.alpha(fija ? .22 : 1);
+      for (let i = 0; i < (fija ? 90 : 260); i++) sim.tick();
+      sim.stop();
       for (const n of activos) {
         const a = antes.get(n.id);
         const hx = n.fijo ? n.fx : n.x, hy = n.fijo ? n.fy : n.y;
         n.dx = a ? a[0] : hx; n.dy = a ? a[1] : hy;   /* lo nuevo no viaja: aparece */
       }
       t0 = performance.now();
-      pintar(); mostrarFicha(porId[id], 'Información'); encuadrar();
+      pintar(); mostrarFicha(porId[id], 'Información');
+      /* Y si nada se movió, la cámara tampoco: sólo se acomoda si el foco
+         nuevo quedó fuera de lo que se está viendo. */
+      if (!fija || !aLaVista(id)) encuadrar();
     }
 
     function marcar(el, visible, extra = '') {
@@ -664,6 +687,18 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
         if (k < 1) requestAnimationFrame(paso);
       };
       requestAnimationFrame(paso);
+    }
+
+    /* ¿El foco está cómodamente dentro de la ventana? Se deja un margen para
+       que no cuente como visible alguien pegado al borde o debajo de la ficha. */
+    function aLaVista(id) {
+      const n = enGrilla.get(id); if (!n) return false;
+      const r = svgEl.getBoundingClientRect();
+      const t = zoomTransform(svgEl);
+      const x = n.x * t.k + t.x, y = n.y * t.k + t.y;
+      const panel = r.width > 880 ? 360 : 0;
+      return x > -r.width / 2 + 90 && x < r.width / 2 - panel - 60
+          && y > -r.height / 2 + 70 && y < r.height / 2 - 70;
     }
 
     function encuadrar(todoEl = false, animar = true) {

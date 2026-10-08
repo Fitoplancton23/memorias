@@ -1,4 +1,4 @@
-import { construirGrilla, GRILLA } from '../src/lib/grilla.js';
+import { fijarGrilla, construirGrilla, GRILLA } from '../src/lib/grilla.js';
 const { COL, FILA, HUECO } = GRILLA;
 let fallos = 0;
 const ok = (n, c) => { if (!c) { fallos++; console.log('FALLA  ' + n); } };
@@ -65,5 +65,41 @@ if (fallos) { console.log(`${fallos} caso(s) fallan`); process.exit(1); }
   const u = G2.uniones.find(x => x.id === 'f-padres');
   const bien = u && u.hijos.includes('foco') && u.hijos.includes('hermana');
   if (!bien) { console.log('FALLA  el peine de los padres alcanza a los hermanos'); process.exit(1); }
-  console.log('17 casos de grilla: todos pasan');
 }
+
+/* --- elegir a otro de la misma familia no mueve a nadie -------------------
+   La grilla se centra en el foco, así que entre dos hermanos sale el mismo
+   dibujo corrido una columna. Ese deslizamiento no significa nada y tapa el
+   movimiento que sí significa algo. */
+{
+  const prev = new Map();
+  const base = construirGrilla('foco', personas, familias, { arriba: 2, abajo: 2 });
+  for (const n of base.nodos) prev.set(n.id, { x: n.x, y: n.y });
+
+  const otro = construirGrilla('hermana', personas, familias, { arriba: 2, abajo: 2 });
+  const corrido = otro.nodos.find(n => n.id === 'foco').x !== prev.get('foco').x;
+  ok('sin fijar, elegir a la hermana corre a la familia', corrido);
+
+  const fijada = fijarGrilla(otro, prev);
+  ok('la grilla de la hermana se reconoce como la misma', fijada === true);
+  ok('y nadie queda en otro lugar',
+     otro.nodos.every(n => Math.abs(n.x - prev.get(n.id).x) < .001
+                        && Math.abs(n.y - prev.get(n.id).y) < .001));
+
+  /* Si el dibujo cambia de verdad —falta alguien— no se fija nada y la
+     transición queda, que es lo que hace legible que algo cambió. */
+  const recortada = new Map(prev); recortada.delete('hermana');
+  const otra2 = construirGrilla('hermana', personas, familias, { arriba: 2, abajo: 2 });
+  ok('con distinta gente no se fija', fijarGrilla(otra2, recortada) === false);
+  ok('sin posiciones previas no se fija', fijarGrilla(otra2, new Map()) === false);
+
+  /* Una grilla movida de forma despareja no es una traslación. */
+  const torcida = new Map();
+  for (const n of base.nodos) torcida.set(n.id, { x: n.x + (n.id === 'foco' ? 40 : 0), y: n.y });
+  const otra3 = construirGrilla('foco', personas, familias, { arriba: 2, abajo: 2 });
+  ok('un corrimiento desparejo no cuenta como la misma grilla',
+     fijarGrilla(otra3, torcida) === false);
+}
+
+if (fallos) { console.log(`${fallos} caso(s) fallan`); process.exit(1); }
+console.log('23 casos de grilla: todos pasan');

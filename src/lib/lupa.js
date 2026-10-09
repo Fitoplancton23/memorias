@@ -18,13 +18,18 @@
 
    Las tres decisiones que no se ven y que importan más que el gesto:
 
-   1. EL TOPE ES LA RESOLUCIÓN REAL DEL ESCANEO, no un 3x inventado. Si la
-      foto tiene 3000 px de ancho y se muestra a 600, se puede acercar cinco
-      veces y cada paso muestra detalle que estaba ahí. Si tiene 700, el tope
-      es 1,16 y no se ofrece acercar. Agrandar más allá de la resolución
-      muestra interpolación, no fotografía — y alguien va a «reconocer» una
-      cara en un manchón. Es la misma regla del proyecto, aplicada a píxeles:
-      nunca inventar precisión que no tenemos.
+   1. EL TOPE LO PONE EL ESCANEO, PERO HAY UN PISO. Si la foto tiene 3000 px
+      de ancho y se muestra a 600, se puede acercar cinco veces y cada paso
+      muestra detalle que estaba ahí. La primera versión cortaba ahí y nada
+      más: con un escaneo de 900 px en una pantalla de escritorio el tope
+      daba 1,22 y la lupa no hacía casi nada — medido, y es lo que se vio.
+      Acercar más allá de la resolución no inventa un dato, agranda el que
+      hay; lo que no se puede hacer es dejar de poder leer una cara porque
+      el escaneo vino chico. Así que se garantizan 2,5x siempre, y de ahí
+      para arriba manda la resolución real, hasta 8x. La regla de no
+      inventar precisión sigue valiendo donde importa: en las coordenadas,
+      las fechas y los nombres, que son datos. Un píxel agrandado no afirma
+      nada.
 
    2. ARRASTRAR TIENE UN SOLO SIGNIFICADO POR VEZ. Con la foto en su tamaño,
       arrastrar de lado pasa de foto. Acercada, arrastrar recorre y NUNCA pasa
@@ -42,8 +47,9 @@
    cuadro, para `translate(x,y) scale(k)` con el origen en la esquina.        */
 
 export const LUPA = {
-  TOPE_DOBLE: 2.5,   /* a cuánto lleva el doble toque, si la foto da */
-  MINIMO_UTIL: 1.15, /* por debajo de esto no se ofrece acercar */
+  TOPE_DOBLE: 2.5,    /* a cuánto lleva el doble toque y el botón */
+  GARANTIZADO: 2.5,   /* hasta acá se llega siempre, lo dé el escaneo o no */
+  TECHO: 8,           /* más que esto es perderse adentro de la foto */
 };
 
 /* El rectángulo que ocupa la imagen dentro del cuadro sin deformarse: lo que
@@ -56,18 +62,18 @@ export function encuadre(natural, cuadro) {
   return [nw * k, nh * k];
 }
 
-/* Hasta dónde se puede acercar sin inventar detalle: cuando un píxel de la
-   pantalla es un píxel del escaneo. */
-export function tope(natural, encuadrada) {
+/* Dónde está el 1:1: un píxel de la pantalla, un píxel del escaneo. De acá
+   para abajo cada paso descubre detalle que estaba en el archivo. */
+export function nativo(natural, encuadrada) {
   const [nw] = natural, [sw] = encuadrada;
   if (!(sw > 0)) return 1;
   return Math.max(1, nw / sw);
 }
 
-/* ¿Vale la pena ofrecer el control? Un botón que agranda un 4% es un botón
-   que miente. */
-export function vale(natural, encuadrada, minimo = LUPA.MINIMO_UTIL) {
-  return tope(natural, encuadrada) >= minimo;
+/* Hasta dónde se deja acercar. Nunca menos del piso garantizado —si no, un
+   escaneo chico deja la lupa sin efecto— ni más del techo. */
+export function tope(natural, encuadrada) {
+  return Math.min(LUPA.TECHO, Math.max(LUPA.GARANTIZADO, nativo(natural, encuadrada)));
 }
 
 /* Un eje: si el contenido tapa el cuadro se pega a los bordes, si no, se
@@ -104,7 +110,7 @@ export function recorrer(estado, geo, dx, dy) {
 export function geometria(natural, cuadro) {
   const encuadrada = encuadre(natural, cuadro);
   return { cuadro, encuadrada, tope: tope(natural, encuadrada),
-           vale: vale(natural, encuadrada) };
+           nativo: nativo(natural, encuadrada) };
 }
 
 /* El estado de partida: la foto en su tamaño, centrada. */

@@ -47,6 +47,13 @@ export function dobleToque(el, alAcercar, opciones = {}) {
     anterior = ahora;
   };
 
-  el.addEventListener('touchend', alSoltar, { passive: false });
-  return () => el.removeEventListener('touchend', alSoltar);
+  /* EN CAPTURA, y esto no es un detalle de estilo. d3-zoom escucha `touchend`
+     sobre el mismo elemento y lo primero que hace es `stopImmediatePropagation`:
+     cualquier oyente registrado después, en burbuja, no corre nunca. Medido:
+     con un `touchend` suelto nuestro oyente corría —y por eso la primera
+     verificación dio verde—, pero con la secuencia real de un dedo
+     (`touchstart` y después `touchend`) corría 0 de 2 veces. La captura baja
+     antes de llegar al elemento, así que pasa primero. */
+  el.addEventListener('touchend', alSoltar, { passive: false, capture: true });
+  return () => el.removeEventListener('touchend', alSoltar, { capture: true });
 }

@@ -1,7 +1,7 @@
-/* Acercar una fotografía: el tope es la resolución real del escaneo, y dentro
-   del cuadro nunca queda hueco. Los dos invariantes se verifican rompiendo la
-   función a propósito, al final. */
-import { encuadre, tope, vale, eje, encajar, acercar, recorrer,
+/* Acercar una fotografía: el tope lo pone el escaneo pero nunca baja del piso
+   garantizado, y dentro del cuadro nunca queda hueco. Los dos invariantes se
+   verifican rompiendo la función a propósito, al final. */
+import { encuadre, nativo, tope, eje, encajar, acercar, recorrer,
          geometria, inicial, hayHueco, LUPA } from '../src/lib/lupa.js';
 
 let fallan = 0;
@@ -22,17 +22,27 @@ caso('foto chica: contain también la agranda', encuadre([300, 200], [600, 400])
 caso('cuadro degenerado', encuadre([3000, 2000], [0, 600]), [0, 0]);
 caso('foto sin medidas', encuadre([0, 0], [600, 400]), [0, 0]);
 
-/* ---- tope: un píxel de pantalla, un píxel de escaneo ---- */
-cerca('escaneo grande: tope 5x', tope([3000, 2000], [600, 400]), 5);
-cerca('escaneo justo: tope 1x', tope([600, 400], [600, 400]), 1);
-cerca('escaneo chico: nunca por debajo de 1', tope([300, 200], [600, 400]), 1);
-cerca('escaneo apenas mayor', tope([700, 467], [600, 400]), 700 / 600);
+/* ---- nativo: un píxel de pantalla, un píxel de escaneo ---- */
+cerca('escaneo grande: nativo 5x', nativo([3000, 2000], [600, 400]), 5);
+cerca('escaneo justo: nativo 1x', nativo([600, 400], [600, 400]), 1);
+cerca('escaneo chico: nunca por debajo de 1', nativo([300, 200], [600, 400]), 1);
+cerca('escaneo apenas mayor', nativo([700, 467], [600, 400]), 700 / 600);
+cerca('cuadro degenerado', nativo([3000, 2000], [0, 0]), 1);
 
-ok('un escaneo grande vale acercarlo', vale([3000, 2000], [600, 400]));
-ok('un escaneo justo no', !vale([600, 400], [600, 400]));
-ok('un 4% no vale', !vale([624, 416], [600, 400]));
-ok('un 16% sí', vale([700, 467], [600, 400]));
-ok('el mínimo es el límite', vale([600 * LUPA.MINIMO_UTIL, 400], [600, 400]));
+/* ---- tope: el escaneo manda, pero con piso y con techo ----
+   El piso existe porque sin él un escaneo de 900 px en una pantalla de
+   escritorio daba 1,22 y la lupa no hacía nada. */
+cerca('escaneo grande: manda la resolución', tope([3000, 2000], [600, 400]), 5);
+cerca('escaneo justo: igual se garantiza el piso', tope([600, 400], [600, 400]), LUPA.GARANTIZADO);
+cerca('escaneo chico: el piso', tope([300, 200], [600, 400]), LUPA.GARANTIZADO);
+cerca('escaneo modesto: el piso, no 1,22', tope([900, 600], [734, 489]), LUPA.GARANTIZADO);
+cerca('escaneo enorme: el techo', tope([30000, 20000], [600, 400]), LUPA.TECHO);
+ok('el tope nunca baja del piso', [[300,200],[600,400],[900,600],[1500,1000]]
+   .every(n => tope(n, [600, 400]) >= LUPA.GARANTIZADO - 1e-9));
+ok('el tope nunca pasa el techo', [[600,400],[9e4,6e4]]
+   .every(n => tope(n, [600, 400]) <= LUPA.TECHO + 1e-9));
+ok('el doble toque siempre llega', [[300,200],[900,600],[3000,2000]]
+   .every(n => Math.min(LUPA.TOPE_DOBLE, tope(n, [600, 400])) === LUPA.TOPE_DOBLE));
 
 /* ---- eje: tapa y se pega, no tapa y se centra ---- */
 cerca('no tapa: centrado', eje(-999, 400, 600), 100);
@@ -43,7 +53,7 @@ cerca('tapa: en el medio queda donde está', eje(-300, 1200, 600), -300);
 
 /* ---- encajar y acercar ---- */
 const geo = geometria([3000, 2000], [600, 600]);   /* encuadrada 600x400, tope 5 */
-caso('geometría', [geo.encuadrada, geo.tope, geo.vale], [[600, 400], 5, true]);
+caso('geometría', [geo.encuadrada, geo.tope, geo.nativo], [[600, 400], 5, 5]);
 caso('inicial: centrada vertical', inicial(geo), { k: 1, x: 0, y: 100 });
 caso('no se puede alejar más que el tamaño', encajar({ k: .3, x: 0, y: 0 }, geo), { k: 1, x: 0, y: 100 });
 caso('no se puede acercar más que el tope', encajar({ k: 99, x: -1e9, y: -1e9 }, geo).k, 5);
@@ -99,4 +109,4 @@ ok('hayHueco detecta una foto chica descentrada', hayHueco({ k: 1, x: 0, y: 0 },
 ok('hayHueco acepta el estado que devuelve encajar', !hayHueco(encajar(roto, geo), geo));
 
 if (fallan) { console.error(`${fallan} caso(s) de lupa fallan`); process.exit(1); }
-console.log('42 casos de lupa + 2000 al azar: todos pasan');
+console.log('45 casos de lupa + 2000 al azar: todos pasan');

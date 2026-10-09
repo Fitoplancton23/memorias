@@ -561,6 +561,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     }
 
     const zm = zoom()
+      .tapDistance(0)
       .on('zoom', ev => {
         mundo.setAttribute('transform', ev.transform.toString());
         kActual = ev.transform.k;
@@ -576,6 +577,12 @@ const apellidosPortada = Object.entries(cuentaApellidos)
        clic ya lo hace d3; en el teléfono no se puede confiar en el `dblclick`
        sintético, porque el mapa declara `touch-action: none` y con eso iOS
        deja de emitirlo de forma predecible. */
+    /* `tapDistance(0)` apaga el doble toque PROPIO de d3. No es que estorbe en
+       teoría: con los dos encendidos el gesto se aplicaba dos veces y el árbol
+       saltaba a 4x en vez de 2x — medido, 0,62 → 2,48. En el mapa no se veía
+       porque el tope de escala se comía el segundo salto, que es peor: el
+       mismo error, escondido en una pantalla y visible en la otra. El doble
+       CLIC del escritorio no pasa por acá y sigue siendo de d3. */
     dobleToque(svgEl, (x, y) => {
       const c = svgEl.getBoundingClientRect();
       zm.scaleBy(sel, 2, [x - c.left, y - c.top]);
@@ -880,7 +887,9 @@ const apellidosPortada = Object.entries(cuentaApellidos)
           /* El botón sólo existe si el escaneo da para acercarlo. El tope es
              su resolución real: agrandar más allá muestra interpolación, y
              alguien va a «reconocer» una cara en un manchón. */
-          botonLupa.hidden = !geo.vale;
+          /* Siempre hay algo que acercar: el piso garantizado existe para que
+             un escaneo chico no deje la lupa sin efecto. */
+          botonLupa.hidden = false;
           est = inicial(geo);
           pintar();
         };
@@ -891,7 +900,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
            cuando terminó: pellizcar y arrastrar quedan siempre instantáneos. */
         let reloj = null;
         const alternar = (px, py) => {
-          if (!geo || !geo.vale) return;
+          if (!geo) return;
           const destino = est.k > 1.001 ? 1 : Math.min(LUPA.TOPE_DOBLE, geo.tope);
           marco.classList.add('saltando');
           clearTimeout(reloj);
@@ -1012,6 +1021,13 @@ const apellidosPortada = Object.entries(cuentaApellidos)
 
         let p0 = null;
         zona.addEventListener('pointerdown', ev => {
+          /* Un botón de la zona —la lupa, una flecha, un punto— no es el
+             principio de un arrastre. Sin esta guarda, apretar la lupa con la
+             foto acercada capturaba el puntero acá y el `click` se lo quedaba
+             la zona en vez del botón: el primer apretón acercaba y el segundo
+             no hacía nada. Medido: con `.click()` desde el código andaba, con
+             un clic de verdad no — por eso la primera verificación no lo vio. */
+          if (ev.target.closest('button')) { p0 = null; return; }
           p0 = { x: ev.clientX, y: ev.clientY };
           /* Con la captura, el recorrido sigue aunque el dedo o el puntero se
              salgan de la foto. Sin ella, arrastrar hasta el borde suelta el

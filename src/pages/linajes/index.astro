@@ -125,6 +125,7 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     import { construirGrilla, alinearGrilla, GRILLA } from '../../lib/grilla.js';
     import { despejar } from '../../lib/despejar.js';
     import { arco, masAfuera, apilar } from '../../lib/arco.js';
+    import { dobleToque } from '../../lib/doble-toque.js';
     import { calza, plano } from '../../lib/buscar.js';
 
     const RED = window.__RED;
@@ -848,6 +849,23 @@ const memos = Object.fromEntries(documentos.map(d => [d.slug, {
     /* ---------- zoom ---------- */
     const zm = zoom().scaleExtent([.08, 3]).on('zoom', ev => raiz.setAttribute('transform', ev.transform.toString()));
     const sel = select(svgEl).call(zm);
+
+    /* Doble toque para acercar, hacia donde se tocó. Esto estaba en el mapa y
+       nunca había llegado acá, que es la otra pantalla de lienzo completo: en
+       el teléfono el árbol se abre tocando dos veces, igual que un mapa.
+
+       En el escritorio el doble clic ya lo hace d3. En el teléfono no se puede
+       confiar en el `dblclick` sintético, porque el lienzo declara
+       `touch-action: none` —hace falta para que el pellizco sea nuestro— y con
+       eso iOS deja de emitirlo de forma predecible.
+
+       El punto va en coordenadas del viewBox, que acá está centrado en el
+       origen: por eso se le resta medio ancho y medio alto, y no sólo la
+       esquina del elemento como en el mapa. */
+    dobleToque(svgEl, (x, y) => {
+      const c = svgEl.getBoundingClientRect();
+      zm.scaleBy(sel, 2, [x - c.left - c.width / 2, y - c.top - c.height / 2]);
+    });
     function medir() {
       const r = svgEl.getBoundingClientRect();
       svgEl.setAttribute('viewBox', `${-r.width / 2} ${-r.height / 2} ${r.width} ${r.height}`);

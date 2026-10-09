@@ -944,9 +944,13 @@ async function prepararMapa() {
       selLugar.verTodo();
       $('#escalaLugar').textContent = escala(caja, selLugar.mapa);
     });
-  } catch {
-    caja.innerHTML = '<p class="ayuda" style="padding:1rem">No se pudo cargar el mapa. '
-                   + 'Podés pegar las coordenadas a mano.</p>';
+  } catch (x) {
+    /* Con el motivo a la vista. "No se pudo cargar" sin la razón no deja
+       arreglar nada: el día que pase de verdad hay que poder leer si fue la
+       red, un 404 o un error del dibujo. */
+    caja.innerHTML = '<p class="ayuda" style="padding:1rem">El mapa no cargó, '
+      + 'pero podés pegar las coordenadas en el campo de arriba.<br />'
+      + '<small>' + ((x && x.message) || x || 'sin detalle') + '</small></p>';
   }
 }
 
@@ -982,6 +986,29 @@ async function prepararPunto() {
     borrador.precisionPunto = $('#precisionPunto input:checked').value;
   }));
 
+  /* El campo manda. Pegar la coordenada de Google Maps es el camino más corto
+     para una memoria que ya se buscó allá; marcar en el mapa, el que sirve
+     para una casa que no tiene dirección. Los dos escriben el mismo punto. */
+  const campo = $('#coordsPunto');
+  /* Editando una memoria que ya tiene punto, las opciones de precisión tienen
+     que estar a la vista desde que se entra al paso: si no, para cambiarlas hay
+     que mover el punto, que es justo lo que no se quiere hacer. */
+  ver($('#precisionPunto'), !!borrador.punto);
+  if (!campo.dataset.cableado) {
+    campo.dataset.cableado = '1';
+    campo.value = borrador.punto ? `${borrador.punto.lat}, ${borrador.punto.lng}` : '';
+    campo.addEventListener('input', () => {
+      const t = campo.value.trim();
+      /* Vaciar el campo saca el punto: la memoria queda en el lugar, sin punto
+         propio, que es un estado válido y no un error. */
+      if (!t) { ponerPunto(null); return; }
+      const q = leerCoordenadas(t);
+      if (!q) return;
+      ponerPunto(q.lat, q.lng);
+      selPunto?.irA?.(q.lat, q.lng);
+    });
+  }
+
   if (caja.dataset.listo) return;
   caja.dataset.listo = '1';
 
@@ -996,19 +1023,34 @@ async function prepararPunto() {
          tiene que encontrar la escuela de nuevo cada vez. */
       acercar: refiere ? 16 : 1,
       onElegir: (lat, lng) => {
-        borrador.punto = { lat, lng };
-        $('#coordsPunto').textContent = `${lat.toFixed(7)}, ${lng.toFixed(7)}`
-          + ' · ' + escala(caja, selPunto.mapa);
-        ver($('#precisionPunto'), true);
+        /* El mapa ahora escribe en el campo, no en un párrafo muerto: así lo
+           que se marcó se puede leer, copiar y corregir a mano. */
+        ponerPunto(lat, lng);
+        $('#coordsPunto').value = `${lat.toFixed(7)}, ${lng.toFixed(7)}`;
+        $('#escalaPunto').textContent = escala(caja, selPunto.mapa);
       },
     });
     const refrescar = () => { $('#escalaPunto').textContent = escala(caja, selPunto.mapa); };
     refrescar();
     caja.addEventListener('wheel', () => requestAnimationFrame(refrescar), { passive: true });
     $('#verTodoPunto').addEventListener('click', () => { selPunto.verTodo(); refrescar(); });
-  } catch {
-    caja.innerHTML = '<p class="ayuda" style="padding:1rem">No se pudo cargar el mapa.</p>';
+  } catch (x) {
+    /* El mapa es una ayuda, no el paso. Si no carga, el campo de coordenadas
+       sigue funcionando y la memoria se puede ubicar igual — por eso el texto
+       lo dice en vez de dejar a alguien mirando un recuadro vacío. Y el motivo
+       va crudo: "no se pudo cargar" sin la razón no deja arreglar nada. */
+    caja.innerHTML = '<p class="ayuda" style="padding:1rem">El mapa no cargó, '
+      + 'pero podés pegar la coordenada en el campo de arriba.<br />'
+      + '<small>' + ((x && x.message) || x || 'sin detalle') + '</small></p>';
   }
+}
+
+/* Guardar el punto, venga del mapa o del campo. Un solo lugar donde se escribe
+   el borrador: con dos, uno de los dos se olvida de mostrar la precisión. */
+function ponerPunto(lat, lng) {
+  borrador.punto = (lat == null) ? null : { lat, lng };
+  ver($('#precisionPunto'), lat != null);
+  selPunto?.marcar?.(lat, lng);
 }
 
 async function crearLugar() {

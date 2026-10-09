@@ -276,6 +276,16 @@ import { tituloSitio } from '../../lib/sitio.js';
         y no son dos lugares. Acercá el mapa y marcá dónde se tomó la foto.
       </p>
 
+      <!-- El campo va PRIMERO y el mapa después. El punto se podía marcar sólo
+           con el mapa: si el mapa no cargaba, el paso era una pared y no había
+           forma de ingresar la coordenada que la base sí acepta. El campo es
+           además el camino más corto para una memoria que ya se buscó en Google
+           Maps — se pega y listo. -->
+      <label for="coordsPunto">Coordenadas del punto
+        <input type="text" id="coordsPunto" autocomplete="off"
+               placeholder="Pegar de Google Maps, o marcar en el mapa" />
+      </label>
+
       <div class="mapa-caja">
         <div class="mapa-lienzo mapa-grande" id="mapaPunto"></div>
         <div class="mapa-barra">
@@ -283,8 +293,6 @@ import { tituloSitio } from '../../lib/sitio.js';
           <button type="button" class="enlace" id="verTodoPunto">ver todo</button>
         </div>
       </div>
-
-      <p class="coords" id="coordsPunto"></p>
 
       <fieldset class="precision" id="precisionPunto" hidden>
         <legend>¿Qué tan seguro es ese punto?</legend>

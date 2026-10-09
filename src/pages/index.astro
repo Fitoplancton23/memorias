@@ -257,6 +257,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     import { zoom, zoomIdentity } from 'd3-zoom';
     import { separar, AIRE, GUIA_DESDE } from '../lib/separar.js';
     import { dobleToque } from '../lib/doble-toque.js';
+    import { geometria, inicial, acercar, recorrer, LUPA } from '../lib/lupa.js';
 
     const { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD } = window.__MAPA;
     const svgEl = document.getElementById('mapa');
@@ -685,6 +686,10 @@ const apellidosPortada = Object.entries(cuentaApellidos)
 
     /* ---- la memoria, encima del mapa ---- */
     let empujado = false, lista = [], indice = 0;
+    /* La lupa de la foto que está a la vista, para que Escape y las flechas
+       del teclado sepan si hay un acercamiento puesto antes de cerrar o de
+       pasar de memoria. */
+    let lupa = null, limpiarLupa = null;
 
     /* El recorrido es el del lugar por el que entraste. Una memoria puede estar
        ligada a más de un lugar, y entonces "la siguiente" depende de desde
@@ -759,8 +764,16 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         '<div class="t-vista' + (haciaDonde ? ' viene-' + haciaDonde : '') + '">' +
           (fotos.length
             ? '<div class="t-fotos">' +
-                '<img class="t-foto" src="' + esc(fotos[0]) + '" alt="" />' +
+                '<div class="t-marco"><img class="t-foto" src="' + esc(fotos[0]) + '" alt="" /></div>' +
                 flechasFoto +
+                /* El botón aparece recién cuando se mide el escaneo y resulta
+                   que da para acercarlo. Un gesto sin nada visible no existe
+                   para la mitad de la gente que va a entrar acá. */
+                '<button type="button" class="t-lupa" aria-label="Acercar la fotografía" hidden>' +
+                  '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/>' +
+                  '<path d="M15.4 15.4 21 21"/><path d="M7.5 10.5h6"/>' +
+                  '<path class="l-barra" d="M10.5 7.5v6"/></svg>' +
+                '</button>' +
                 (varias
                   ? '<div class="t-puntos" aria-label="Fotografías de esta memoria">' +
                     fotos.map((_, i) =>
@@ -805,22 +818,167 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       tarjeta.querySelector('.t-cerrar').addEventListener('click', cerrarMemoria);
 
       /* ---- las fotos de esta memoria ---- */
-      if (varias) {
+      if (limpiarLupa) { limpiarLupa(); limpiarLupa = null; }
+      lupa = null;
+      if (fotos.length) {
         const img = tarjeta.querySelector('.t-foto');
         const zona = tarjeta.querySelector('.t-fotos');
+        const marco = tarjeta.querySelector('.t-marco');
+        const botonLupa = tarjeta.querySelector('.t-lupa');
         const puntos = [...tarjeta.querySelectorAll('.t-puntos button')];
         let iFoto = 0;
+
+        /* ---- acercar la fotografía ----
+           El modelo es el del visor de Facebook y no el del muro de
+           Instagram: el acercamiento queda PUESTO. Instagram deja asomarse
+           mientras tenés los dedos apoyados y al soltar la foto vuelve sola;
+           eso sirve para un vistazo y no para leer una cara, compararla con
+           otra o mostrarle la pantalla a alguien, que es para lo que la gente
+           entra acá. Toda la cuenta vive en src/lib/lupa.js, con tests. */
+        let geo = null, est = null;
+
+        const pintar = () => {
+          img.style.transform = `translate(${est.x}px, ${est.y}px) scale(${est.k})`;
+          const cerca = est.k > 1.001;
+          marco.classList.toggle('cerca', cerca);
+          /* Acercada, los dos ejes son nuestros: si el navegador se queda el
+             vertical, recorrer hacia abajo mueve la tarjeta en vez de la foto.
+             En su tamaño se lo devolvemos, para que la tarjeta se pueda
+             desplazar con el dedo encima de la foto. */
+          zona.style.touchAction = cerca ? 'none' : 'pan-y';
+          /* Recorrer con el teclado sólo tiene sentido si hay a dónde ir, así
+             que la foto entra y sale del recorrido del tabulador. */
+          if (cerca) marco.tabIndex = 0; else marco.removeAttribute('tabindex');
+          botonLupa.setAttribute('aria-label', cerca ? 'Alejar la fotografía' : 'Acercar la fotografía');
+          botonLupa.classList.toggle('alejar', cerca);
+        };
+
+        /* `anchoMedido` es la guarda contra el bucle: medir le fija el alto al
+           marco, el observador vuelve a avisar, y sin esto se mide para
+           siempre. Sólo importa el ancho, que es de donde sale todo. */
+        let anchoMedido = 0;
+        const medir = () => {
+          if (!img.naturalWidth) return;
+          const ancho = marco.clientWidth;
+          /* Al pintarse la tarjeta el velo todavía está oculto y el marco mide
+             cero. La foto, en cambio, suele venir del caché y su `load` ya
+             pasó, así que esperarlo no alcanza: hay que medir cuando el marco
+             recibe su tamaño. De ahí el observador. */
+          if (!ancho || ancho === anchoMedido) return;
+          anchoMedido = ancho;
+          const natural = [img.naturalWidth, img.naturalHeight];
+          /* El cuadro se calcula para que la foto lo llene justo: así en su
+             tamaño no hay franjas, igual que antes de que esto existiera. El
+             tope de alto es el mismo 62vh de siempre. */
+          const alto = Math.min(Math.round(window.innerHeight * .62),
+                                Math.round(ancho * natural[1] / natural[0]));
+          geo = geometria(natural, [ancho, alto]);
+          marco.style.height = alto + 'px';
+          img.style.width = geo.encuadrada[0] + 'px';
+          img.style.height = geo.encuadrada[1] + 'px';
+          marco.classList.add('medido');
+          /* El botón sólo existe si el escaneo da para acercarlo. El tope es
+             su resolución real: agrandar más allá muestra interpolación, y
+             alguien va a «reconocer» una cara en un manchón. */
+          botonLupa.hidden = !geo.vale;
+          est = inicial(geo);
+          pintar();
+        };
+
+        const mover = (f, ...a) => { if (!geo) return; est = f(est, geo, ...a); pintar(); };
+        /* El salto es el único movimiento que la foto hace sola, así que es el
+           único que se anima. Se enciende la transición, se salta, y se apaga
+           cuando terminó: pellizcar y arrastrar quedan siempre instantáneos. */
+        let reloj = null;
+        const alternar = (px, py) => {
+          if (!geo || !geo.vale) return;
+          const destino = est.k > 1.001 ? 1 : Math.min(LUPA.TOPE_DOBLE, geo.tope);
+          marco.classList.add('saltando');
+          clearTimeout(reloj);
+          reloj = setTimeout(() => marco.classList.remove('saltando'), 280);
+          mover(acercar, [px, py], destino);
+        };
+        const centroDelMarco = () => {
+          const r = marco.getBoundingClientRect();
+          return [r.width / 2, r.height / 2];
+        };
+        const enMarco = (cx, cy) => {
+          const r = marco.getBoundingClientRect();
+          return [cx - r.left, cy - r.top];
+        };
+        lupa = { reiniciar: () => { if (geo) { est = inicial(geo); pintar(); } },
+                 cerca: () => !!est && est.k > 1.001 };
+
+        /* El observador cubre los tres momentos de una sola vez: cuando el
+           marco aparece, cuando la foto termina de cargar y se le pone el
+           alto, y cuando se gira el teléfono y el cuadro cambia de verdad.
+           Girando, el estado anterior ya no corresponde y la foto arranca de
+           nuevo entera, que es lo honesto: no hay forma de saber qué parte
+           estabas mirando en un cuadro que ya no existe. */
+        img.addEventListener('load', medir);
+        const ojo = new ResizeObserver(medir);
+        ojo.observe(marco);
+        medir();
+        limpiarLupa = () => ojo.disconnect();
+
+        botonLupa.addEventListener('click', () => alternar(...centroDelMarco()));
+        marco.addEventListener('dblclick', ev => { ev.preventDefault(); alternar(...enMarco(ev.clientX, ev.clientY)); });
+        dobleToque(marco, (x, y) => alternar(...enMarco(x, y)));
+
+        /* Pellizcar. Dos dedos: la distancia da la escala y el punto medio es
+           el ancla, así la foto se acerca donde la estás abriendo y no en el
+           centro de la pantalla. */
+        const dedos = new Map();
+        let base = null;
+        marco.addEventListener('pointerdown', ev => {
+          dedos.set(ev.pointerId, [ev.clientX, ev.clientY]);
+          if (dedos.size === 2 && est) {
+            const [a, b] = [...dedos.values()];
+            base = { d: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, k: est.k };
+          }
+        }, { passive: false });
+        marco.addEventListener('pointermove', ev => {
+          if (!dedos.has(ev.pointerId)) return;
+          dedos.set(ev.pointerId, [ev.clientX, ev.clientY]);
+          if (dedos.size === 2 && base) {
+            ev.preventDefault();
+            const [a, b] = [...dedos.values()];
+            const d = Math.hypot(a[0] - b[0], a[1] - b[1]) || 1;
+            mover(acercar, enMarco((a[0] + b[0]) / 2, (a[1] + b[1]) / 2), base.k * d / base.d);
+          }
+        }, { passive: false });
+        const soltarDedo = ev => {
+          dedos.delete(ev.pointerId);
+          if (dedos.size < 2) base = null;
+        };
+        marco.addEventListener('pointerup', soltarDedo);
+        marco.addEventListener('pointercancel', soltarDedo);
+
+        /* Recorrer con el teclado, para quien no puede o no quiere arrastrar. */
+        marco.addEventListener('keydown', ev => {
+          const d = { ArrowLeft: [1, 0], ArrowRight: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[ev.key];
+          if (!d || !lupa.cerca()) return;
+          ev.preventDefault(); ev.stopPropagation();
+          mover(recorrer, d[0] * 70, d[1] * 70);
+        });
 
         const verFoto = i => {
           if (i < 0 || i >= fotos.length || i === iFoto) return;
           iFoto = i;
           img.classList.add('cambiando');
+          /* Cada foto trae su propia medida y su propio tope, así que el
+             acercamiento no se arrastra de una a la otra. */
+          geo = null; anchoMedido = 0;
+          marco.classList.remove('medido', 'cerca');
+          marco.style.height = '';
+          img.style.cssText = '';
+          botonLupa.hidden = true;
           img.src = fotos[i];
-          img.onload = () => img.classList.remove('cambiando');
+          img.onload = () => { img.classList.remove('cambiando'); medir(); };
           puntos.forEach((b, j) => b.classList.toggle('actual', j === i));
         };
 
-        tarjeta.querySelector('.t-puntos').addEventListener('click', ev => {
+        if (varias) tarjeta.querySelector('.t-puntos').addEventListener('click', ev => {
           const b = ev.target.closest('button[data-p]');
           if (b) verFoto(+b.dataset.p);
         });
@@ -829,19 +987,52 @@ const apellidosPortada = Object.entries(cuentaApellidos)
            fotos, llegar a la última y no poder seguir obliga a volver con tres
            clics. Acá dar la vuelta no confunde porque los puntos dicen en cuál
            estás — la rueda es visible. */
-        const fAnt = tarjeta.querySelector('.t-ant'), fSig = tarjeta.querySelector('.t-sig');
-        fAnt.addEventListener('click', () => verFoto((iFoto - 1 + fotos.length) % fotos.length));
-        fSig.addEventListener('click', () => verFoto((iFoto + 1) % fotos.length));
+        if (varias) {
+          const fAnt = tarjeta.querySelector('.t-ant'), fSig = tarjeta.querySelector('.t-sig');
+          fAnt.addEventListener('click', () => verFoto((iFoto - 1 + fotos.length) % fotos.length));
+          fSig.addEventListener('click', () => verFoto((iFoto + 1) % fotos.length));
+        }
 
-        /* Arrastrar de lado pasa de foto. El umbral evita que un clic con un
-           temblor de dos píxeles cambie la imagen sin querer. */
-        let x0 = null;
-        zona.addEventListener('pointerdown', ev => { x0 = ev.clientX; });
-        zona.addEventListener('pointercancel', () => { x0 = null; });
+        /* Arrastrar tiene UN significado por vez, y el estado decide cuál.
+           En su tamaño, arrastrar de lado pasa de foto. Acercada, arrastrar
+           recorre y nunca pasa de foto. Facebook, al llegar al borde de la
+           imagen, le devuelve el gesto al carrusel: es ingenioso y es
+           exactamente lo que no queremos, porque convierte el borde en una
+           frontera invisible. Para pasar de foto se aleja primero —o se usa
+           la flecha, que sigue viva.
+           El umbral evita que un clic con un temblor de dos píxeles cambie la
+           imagen sin querer.
+
+           Y antes de nada: arrastrar una imagen en el escritorio arranca el
+           arrastre propio del navegador —el de llevarla a otra ventana— y en
+           cuanto arranca deja de haber `pointermove`. El recorrido se cortaba
+           después del primer movimiento: medido, 75 px de 900. */
+        img.draggable = false;
+        img.addEventListener('dragstart', ev => ev.preventDefault());
+
+        let p0 = null;
+        zona.addEventListener('pointerdown', ev => {
+          p0 = { x: ev.clientX, y: ev.clientY };
+          /* Con la captura, el recorrido sigue aunque el dedo o el puntero se
+             salgan de la foto. Sin ella, arrastrar hasta el borde suelta el
+             gesto a mitad de camino. */
+          if (lupa.cerca() && zona.setPointerCapture) {
+            try { zona.setPointerCapture(ev.pointerId); } catch (x) {}
+          }
+        });
+        zona.addEventListener('pointercancel', () => { p0 = null; });
+        zona.addEventListener('pointermove', ev => {
+          if (!p0 || dedos.size > 1 || !lupa.cerca()) return;
+          ev.preventDefault();
+          mover(recorrer, ev.clientX - p0.x, ev.clientY - p0.y);
+          p0 = { x: ev.clientX, y: ev.clientY };
+        }, { passive: false });
         zona.addEventListener('pointerup', ev => {
-          if (x0 == null) return;
-          const dx = ev.clientX - x0;
-          x0 = null;
+          const d = p0; p0 = null;
+          if (zona.hasPointerCapture && zona.hasPointerCapture(ev.pointerId))
+            zona.releasePointerCapture(ev.pointerId);
+          if (!d || !varias || lupa.cerca() || dedos.size) return;
+          const dx = ev.clientX - d.x;
           if (Math.abs(dx) < 40) return;
           verFoto(iFoto + (dx < 0 ? 1 : -1));
         });
@@ -919,12 +1110,18 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     });
     document.addEventListener('keydown', ev => {
       if (ev.key === 'Escape') {
+        /* Con la foto acercada, Escape aleja y no cierra: cerrar la memoria
+           en medio de mirar una cara es perder el lugar sin haberlo pedido. */
+        if (!velo.hidden && lupa && lupa.cerca()) { lupa.reiniciar(); return; }
         if (!velo.hidden) cerrarMemoria();
         else if (!ficha.hidden) cerrarFicha();
         return;
       }
-      /* Con la memoria abierta, las flechas recorren el lugar en el tiempo. */
+      /* Con la memoria abierta, las flechas recorren el lugar en el tiempo —
+         salvo que la foto esté acercada, que ahí recorren la foto y el que
+         contesta es el marco. */
       if (velo.hidden) return;
+      if (lupa && lupa.cerca()) return;
       if (ev.key === 'ArrowRight') { ev.preventDefault(); irA(indice + 1, 'der'); }
       if (ev.key === 'ArrowLeft')  { ev.preventDefault(); irA(indice - 1, 'izq'); }
     });
@@ -1333,6 +1530,8 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     }
     @media (prefers-reduced-motion: reduce) {
       .velo, .tarjeta, .marca-mapa, .t-vista { animation: none; transition: none; }
+      /* El salto de la lupa llega igual, sin el recorrido. */
+      .t-marco.saltando .t-foto { transition: none; }
     }
 
     .t-cab { display: flex; gap: 1rem; align-items: flex-start;
@@ -1349,6 +1548,58 @@ const apellidosPortada = Object.entries(cuentaApellidos)
                grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
     .t-fotos img { width: 100%; height: auto; max-height: 62vh; object-fit: contain;
                    display: block; background: var(--panel-2); }
+    /* El marco es el recorte, y la foto se mueve adentro. Hasta que el
+       navegador informa el tamaño real del escaneo la foto va en el flujo
+       normal, con las medidas de arriba; al medirla pasa a medidas exactas en
+       píxeles, que es lo que necesita la cuenta de la lupa. El alto que se
+       calcula es el mismo que daba el flujo, así que el cambio no se ve. */
+    .t-marco { position: relative; overflow: hidden; background: var(--panel-2); }
+    .t-marco.medido { line-height: 0; }
+    .t-marco.medido .t-foto { position: absolute; left: 0; top: 0;
+                              max-height: none; object-fit: fill;
+                              transform-origin: 0 0; will-change: transform; }
+    /* La transición es SÓLO para el salto del doble toque y del botón, que son
+       los dos movimientos que la foto hace sola. Pellizcando y arrastrando no
+       puede haber ninguna: la foto tiene que estar donde están los dedos, y
+       veintidós milisegundos de retraso en cada cuadro se sienten como una
+       pantalla que no responde. Por eso la pone JavaScript mientras dura el
+       salto y la saca, en vez de vivir siempre puesta. */
+    .t-marco.saltando .t-foto { transition: transform .24s cubic-bezier(.22,.61,.36,1); }
+    .t-marco .t-foto { -webkit-user-drag: none; user-select: none; -webkit-user-select: none; }
+    .t-marco.cerca { cursor: grab; }
+    .t-marco.cerca:active { cursor: grabbing; }
+    .t-marco:focus-visible { outline: 2px solid var(--cursor); outline-offset: -2px; }
+    .t-marco:focus { outline: none; }
+
+    /* El gesto necesita algo visible. Buena parte del público va a tener
+       setenta años y no va a pellizcar una pantalla por su cuenta; y en una
+       computadora de escritorio el pellizco no existe. El botón aparece sólo
+       si el escaneo da para acercarlo —si no, agrandaría nada y mentiría. */
+    .t-lupa { position: absolute; right: 12px; bottom: 12px; z-index: 2;
+              width: 38px; height: 38px; padding: 0; border-radius: 50%;
+              display: grid; place-items: center; cursor: pointer;
+              border: 1px solid rgba(255, 255, 255, .22);
+              /* Más oscuro que los puntos a propósito: los escaneos viejos suelen
+                 ser claros y sepia, y sobre uno de esos un velo al 30% deja el
+                 botón en un gris barroso. Medido sobre el escaneo más claro
+                 del archivo. */
+              background: rgba(24, 30, 27, .46); color: #fff;
+              -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+              transition: background .18s ease, transform .18s ease; }
+    .t-lupa:hover { background: rgba(24, 30, 27, .55); transform: scale(1.06); }
+    .t-lupa svg { width: 19px; height: 19px; fill: none; stroke: currentColor;
+                  stroke-width: 1.9; stroke-linecap: round; }
+    /* Acercada, la misma lupa con un menos: el control no se duplica y dice en
+       qué estado estás. El más son dos trazos y el menos es uno: se esconde la
+       barra vertical. `d` como propiedad del CSS habría sido más corto y no
+       está en todos los navegadores. */
+    .t-lupa .l-barra { transition: opacity .18s ease; }
+    .t-lupa.alejar .l-barra { opacity: 0; }
+    /* Con la foto acercada los puntos y la lupa siguen a la vista —hacen
+       falta para salir— pero las flechas de foto se van: con un dedo apoyado
+       recorriendo, un blanco de 38 px en el borde es un cambio de foto sin
+       querer. */
+    .t-fotos:has(.t-marco.cerca) .t-flecha { opacity: 0; pointer-events: none; }
     .t-cuerpo { padding: 1rem 1.3rem 1.2rem; }
     .t-cuerpo p { margin: 0 0 .7rem; font-size: .86rem; line-height: 1.55; }
     .t-dato { font-size: .76rem; color: var(--tinta-2); margin: 0 0 .35rem; }

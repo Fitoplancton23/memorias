@@ -176,7 +176,19 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         El enlace de abajo sigue siendo real —funciona sin JS y Google lo
         sigue—, el JS sólo lo intercepta. */}
     <div class="velo" id="velo" hidden>
+      <!-- Las flechas que pasan de MEMORIA viven afuera de la tarjeta, a los
+           costados de la pantalla. El borde de la tarjeta es el borde del
+           alcance: adentro se recorre lo que es de esta memoria —sus fotos—,
+           afuera se recorre lo que es del lugar —sus memorias—. La posición
+           dice de qué se está pasando mejor que cualquier ícono.
+           Van en el HTML y no se repintan con cada memoria: una flecha que se
+           destruye y se vuelve a crear pierde el foco del teclado en cada
+           paso. -->
+      <button type="button" class="v-flecha v-ant" id="memAnt" hidden
+              aria-label="Memoria anterior de este lugar">‹</button>
       <article class="tarjeta vidrio" id="tarjeta" role="dialog" aria-modal="true" aria-labelledby="t-titulo"></article>
+      <button type="button" class="v-flecha v-sig" id="memSig" hidden
+              aria-label="Memoria siguiente de este lugar">›</button>
     </div>
 
     {/* Bajar al texto es una decisión, no un accidente del dedo: el scroll
@@ -254,6 +266,11 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     const ficha = document.getElementById('ficha');
     const velo = document.getElementById('velo');
     const tarjeta = document.getElementById('tarjeta');
+    const memAnt = document.getElementById('memAnt');
+    const memSig = document.getElementById('memSig');
+    const ver = (el, si) => { if (el) el.hidden = !si; };
+    memAnt.addEventListener('click', () => irA(indice - 1, 'izq'));
+    memSig.addEventListener('click', () => irA(indice + 1, 'der'));
     const lienzo = document.querySelector('.mapa-lienzo');
 
     const porSlug = Object.fromEntries(PUNTOS.map(p => [p.slug, p]));
@@ -718,22 +735,19 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         (i === indice ? ' class="actual" aria-current="true"' : '') + '>' +
         esc(m.anio || 's/f') + '</button></li>').join('');
 
-      /* Las flechas van sobre la fotografía: ahí es donde está mirando el ojo
-         y donde cae el pulgar. Si el lugar no tiene foto no hay dónde ponerlas
-         encima, y vuelven a la fila de abajo junto a los años. */
-      const flechaAnt = '<button type="button" class="t-flecha t-ant" aria-label="Memoria anterior"' +
-        (indice === 0 ? ' disabled' : '') + '>‹</button>';
-      const flechaSig = '<button type="button" class="t-flecha t-sig" aria-label="Memoria siguiente"' +
-        (indice === lista.length - 1 ? ' disabled' : '') + '>›</button>';
-      const sobreFoto = hay && !!d.foto;
-
-      /* Dos navegaciones distintas que no se pueden confundir: las flechas
-         recorren los AÑOS del lugar, los puntos recorren las FOTOS de esta
-         misma memoria. Es la separación de Apple entre pasar de página y
-         pasar de foto: la segunda son puntos y gesto, nunca otro par de
-         flechas que compita con el primero. */
+      /* Dos navegaciones con dos alcances distintos, y por eso dos lugares
+         distintos: sobre la foto se pasa de FOTO, afuera de la tarjeta se pasa
+         de MEMORIA. Los puntos se quedan porque dicen cuántas fotos hay y en
+         cuál estás, cosa que una flecha no dice. */
       const fotos = (d.fotos && d.fotos.length) ? d.fotos : (d.foto ? [d.foto] : []);
       const varias = fotos.length > 1;
+      /* Si hay una sola foto no hay nada que recorrer y las flechas no
+         aparecen: un control que no hace nada es ruido encima de la
+         fotografía, que es lo que la gente vino a ver. */
+      const flechasFoto = varias
+        ? '<button type="button" class="t-flecha t-ant" aria-label="Foto anterior">‹</button>'
+        + '<button type="button" class="t-flecha t-sig" aria-label="Foto siguiente">›</button>'
+        : '';
 
       tarjeta.innerHTML =
         '<div class="t-cab"><div>' +
@@ -746,7 +760,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
           (fotos.length
             ? '<div class="t-fotos">' +
                 '<img class="t-foto" src="' + esc(fotos[0]) + '" alt="" />' +
-                (sobreFoto ? flechaAnt + flechaSig : '') +
+                flechasFoto +
                 (varias
                   ? '<div class="t-puntos" aria-label="Fotografías de esta memoria">' +
                     fotos.map((_, i) =>
@@ -766,10 +780,18 @@ const apellidosPortada = Object.entries(cuentaApellidos)
           '</div>' +
         '</div>' +
         (hay
+          /* En el teléfono la tarjeta ocupa la pantalla entera y afuera no
+             queda lugar: ahí las flechas de memoria vuelven a esta fila, al
+             lado de la tira de años. Es el mismo par de funciones en el único
+             lugar donde entran. Se dibujan siempre y las esconde el CSS, que
+             es más barato que recalcular el ancho desde JavaScript — y con
+             display:none tampoco las ve un lector de pantalla. */
           ? '<nav class="t-pasos" aria-label="Memorias de ' + esc(d.lugar || 'este lugar') + '">' +
-              (sobreFoto ? '' : flechaAnt) +
+              '<button type="button" class="t-paso t-paso-ant" aria-label="Memoria anterior"' +
+                (indice === 0 ? ' disabled' : '') + '>‹</button>' +
               '<ol class="t-anios">' + tira + '</ol>' +
-              (sobreFoto ? '' : flechaSig) +
+              '<button type="button" class="t-paso t-paso-sig" aria-label="Memoria siguiente"' +
+                (indice === lista.length - 1 ? ' disabled' : '') + '>›</button>' +
             '</nav>'
           : '') +
         '<div class="t-pie">' +
@@ -803,6 +825,14 @@ const apellidosPortada = Object.entries(cuentaApellidos)
           if (b) verFoto(+b.dataset.p);
         });
 
+        /* Las flechas de adentro pasan de foto, y dan la vuelta: con tres
+           fotos, llegar a la última y no poder seguir obliga a volver con tres
+           clics. Acá dar la vuelta no confunde porque los puntos dicen en cuál
+           estás — la rueda es visible. */
+        const fAnt = tarjeta.querySelector('.t-ant'), fSig = tarjeta.querySelector('.t-sig');
+        fAnt.addEventListener('click', () => verFoto((iFoto - 1 + fotos.length) % fotos.length));
+        fSig.addEventListener('click', () => verFoto((iFoto + 1) % fotos.length));
+
         /* Arrastrar de lado pasa de foto. El umbral evita que un clic con un
            temblor de dos píxeles cambie la imagen sin querer. */
         let x0 = null;
@@ -817,9 +847,17 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         });
       }
 
-      const ant = tarjeta.querySelector('.t-ant'), sig = tarjeta.querySelector('.t-sig');
-      if (ant) ant.addEventListener('click', () => irA(indice - 1, 'izq'));
-      if (sig) sig.addEventListener('click', () => irA(indice + 1, 'der'));
+      /* Las flechas de afuera no se recrean: se actualizan. Van deshabilitadas
+         en las puntas en vez de desaparecer — si se fueran, el blanco se
+         movería debajo del dedo justo cuando alguien está pasando rápido. */
+      ver(memAnt, hay); ver(memSig, hay);
+      memAnt.disabled = indice === 0;
+      memSig.disabled = indice === lista.length - 1;
+
+      const pasoAnt = tarjeta.querySelector('.t-paso-ant');
+      const pasoSig = tarjeta.querySelector('.t-paso-sig');
+      if (pasoAnt) pasoAnt.addEventListener('click', () => irA(indice - 1, 'izq'));
+      if (pasoSig) pasoSig.addEventListener('click', () => irA(indice + 1, 'der'));
       const anios = tarjeta.querySelector('.t-anios');
       if (anios) anios.addEventListener('click', ev => {
         const b = ev.target.closest('button[data-i]');
@@ -827,9 +865,19 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       });
 
       /* El foco sigue al control que te trajo acá: con el teclado no hay que
-         volver a buscar la flecha después de cada paso. */
-      const volverAlFoco = haciaDonde === 'der' ? sig : haciaDonde === 'izq' ? ant : null;
-      (volverAlFoco && !volverAlFoco.disabled ? volverAlFoco : tarjeta.querySelector('.t-cerrar')).focus();
+         volver a buscar la flecha después de cada paso. Ahora el control vive
+         afuera de la tarjeta y sobrevive al repintado, así que alcanza con no
+         robarle el foco si ya lo tiene. */
+      const activo = document.activeElement;
+      const siguioLaFlecha = activo === memAnt || activo === memSig;
+      if (!siguioLaFlecha) {
+        const destino = haciaDonde === 'der' ? memSig : haciaDonde === 'izq' ? memAnt : null;
+        (destino && !destino.disabled && hay ? destino : tarjeta.querySelector('.t-cerrar')).focus();
+      } else if (activo.disabled) {
+        /* Llegó a la punta y la flecha quedó inerte: el foco no se puede
+           quedar en algo que no responde. */
+        (activo === memSig ? memAnt : memSig).focus();
+      }
       /* El año actual tiene que quedar a la vista aunque el lugar tenga veinte. */
       const act = tarjeta.querySelector('.t-anios .actual');
       if (act) act.scrollIntoView({ block: 'nearest', inline: 'center' });
@@ -1342,9 +1390,47 @@ const apellidosPortada = Object.entries(cuentaApellidos)
                        transition: background .18s ease, transform .18s ease; }
     .t-puntos button:hover { background: rgba(255, 255, 255, .8); }
     .t-puntos .actual { background: #fff; transform: scale(1.25); }
-    .t-fotos .t-flecha { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; }
+    /* Las de la foto son más chicas que las de afuera: están sobre la imagen y
+       su alcance es menor —una memoria, sus fotos—. El tamaño es jerarquía. */
+    .t-fotos .t-flecha { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+                         width: 38px; height: 38px; font-size: 1.3rem; }
     .t-fotos .t-ant { left: 12px; }
     .t-fotos .t-sig { right: 12px; }
+
+    /* --- pasar de memoria: AFUERA de la tarjeta -----------------------
+       El borde de la tarjeta es el borde del alcance. Adentro se recorre lo
+       que es de esta memoria; afuera, lo que es del lugar. La posición lo
+       dice sin tener que escribirlo, que es la convención que la gente ya
+       trae de Facebook y de cualquier visor de fotos. */
+    .v-flecha { position: fixed; top: 50%; transform: translateY(-50%); z-index: 3;
+                width: 52px; height: 52px; border-radius: 50%; cursor: pointer;
+                border: .5px solid rgba(255, 255, 255, .7);
+                background: rgba(255, 255, 255, .72);
+                -webkit-backdrop-filter: blur(12px) saturate(1.5);
+                backdrop-filter: blur(12px) saturate(1.5);
+                box-shadow: 0 4px 18px -4px rgba(24, 30, 27, .55);
+                font-size: 1.8rem; line-height: 1; color: var(--tinta);
+                font-family: var(--texto); }
+    .v-ant { left: max(1rem, calc(50vw - var(--ancho-tarjeta, 46rem) / 2 - 4.2rem)); }
+    .v-sig { right: max(1rem, calc(50vw - var(--ancho-tarjeta, 46rem) / 2 - 4.2rem)); }
+    .v-flecha:hover:not(:disabled) { background: #fff; color: var(--cursor); }
+    .v-flecha:disabled { opacity: .3; cursor: default; }
+    .v-flecha:focus-visible { outline: 2px solid var(--cursor); outline-offset: 3px; }
+
+    /* Las de la fila de años: sólo en pantalla angosta, donde afuera de la
+       tarjeta no queda lugar. */
+    .t-paso { flex: none; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--linea);
+              background: var(--placa); color: var(--tinta); cursor: pointer;
+              font-size: 1.2rem; line-height: 1; font-family: var(--texto); display: none; }
+    .t-paso:hover:not(:disabled) { color: var(--cursor); border-color: var(--cursor); }
+    .t-paso:disabled { opacity: .35; cursor: default; }
+
+    /* El cruce: donde la tarjeta ocupa casi todo el ancho, las flechas de
+       afuera se irían encima de ella. Ahí se van y manda la fila de años. */
+    @media (max-width: 60rem) {
+      .v-flecha { display: none; }
+      .t-paso { display: block; }
+    }
 
     .t-anios { flex: 1; display: flex; gap: .3rem; list-style: none; margin: 0; padding: 0;
                overflow-x: auto; scrollbar-width: none; }

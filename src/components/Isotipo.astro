@@ -6,7 +6,13 @@
    seleccionar y lo lee un lector de pantalla. */
 const { clase = '', titulo, dibujable = false } = Astro.props;
 ---
-<svg class={`isotipo ${clase}`} viewBox="0 0 636.38 522.06" aria-hidden={titulo ? undefined : 'true'}
+{/* El viewBox es la caja real del trazo más un margen parejo, no el que vino
+    del exportador. Medido: el dibujo ocupa de x=48,05 a x=636,39 y de y=0 a
+    y=522,06 — o sea que tocaba el borde arriba, abajo y a la derecha (0,01
+    unidades PASADO el borde derecho), y le sobraban 48 unidades sólo a la
+    izquierda. Resultado: se veía apenas cortado en tres lados y corrido hacia
+    la derecha. Con 10 unidades de aire a cada lado queda centrado y entero. */}
+<svg class={`isotipo ${clase}`} viewBox="38.05 -10 608.34 542.06" aria-hidden={titulo ? undefined : 'true'}
      role={titulo ? 'img' : undefined} focusable="false">
   {titulo && <title>{titulo}</title>}
   <path pathLength={dibujable ? 1 : undefined} d="M48.05,294.17c0,87.86,38.52,166.73,99.59,220.63,51.86,45.77,119.97-139.73,194.58-139.73,74.6,0,142.72,185.5,194.58,139.73,61.07-53.9,99.59-132.77,99.59-220.63C636.38,131.7,504.68,0,342.21,0S48.05,131.7,48.05,294.17ZM504.01,294.17c0,48.32-21.19,91.7-54.78,121.35-28.52,25.17-65.98,40.45-107.02,40.45-41.03,0-78.5-15.27-107.02-40.45-33.59-29.65-54.78-73.02-54.78-121.35,0-89.36,72.44-161.79,161.79-161.79s161.79,72.44,161.79,161.79Z"/>

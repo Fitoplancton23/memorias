@@ -304,6 +304,15 @@ function acciones(li, m, err) {
   const pintar = () => {
     zona.innerHTML = '';
     const faltaPermiso = hayPermiso && m.permiso_publicacion !== true;
+    /* Los botones viven en su propio renglón y no sueltos en la zona. Sueltos,
+       la zona era un flex que envolvía: al aparecer el aviso del permiso los
+       botones se repartían por los huecos que quedaban —"Despublicar" contra
+       el borde izquierdo y "Eliminar" contra el derecho, con medio renglón de
+       aire en el medio— y la fila cambiaba de forma según el estado de la
+       memoria, que es lo que obliga a buscar cada botón de nuevo en cada
+       fila. Con un renglón propio no hay nada que repartir. */
+    const fila = document.createElement('div');
+    fila.className = 'botones';
 
     /* El permiso se puede anotar desde las dos listas, no sólo desde las sin
        revisar. Las que quedaron publicadas antes de que la columna existiera
@@ -311,6 +320,15 @@ function acciones(li, m, err) {
        cualquier cambio que las deje publicadas—, así que sin esto la única
        salida sería despublicarlas. */
     if (faltaPermiso && puede) {
+      /* El aviso y su botón van juntos en una caja propia que ocupa el ancho
+         entero de la zona de acciones. Sueltos entre los demás botones, el
+         renglón se partía por donde caía y las acciones quedaban desparramadas
+         —"Despublicar" contra el borde izquierdo y "Eliminar" contra el
+         derecho, con medio renglón de aire en el medio—. Una fila de acciones
+         que cambia de forma según el estado de la memoria obliga a buscar cada
+         botón de nuevo en cada fila. */
+      const caja = document.createElement('span');
+      caja.className = 'falta-permiso';
       const n = document.createElement('small');
       n.className = 'falta';
       n.textContent = m.permiso_publicacion === false
@@ -324,8 +342,10 @@ function acciones(li, m, err) {
          cargar la memoria: obligar a abrir el formulario entero para anotar
          una sola respuesta es la clase de fricción que hace que no se anote. */
       anotar.addEventListener('click', () => formularioPermiso(zona, m, pintar, err));
-      zona.append(n, anotar);
+      caja.append(n, anotar);
+      zona.append(caja);
     }
+    zona.append(fila);
 
     /* Editar está siempre, salvo donde la base lo va a rechazar: un error en el
        año o un nombre mal escrito tiene que poder arreglarse ahora, no en la
@@ -344,7 +364,7 @@ function acciones(li, m, err) {
       ed.className = 'enlace';
       ed.textContent = 'Editar';
       ed.addEventListener('click', () => abrirEdicion(m.id, err));
-      zona.append(ed);
+      fila.append(ed);
     }
 
     if (publicada) {
@@ -365,8 +385,8 @@ function acciones(li, m, err) {
           err.textContent = x.message; ver(err, true);
         }
       });
-      zona.append(baja);
-      accionEliminar(li, m, err, zona);
+      fila.append(baja);
+      accionEliminar(li, m, err, fila);
       return;
     }
 
@@ -374,7 +394,7 @@ function acciones(li, m, err) {
        carga: una memoria subida dos veces es su propio error y tiene que poder
        sacarla. La base igual pregunta —la política pide ser del panel—, y en
        las publicadas sigue siendo cosa de quien publica. */
-    accionEliminar(li, m, err, zona);
+    accionEliminar(li, m, err, fila);
 
     if (!puede) return;
 
@@ -396,7 +416,7 @@ function acciones(li, m, err) {
         err.textContent = x.message; ver(err, true);
       }
     });
-    zona.append(ok);
+    fila.append(ok);
   };
 
   pintar();

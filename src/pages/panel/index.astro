@@ -633,7 +633,8 @@ import { tituloSitio } from '../../lib/sitio.js';
        a la vista la pregunta se mete entre ellos, la fila se parte en tres
        renglones y «Sí, eliminar» queda al lado de «Publicar»: dos acciones
        opuestas a dos centímetros, que es como se aprieta la que no era. */
-    .acciones:has(.confirmar) > *:not(.confirmar) { display: none; }
+    .acciones:has(.confirmar) > *:not(.botones),
+    .botones:has(.confirmar) > *:not(.confirmar) { display: none; }
     .acciones:has(.confirmar) { max-width: 75%; }
 
     .todas { margin: .8rem 0 0; font-size: .85rem; color: var(--tinta-2); }
@@ -667,9 +668,18 @@ import { tituloSitio } from '../../lib/sitio.js';
     .lista b { font-weight: 500; display: block; }
     .lista small { color: var(--tinta-2); }
     .lista .crece { flex: 1; min-width: 0; }
-    .acciones { display: flex; align-items: center; gap: .7rem; flex: none;
-                flex-wrap: wrap; justify-content: flex-end; max-width: 60%; }
+    /* En columna: un renglón para el aviso del permiso, otro para los botones.
+       Antes era un solo flex que envolvía, y entonces el ancho que ocupaba el
+       aviso decidía por dónde se partía la fila de acciones. */
+    .acciones { display: flex; flex-direction: column; align-items: flex-end;
+                gap: .45rem; flex: none; max-width: 60%; }
+    .botones { display: flex; align-items: center; gap: .7rem;
+               flex-wrap: wrap; justify-content: flex-end; }
     .acciones .falta { color: var(--tipo-evento); }
+    /* Renglón propio y completo, para que los botones de la fila queden todos
+       juntos abajo en vez de repartirse por los huecos que deja el aviso. */
+    .falta-permiso { display: flex; align-items: center;
+                     justify-content: flex-end; gap: .7rem; flex-wrap: wrap; }
     .anotar-permiso { display: flex; align-items: center; gap: .5rem; }
     .anotar-permiso input { margin-top: 0; width: 15rem; max-width: 42vw; font-size: .88rem;
                             padding: .4rem .55rem; }

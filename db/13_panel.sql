@@ -64,6 +64,12 @@ to authenticated;
 
 -- Borrar no se abre. Un archivo de memoria no borra: despublica. Si alguna vez
 -- hace falta sacar algo, se hace a mano y queda registro de que se hizo a mano.
+--
+-- [2026-10] Esto cambió a medias: db/21_borrado.sql abre el borrado de una
+-- memoria desde el panel, porque despublicar una prueba o una carga repetida
+-- sólo deja basura que alguien tiene que volver a mirar en cada revisión. Lo
+-- que esta regla protegía de verdad sigue cerrado y ahora con un trigger: la
+-- memoria que tiene anotado que pidieron no publicarla no se borra.
 grant delete on memoria_personas, memoria_acontecimientos, memoria_fotos
 to authenticated;
 

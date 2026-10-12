@@ -199,6 +199,22 @@ export async function subirFoto(blob, nombre) {
   return `${URL_BASE}/storage/v1/object/public/memorias/${ruta}`;
 }
 
+/* Borrar una foto del bucket. Se le pasa la URL pública, que es lo que guarda
+   la memoria; de ahí sale la ruta. Es a propósito tolerante: si el archivo ya
+   no está, o la URL es de otro lado, no se rompe nada. Borrar la fila importa
+   más que limpiar el bucket, así que esto nunca puede frenar aquello. */
+export async function borrarFoto(url) {
+  const marca = '/storage/v1/object/public/memorias/';
+  const i = (url || '').indexOf(marca);
+  if (i < 0) return false;
+  const ruta = url.slice(i + marca.length);
+  if (!ruta) return false;
+  try {
+    const r = await pedir(storage + 'object/memorias/' + ruta, { method: 'DELETE' });
+    return r.ok;
+  } catch { return false; }
+}
+
 /* --- publicar ------------------------------------------------------------
    El deploy hook de Cloudflare no lleva autenticación: quien tenga la URL
    dispara builds. Por eso no está acá. Vive en una tabla de la base que nadie

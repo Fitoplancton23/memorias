@@ -118,9 +118,15 @@ import { tituloSitio } from '../../lib/sitio.js';
        lo que se cargó mal, que hasta ahora era lo único que seguía
        necesitando que alguien tocara SQL. -->
   <main id="fichero" class="ancho" hidden>
+    <!-- La misma salida, en el mismo lugar que en el formulario: una puerta
+         que cambia de sitio según la pantalla es una puerta que hay que
+         buscar. -->
+    <button type="button" class="volver-panel" id="volverMemorias">
+      <span aria-hidden="true">←</span> Volver a las memorias
+    </button>
+
     <div class="bandeja-cabeza">
       <h1>Personas, lugares y familias</h1>
-      <button type="button" class="enlace" id="volverMemorias">← Volver a las memorias</button>
     </div>
     <p class="ayuda">
       Para corregir un nombre mal escrito, sumar un apodo, mover una coordenada
@@ -154,6 +160,17 @@ import { tituloSitio } from '../../lib/sitio.js';
   <!-- El asistente                                                      -->
   <!-- ---------------------------------------------------------------- -->
   <main id="asistente" class="ancho" hidden>
+
+    <!-- La salida está siempre en el mismo lugar y a la vista. Antes la única
+         puerta era el botón de abajo, que recién en el primer paso dice
+         "Cancelar": desde el paso 3 no había forma de salir que no fuera
+         retroceder de a uno. Y aun en el primer paso, la salida no se busca
+         abajo a la izquierda, al lado de la que avanza.
+         Pegajoso y no fijo: fijo, en el borde de la ventana, queda lejos del
+         texto en una pantalla ancha y encima de él en una angosta. -->
+    <button type="button" class="volver-panel" data-volver="asistente">
+      <span aria-hidden="true">←</span> Volver a las memorias
+    </button>
 
     <!-- Editando, hay que saberlo desde el primer paso: el formulario es el
          mismo y sin esto no se distingue de cargar una memoria nueva. -->
@@ -317,8 +334,21 @@ import { tituloSitio } from '../../lib/sitio.js';
       <ul class="sugerencias" id="sugPersona"></ul>
 
       <ul class="fichas" id="fichasPersonas"></ul>
+
+      {/* La lista entera suele venir de la misma boca: o las nombró quien trajo
+          la foto, o las reconoció el que carga. Marcar ocho desplegables de a
+          uno para poner lo mismo en los ocho es trabajo que recae sobre una
+          persona sola. El desplegable de cada fila queda igual, para la foto
+          donde seis las nombraron y dos no. */}
+      <p class="todas" id="todasConfianza" hidden>
+        Marcar todas como
+        <button type="button" class="enlace" data-todas="confirmada">seguras</button>
+        o como
+        <button type="button" class="enlace" data-todas="probable">probables</button>
+      </p>
+
       <p class="ayuda" id="ayudaConfianza" hidden>
-        Marcá <em>segura</em> sólo si quien aportó la memoria la nombró. Si la reconociste vos, dejala en <em>probable</em>: el sitio dibuja la diferencia.
+        Marcá <em>segura</em> sólo si quien aportó la memoria la nombró.
       </p>
 
       <p class="saltear">
@@ -573,6 +603,41 @@ import { tituloSitio } from '../../lib/sitio.js';
     .principal:disabled { opacity: .45; cursor: default; }
     .enlace { background: 0; border: 0; color: var(--marca); padding: 0;
               text-decoration: underline; text-underline-offset: 3px; font-size: inherit; }
+    /* Lo que no se puede deshacer no va del color de lo que sí. Es el único
+       rojo del panel y por eso no hace falta explicarlo. */
+    .enlace.peligro { color: var(--anomalia); }
+
+    /* --- la salida ---
+       Pegajosa debajo de la barra, no fija contra el borde de la ventana: en
+       una pantalla ancha el borde queda a diez centímetros del texto, y en una
+       angosta queda encima. Sigue a la columna, que es donde está mirando el
+       que la busca. `top` es la altura de la barra, que es pegajosa también. */
+    .volver-panel { position: sticky; top: 3.1rem; z-index: 4;
+                    display: inline-flex; align-items: center; gap: .45rem;
+                    margin: 0 0 1.4rem -.55rem; padding: .45rem .85rem;
+                    font: inherit; font-size: .88rem; color: var(--tinta);
+                    background: var(--panel); border: 1px solid var(--linea);
+                    border-radius: 2rem; cursor: pointer; }
+    .volver-panel:hover { border-color: var(--linea-viva); }
+    .volver-panel span { font-size: 1.05em; line-height: 1; }
+    .confirmar-salir { gap: .7rem; flex-wrap: wrap; cursor: default;
+                       border-color: var(--anomalia); }
+    .confirmar-salir small { color: var(--tinta-2); }
+
+    /* La confirmación de borrado vive en la fila, no en un diálogo del
+       navegador: el diálogo del sistema no puede decir CUÁL memoria. */
+    .confirmar { display: inline-flex; align-items: center; gap: .6rem;
+                 flex-wrap: wrap; justify-content: flex-end; }
+    .confirmar small { color: var(--tinta-2); }
+    /* Mientras se pregunta, la fila no ofrece nada más. Con los otros botones
+       a la vista la pregunta se mete entre ellos, la fila se parte en tres
+       renglones y «Sí, eliminar» queda al lado de «Publicar»: dos acciones
+       opuestas a dos centímetros, que es como se aprieta la que no era. */
+    .acciones:has(.confirmar) > *:not(.confirmar) { display: none; }
+    .acciones:has(.confirmar) { max-width: 75%; }
+
+    .todas { margin: .8rem 0 0; font-size: .85rem; color: var(--tinta-2); }
+    .todas button { margin: 0 .1rem; }
 
     .ayuda { color: var(--tinta-2); font-size: .85rem; line-height: 1.5; margin: .45rem 0 0; }
     .error { color: var(--anomalia); font-size: .9rem; margin: .9rem 0 0; }
@@ -634,6 +699,9 @@ import { tituloSitio } from '../../lib/sitio.js';
            padding: .9rem 1.2rem; background: var(--panel);
            border-top: 1px solid var(--linea); }
     .pie > * { flex: none; }
+    /* La cuenta queda centrada haya o no botón de atrás: en el primer paso no
+       lo hay, y sin esto el renglón se corre de lugar al pasar al segundo. */
+    .cuenta { margin-inline: auto; }
     .cuenta { color: var(--tinta-2); font-size: .82rem; }
 
     /* --- foto --- */

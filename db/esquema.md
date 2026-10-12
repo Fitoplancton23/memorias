@@ -69,6 +69,18 @@ de `nucleos_familiares` y `nucleo_hijos` — sin eso el taller podía armar una
 familia y no podía deshacerla, y un parentesco equivocado quedaba puesto para
 siempre.
 
+`db/21_borrado.sql` abrió el de `memorias`, que `db/13_panel.sql` había dejado
+cerrado a propósito. La regla de aquel archivo —«un archivo de memoria no
+borra: despublica»— mezclaba dos casos. Una carga repetida o una prueba no
+tienen nada que registrar, y despublicarlas sólo deja basura que alguien
+tiene que volver a mirar en cada revisión. Una memoria que tiene anotado que
+pidieron no publicarla sí: ese pedido es el registro de que alguien quiso
+salir del archivo, y sin él nada impide que la misma foto vuelva a entrar por
+otra puerta. Eso lo frena un **trigger** y no una política, por la razón de
+siempre: la clave secreta saltea la RLS, no un trigger. El mismo archivo le da
+al panel permiso de borrar del bucket, para que la fila no se vaya dejando sus
+imágenes atrás.
+
 ---
 
 ## Lo que este volcado dejó a la vista

@@ -36,6 +36,8 @@ const PASOS = [
 
 let paso = 0;
 let borrador = vacio();
+/* Cómo estaba el formulario cuando se abrió. Ver `firmaDelBorrador`. */
+let firmaAlAbrir = '';
 let cacheLugares = [], cachePersonas = [], cacheAconts = [], cacheAlias = {};
 let selLugar = null, selPunto = null;
 /* Quién entró. Hace falta para no ofrecerle acciones que la base le va a
@@ -91,6 +93,9 @@ export async function arrancar() {
   $('#salir').addEventListener('click', () => { api.salir(); location.reload(); });
   $('#nueva').addEventListener('click', abrirAsistente);
   $('#atras').addEventListener('click', () => irA(paso - 1));
+  cablearVolver();
+  $$('[data-todas]').forEach(b =>
+    b.addEventListener('click', () => marcarTodas(b.dataset.todas)));
   $('#siguiente').addEventListener('click', alSiguiente);
   $$('[data-saltear]').forEach(b => b.addEventListener('click', saltear));
   $$('.filtro').forEach(b => b.addEventListener('click', () => {
@@ -361,8 +366,15 @@ function acciones(li, m, err) {
         }
       });
       zona.append(baja);
+      accionEliminar(li, m, err, zona);
       return;
     }
+
+    /* En la bandeja de sin revisar, eliminar está también para quien sólo
+       carga: una memoria subida dos veces es su propio error y tiene que poder
+       sacarla. La base igual pregunta —la política pide ser del panel—, y en
+       las publicadas sigue siendo cosa de quien publica. */
+    accionEliminar(li, m, err, zona);
 
     if (!puede) return;
 
@@ -388,6 +400,69 @@ function acciones(li, m, err) {
   };
 
   pintar();
+}
+
+/* Eliminar. Va en las dos listas y se pinta aparte del resto de las acciones
+   porque es la única que no se puede deshacer: separada, y la última.
+
+   La regla vieja del proyecto era que un archivo de memoria no borra,
+   despublica. Sigue valiendo para lo que esa regla protegía —si alguien pidió
+   salir, la memoria queda con el permiso negado y no se borra, y eso lo frena
+   un trigger de la base— pero no para una memoria cargada dos veces o una
+   prueba: ahí no hay nada que registrar, y lo único que deja despublicar es
+   basura que alguien tiene que volver a mirar en cada revisión.
+
+   Confirmación en el lugar, no un `confirm()` del navegador: el diálogo del
+   sistema no dice CUÁL memoria se está por borrar, y en una lista de ciento
+   cincuenta filas iguales eso es exactamente lo que hay que decir. */
+function accionEliminar(li, m, err, zona) {
+  /* La que pidieron bajar no se ofrece eliminar. La base lo frena con un
+     trigger —ese pedido es el registro de que alguien quiso salir del archivo,
+     y borrarlo dejaría a la misma foto volver a entrar el mes que viene—, y
+     mostrar un botón que la base va a rechazar es peor que no mostrarlo: quien
+     lo aprieta se queda creyendo que hizo algo mal. La fila ya dice, al lado,
+     que pidieron que no se publique. */
+  if (m.permiso_publicacion === false) return;
+
+  const borrar = document.createElement('button');
+  borrar.className = 'enlace peligro';
+  borrar.textContent = 'Eliminar';
+  zona.append(borrar);
+
+  borrar.addEventListener('click', () => {
+    const caja = document.createElement('span');
+    caja.className = 'confirmar';
+    const q = document.createElement('small');
+    q.textContent = `¿Eliminar «${m.titulo || 'sin título'}»? No se puede deshacer.`;
+    const si = document.createElement('button');
+    si.className = 'enlace peligro'; si.textContent = 'Sí, eliminar';
+    const no = document.createElement('button');
+    no.className = 'enlace'; no.textContent = 'No';
+    caja.append(q, si, no);
+    borrar.replaceWith(caja);
+    no.focus();
+
+    no.addEventListener('click', () => { caja.replaceWith(borrar); borrar.focus(); });
+    si.addEventListener('click', async () => {
+      si.disabled = true; no.disabled = true; si.textContent = 'Eliminando…';
+      try {
+        /* Primero los archivos del bucket y después la fila. Al revés, si la
+           fila se va y la limpieza falla, nadie vuelve a saber qué archivos
+           eran: la URL estaba en la fila. Y si falla el bucket, se sigue: una
+           imagen huérfana cuesta centavos, una fila que no se deja borrar
+           cuesta que la bandeja no sirva. */
+        const urls = [m.foto_url, ...(await api.traer('memoria_fotos',
+          `select=url&memoria_id=eq.${encodeURIComponent(m.id)}`)
+          .then(f => f.map(x => x.url)).catch(() => []))].filter(Boolean);
+        await Promise.all([...new Set(urls)].map(u => api.borrarFoto(u)));
+        await api.borrar('memorias', `id=eq.${encodeURIComponent(m.id)}`);
+        li.remove();
+      } catch (x) {
+        caja.replaceWith(borrar);
+        err.textContent = x.message; ver(err, true);
+      }
+    });
+  });
 }
 
 /* Anotar el permiso es una sola pregunta —quién lo dio— y se contesta en la
@@ -517,6 +592,7 @@ function abrirAsistente() {
   ver($('#asistente'), true);
   ver($('#editando'), false);
   pintarPasos();
+  firmaAlAbrir = firmaDelBorrador();
   irA(0);
 }
 
@@ -597,6 +673,7 @@ async function abrirEdicion(id, err) {
     ver($('#bandeja'), false);
     ver($('#asistente'), true);
     pintarPasos();
+    firmaAlAbrir = firmaDelBorrador();
     irA(0);
   } catch (x) {
     if (err) { err.textContent = x.message; ver(err, true); }
@@ -656,8 +733,8 @@ function pintarFormulario() {
 
 function limpiarFormulario() {
   for (const id of ['titulo', 'descripcion', 'fecha', 'buscarLugar', 'nuevoLugar',
-                    'nuevoLugarTipo', 'coords', 'buscarPersona', 'buscarAcont',
-                    'nuevoAcont', 'aportante', 'fuente'])
+                    'nuevoLugarTipo', 'coords', 'coordsPunto', 'buscarPersona',
+                    'buscarAcont', 'nuevoAcont', 'aportante', 'fuente'])
     if ($('#' + id)) $('#' + id).value = '';
   const noPregunte = $$('input[name=permiso]').find(r => r.value === '');
   if (noPregunte) noPregunte.checked = true;
@@ -690,7 +767,12 @@ function irA(n) {
     s.classList.toggle('actual', i === n);
   });
   $('#cuenta').textContent = `${n + 1} de ${PASOS.length} · ${PASOS[n].titulo}`;
-  $('#atras').textContent = n === 0 ? 'Cancelar' : 'Atrás';
+  /* En el primer paso no hay atrás, y ya no dice "Cancelar": salir vive
+     arriba a la izquierda, en el mismo lugar en todas las pantallas del panel.
+     Dos puertas para lo mismo, en dos lugares y con dos nombres, es
+     justamente lo que hacía que no se encontrara ninguna. */
+  ver($('#atras'), n > 0);
+  $('#atras').textContent = 'Atrás';
   $('#siguiente').textContent = n < PASOS.length - 1 ? 'Siguiente'
     : borrador.id ? 'Guardar los cambios' : 'Guardar la memoria';
   if (PASOS[n].id === 'punto') prepararPunto();
@@ -705,6 +787,55 @@ function volverABandeja() {
   cargarBandeja($('.filtro.activo').dataset.estado);
 }
 
+/* La firma del formulario, para saber si salir pierde algo. Se toma al abrir y
+   se compara al salir: así no hay que adivinar «¿habrá tocado algo?» ni
+   preguntar siempre. Preguntar de más es tan malo como no preguntar — si el
+   aviso aparece aunque no hayas tocado nada, a la tercera vez se aprende a
+   apretar «salir» sin leer, y entonces el aviso ya no protege nada.
+   Las fotos entran por nombre y tamaño: el File en sí no se puede serializar
+   y no hace falta, dos archivos distintos difieren en eso. */
+function firmaDelBorrador() {
+  return JSON.stringify({
+    titulo: borrador.titulo, descripcion: borrador.descripcion,
+    fecha: borrador.fechaTexto, lugar: borrador.lugar?.id || null,
+    punto: borrador.punto, precision: borrador.precisionPunto,
+    sinFoto: borrador.sinFoto,
+    fotos: (borrador.fotos || []).map((f, i) =>
+      f.url || `nueva${i}:${f.blob?.size ?? f.pesoOriginal ?? '?'}`),
+    personas: (borrador.personas || []).map(p => `${p.id}:${p.confianza}`),
+    acont: borrador.acontecimiento?.id || null,
+    aportante: borrador.aportante, fuente: borrador.fuente,
+    permiso: borrador.permiso, quien: borrador.quienAutorizo,
+  });
+}
+
+/* El botón de salir del formulario. Si no hay nada que perder, sale derecho:
+   una confirmación que siempre dice lo mismo deja de leerse. */
+function cablearVolver() {
+  const b = $('.volver-panel[data-volver="asistente"]');
+  if (!b) return;
+  b.addEventListener('click', () => {
+    if (firmaDelBorrador() === firmaAlAbrir) { volverABandeja(); return; }
+
+    const caja = document.createElement('div');
+    caja.className = 'volver-panel confirmar-salir';
+    const q = document.createElement('small');
+    q.textContent = borrador.id
+      ? 'Los cambios de esta memoria no se guardaron todavía.'
+      : 'Esta memoria todavía no se guardó.';
+    const si = document.createElement('button');
+    si.className = 'enlace peligro'; si.textContent = 'Salir igual';
+    const no = document.createElement('button');
+    no.className = 'enlace'; no.textContent = 'Seguir acá';
+    caja.append(q, si, no);
+    b.replaceWith(caja);
+    no.focus();
+    const deshacer = () => { caja.replaceWith(b); b.focus(); };
+    no.addEventListener('click', deshacer);
+    si.addEventListener('click', () => { deshacer(); volverABandeja(); });
+  });
+}
+
 function saltear() {
   const id = PASOS[paso].id;
   if (id === 'foto') {
@@ -716,7 +847,7 @@ function saltear() {
   if (id === 'donde') { borrador.lugar = null; ver($('#lugarElegido'), false); }
   if (id === 'punto') {
     borrador.punto = null; borrador.precisionPunto = null;
-    selPunto?.marcar(null); $('#coordsPunto').textContent = '';
+    selPunto?.marcar(null); $('#coordsPunto').value = '';
     ver($('#precisionPunto'), false);
   }
   if (id === 'quienes') { borrador.personas = []; $('#fichasPersonas').innerHTML = ''; }
@@ -994,9 +1125,22 @@ async function prepararPunto() {
      que estar a la vista desde que se entra al paso: si no, para cambiarlas hay
      que mover el punto, que es justo lo que no se quiere hacer. */
   ver($('#precisionPunto'), !!borrador.punto);
+
+  /* El campo y el pin se escriben CADA VEZ que se entra al paso, y el oyente
+     se cuelga una sola vez. Estaban las dos cosas adentro de la misma guarda, y
+     entonces la segunda memoria que se editaba abría este paso con la
+     coordenada de la primera escrita en el campo y el pin clavado allá. Un
+     punto heredado es peor que ninguno: no se ve que esté mal, se guarda, y la
+     memoria queda ubicada donde estaba otra. */
+  campo.value = borrador.punto ? `${borrador.punto.lat}, ${borrador.punto.lng}` : '';
+  selPunto?.marcar?.(borrador.punto?.lat ?? null, borrador.punto?.lng ?? null);
+  /* Y la cámara va a donde corresponda: al punto propio si lo hay, y si no al
+     lugar de ESTA memoria, que también puede haber cambiado. */
+  if (borrador.punto) selPunto?.irA?.(borrador.punto.lat, borrador.punto.lng);
+  else if (borrador.lugar?.lat != null) selPunto?.irA?.(borrador.lugar.lat, borrador.lugar.lng);
+
   if (!campo.dataset.cableado) {
     campo.dataset.cableado = '1';
-    campo.value = borrador.punto ? `${borrador.punto.lat}, ${borrador.punto.lng}` : '';
     campo.addEventListener('input', () => {
       const t = campo.value.trim();
       /* Vaciar el campo saca el punto: la memoria queda en el lugar, sin punto
@@ -1183,6 +1327,17 @@ function pintarPersonas() {
     ul.append(li);
   }
   ver($('#ayudaConfianza'), borrador.personas.length > 0);
+  /* Marcar de a una sigue estando: es lo correcto cuando en una foto de ocho
+     hay seis que alguien nombró y dos que reconociste vos. Lo de arriba es
+     para el caso contrario, que es el más común: la lista entera viene de la
+     misma boca. Con una sola persona no se ofrece — un botón que hace lo
+     mismo que el desplegable que está al lado es ruido. */
+  ver($('#todasConfianza'), borrador.personas.length > 1);
+}
+
+function marcarTodas(valor) {
+  for (const p of borrador.personas) p.confianza = valor;
+  pintarPersonas();
 }
 
 /* ------------------------------------------------------------------ */

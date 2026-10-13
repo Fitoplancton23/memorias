@@ -71,25 +71,36 @@ coordenada guardada no se toca— y, donde el corrimiento se nota, una línea fi
 va hasta el punto verdadero: el mapa no finge que el lugar está ahí, dice que
 lo corrió. Cubierto por tests.
 
-**La misma memoria se alcanza desde las tres puertas:** el mapa, el archivo de
-memorias, una persona y una familia. Todo lleva a todo, siempre a través de
+**La misma memoria se alcanza desde las dos vistas y desde el directorio:** el
+mapa, la línea de tiempo, una persona. Todo lleva a todo, siempre a través de
 entidades reales.
 
 ---
 
-## Las tres puertas
+## Las dos vistas, y el directorio
 
-| Puerta | Pregunta |
+| | Pregunta |
 |---|---|
 | **Mapa** | ¿Dónde ocurrió? |
-| **Memorias** | ¿Qué ocurrió? ¿Qué sabemos? |
-| **Personas y familias** | ¿Quiénes están relacionados? |
+| **Línea de tiempo** | ¿Cuándo? ¿Qué ocurrió? ¿Qué sabemos? |
+| Personas y familias | ¿Quiénes están relacionados? |
 
-Y el tiempo —¿cómo cambió el pueblo?— no es una cuarta puerta: es el orden
-natural del archivo de memorias.
+El tiempo no es una vista aparte del archivo de memorias: **es** el archivo de
+memorias, leído en su orden natural. Por eso la línea de tiempo vive en
+`/memorias/` y no en una dirección propia — y por eso la dirección no cambió
+cuando cambió el rótulo del menú: los enlaces que alguien ya mandó por WhatsApp
+tienen que seguir funcionando.
 
-No son tres sistemas independientes: es **un solo archivo de memorias visto
-desde tres perspectivas**. Personas, familias, lugares, fechas y coordenadas se
+Personas y familias es un directorio, no una lectura del archivo: se entra a
+buscar a alguien, no a recorrer nada.
+
+El lienzo de linajes está **retirado del sitio público** mientras el parentesco
+siga casi vacío. Dibuja familias de una sola persona, y una pantalla que promete
+el árbol genealógico y muestra a alguien solo dice algo falso sobre esa familia.
+El código sigue en `/linajes/` y vuelve cuando haya parentescos cargados.
+
+No son sistemas independientes: es **un solo archivo de memorias visto desde
+dos perspectivas**. Personas, familias, lugares, fechas y coordenadas se
 desprenden de las memorias, no compiten con ellas. Por eso el recorrido es de
 ida y vuelta —del árbol a la persona a sus memorias, del mapa al lugar a sus
 memorias— y por eso una sola memoria alimenta las tres vistas a la vez.

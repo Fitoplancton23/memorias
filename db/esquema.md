@@ -98,11 +98,22 @@ momento de la migración, mientras que `created_at` conserva la fecha
 verdadera.
 
 **Columnas que existen y el panel todavía no completa:**
-`memoria_fotos.ancho` y `.alto` —que el panel ya calcula al achicar la imagen—,
 `memoria_fotos.pie`, `memoria_personas.posicion` ("sobre la carroza, a la
 izquierda"), `memorias.creado_por` y `personas.creado_por` —quién cargó cada
-cosa—, `nucleos_familiares.tipo_union` y `.anio_union`, y `linajes.variantes`
-para unificar grafías de un apellido.
+cosa—, y `linajes.variantes` para unificar grafías de un apellido.
+`memoria_fotos.ancho` y `.alto` **sí se completan** desde que el panel achica
+la imagen, y `nucleos_familiares.tipo_union` y `.anio_union` desde el taller de
+familias.
+
+**La foto de portada no tiene medidas en ningún lado.** Vive en
+`memorias.foto_url`, que es una columna de texto suelta: `memoria_fotos` guarda
+de la segunda foto en adelante, con su ancho y su alto, y la portada no está
+ahí. Por eso la línea de tiempo tiene que medir la imagen en el navegador para
+saber si es vertical o apaisada, y por eso hay un salto chico de maquetado
+mientras carga. Se arregla de una de dos formas, y las dos piden SQL: una
+columna de medidas en `memorias`, o meter la portada en `memoria_fotos` con
+`orden = 0` y dejar `foto_url` como un reflejo. La segunda es más limpia y más
+cara: hay que migrar lo cargado.
 
 **`lugares.lat`/`lng` son `numeric` y `memorias.lat`/`lng` son `double
 precision`.** Las dos guardan de sobra para lo que se puede marcar con un clic,

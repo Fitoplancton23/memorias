@@ -322,6 +322,22 @@ const listaLugares = lugares
     }, { rootMargin: '-45% 0px -45% 0px' });
     for (const t of tarjetas) ojo.observe(t);
 
+    /* Cada foto le dice a su caja qué forma tiene. No se puede saber antes:
+       el archivo guarda la URL y no las medidas —`memoria_fotos.ancho` y
+       `.alto` existen en la base y el panel todavía no las completa—, así que
+       hasta que eso pase se mide en el navegador. Cuando la base las traiga,
+       esto se puede escribir en el build y deja de haber salto.
+       `decoding="async"` y `loading="lazy"` ya están en el HTML, así que la
+       medición ocurre cuando la foto se acerca a la pantalla. */
+    const medirFoto = img => {
+      if (!img.naturalWidth || !img.naturalHeight) return;
+      img.closest('figure')?.style.setProperty('--r', `${img.naturalWidth} / ${img.naturalHeight}`);
+    };
+    for (const img of document.querySelectorAll('.hito img')) {
+      if (img.complete) medirFoto(img);
+      else img.addEventListener('load', () => medirFoto(img), { once: true });
+    }
+
     /* La barra de arriba es pegajosa y cambia de alto según el ancho —en el
        teléfono el menú baja a dos renglones—, así que el rótulo de "dónde
        estás" no puede colgarse de un número escrito a mano. */
@@ -407,12 +423,22 @@ const listaLugares = lugares
     .hito.mirando[data-lugar]:not([data-lugar=""])::before { opacity: 1; }
 
     .hito-c { display: block; border: 0; }
-    /* Tope de alto además de proporción: una foto apaisada y una vertical no
-       pueden dar hitos de alturas muy distintas, o el zigzag se desarma. */
-    .hito figure { margin: 0 0 .7rem; position: relative; aspect-ratio: 4 / 3;
-                   max-height: 15rem; background: var(--panel-2); overflow: hidden;
-                   border-radius: 3px; }
-    .hito img { width: 100%; height: 100%; object-fit: cover; display: block;
+    /* La proporción la pone LA FOTO, no el molde. Esto arrancó con un 4:3 fijo
+       y un tope de alto, buscando que el zigzag quedara parejo; con una foto
+       vertical el recorte se comía las cabezas y los pies. Un retrato de
+       familia decapitado para que una columna quede prolija es exactamente lo
+       que este archivo no puede hacer: la fotografía es la memoria, el zigzag
+       es decoración. Columnas disparejas es el precio y está bien pagado.
+       `--r` lo escribe el script cuando la imagen carga; el 4:3 es sólo el
+       hueco que se reserva mientras tanto. */
+    .hito figure { margin: 0 0 .7rem; position: relative; aspect-ratio: var(--r, 4 / 3);
+                   background: var(--panel-2); overflow: hidden; border-radius: 3px; }
+    /* `contain` y no `cover`, aunque con la proporción correcta den lo mismo:
+       si el script no corre —o en los milisegundos antes de que mida— `cover`
+       recorta y `contain` deja un borde. Entre perder media foto y ver una
+       franja de fondo, la franja. Es la misma regla de siempre: lo que el
+       archivo tiene se muestra entero. */
+    .hito img { width: 100%; height: 100%; object-fit: contain; display: block;
                 transition: transform .5s ease; }
     .hito-c:hover img { transform: scale(1.03); }
     .hito .sinfoto { position: absolute; inset: 0; border: 1px dashed var(--linea-viva);

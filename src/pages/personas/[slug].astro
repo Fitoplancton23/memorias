@@ -110,7 +110,11 @@ const comoSeLee = f => {
           {rel(p.hijos).map(x => <div><a href={`/personas/${x.slug}/`}>{nombre(x)}</a></div>)}
         </div>)}
     </div>
-    <p style="margin-top:1rem"><a href={`/linajes/?foco=${p.slug}`}>Ver el linaje completo →</a></p>
+    {/* El lienzo de linajes queda fuera del sitio público por ahora: con el
+        parentesco casi vacío dibuja familias de una persona, y una pantalla que
+        promete el árbol y muestra a alguien solo dice algo falso sobre esa
+        familia. El código sigue en /linajes/ y vuelve cuando haya parentescos
+        cargados. Ver claude/roadmap.md. */}
   </>)}
 
   {p.apellido && (

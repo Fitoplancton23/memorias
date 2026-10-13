@@ -65,9 +65,14 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
           <em>{parajes}</em>
         </span>
       </a>
+      {/* Dos vistas del mismo archivo —dónde ocurrió y cuándo— y un directorio.
+          La dirección de la línea de tiempo sigue siendo /memorias/: los
+          enlaces que alguien ya mandó por WhatsApp tienen que seguir
+          funcionando, y cambiar la URL para que coincida con el rótulo del
+          menú los rompería a todos. */}
       <nav>
         <a href="/">Mapa</a>
-        <a href="/memorias/">Memorias</a>
+        <a href="/memorias/">Línea de tiempo</a>
         <a href="/personas/">Personas y familias</a>
       </nav>
     </div>

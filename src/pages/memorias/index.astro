@@ -4,9 +4,19 @@ import Aportar from '../../components/Aportar.astro';
 import LineaDeTiempo from '../../components/LineaDeTiempo.astro';
 import { documentos, personas, lugares, acontecimientos } from '../../lib/datos.js';
 
-/* El archivo. No es una lista de documentos: es la pregunta "¿qué sabemos?"
-   con el tiempo como orden natural. Por eso no hay una pestaña aparte de
-   línea de tiempo — ordenar por año YA es la línea de tiempo. */
+/* El archivo, leído como recorrido. Es una de las dos vistas del sitio —la
+   otra es el mapa— y es la misma pregunta de siempre, "¿qué sabemos?", con el
+   tiempo como orden natural. No hay una pestaña aparte de línea de tiempo
+   porque esta PÁGINA es la línea de tiempo.
+
+   La queja concreta contra el grupo de Facebook, que es de donde sale este
+   proyecto, era que ordena por fecha de publicación y no tiene índice: acá el
+   orden es el año de la memoria y los filtros son el índice. Ver
+   `claude/usuarios.md`.
+
+   Va de lo más viejo a lo más nuevo. La rejilla anterior iba al revés —lo
+   último cargado primero, que es el orden de una bandeja de novedades— y para
+   un recorrido histórico eso deja al pueblo contado de atrás para adelante. */
 
 const P = Object.fromEntries(personas.map(p => [p.slug, p]));
 const L = Object.fromEntries(lugares.map(l => [l.slug, l]));
@@ -32,7 +42,13 @@ const memorias = documentos.map(d => {
     hechos: hechos.map(a => ({ slug: a.slug, titulo: a.titulo })),
     ubicada: sitios.some(l => l.lat != null),
   };
-}).sort((a, b) => (b.anio ?? -1) - (a.anio ?? -1));
+}).sort((a, b) => (a.anio ?? Infinity) - (b.anio ?? Infinity) || a.titulo.localeCompare(b.titulo));
+
+/* Las que no tienen fecha van al final y aparte, no mezcladas ni escondidas.
+   En un recorrido cronológico no hay dónde ponerlas sin afirmar un año que el
+   archivo no sabe; tirarlas sería peor. */
+const conFecha = memorias.filter(m => m.anio);
+const sinFechaLista = memorias.filter(m => !m.anio);
 
 /* Cómo se dice una fecha imprecisa en pantalla: con palabras, no con rangos. */
 const comoSeLee = m => {
@@ -105,34 +121,87 @@ const listaLugares = lugares
       <button class="f-limpiar" id="limpiar" hidden>Quitar filtros</button></p>
   </div>
 
-  <ul class="rejilla-memorias" id="rejilla">
-    {memorias.map(m => (
-      <li class="memoria" data-anio={m.anio ?? ''} data-decada={m.anio ? Math.floor(m.anio / 10) * 10 : 'sin'}
+  {/* Dónde estás parado. En un recorrido de ciento y pico de memorias el año
+      grande de cada hito dice el año de ESA memoria, pero después de tres
+      pantallas ya no se sabe por qué década se va. Aparece recién cuando el
+      recorrido empezó y se va al llegar al final, para que no sea un adorno
+      fijo arriba de todo. */}
+  <p class="tl-donde" id="donde" hidden aria-live="polite"><span id="dondeTexto"></span></p>
+
+  {/* El recorrido. Cada hito es una memoria de verdad, con su enlace propio:
+      el recorrido es una forma de leer el archivo, no una copia del archivo.
+
+      El modelo de referencia apagaba lo no activo con `filter: blur(2px)` y
+      opacidad .3. Acá no: el desenfoque nunca toca un nombre, y buena parte de
+      quien va a usar esto tiene setenta años — una pantalla de fotos borrosas
+      de su propia familia es exactamente lo contrario de para qué existe el
+      archivo. Lo que no está activo baja de intensidad y se mantiene legible. */}
+  <ol class="tl" id="rejilla">
+    {conFecha.map(m => (
+      <li class="hito" data-anio={m.anio} data-decada={Math.floor(m.anio / 10) * 10}
           data-apellidos={m.apellidos.join('|')}
+          data-lugar={m.sitios[0]?.nombre || ''}
           data-lugares={m.sitios.length ? m.sitios.map(s => s.slug).join('|') : 'sin'}>
-        <a href={`/memorias/${m.slug}/`}>
+        <a class="hito-c" href={`/memorias/${m.slug}/`}>
           <figure>
             {m.foto
-              ? <img src={m.foto} alt="" loading="lazy" />
+              ? <img src={m.foto} alt="" loading="lazy" decoding="async" />
               : <span class="sinfoto" aria-hidden="true"></span>}
             {m.nFotos > 1 && <figcaption>{m.nFotos} fotos</figcaption>}
           </figure>
-          <div class="m-cuerpo">
-            <h2>{m.titulo}</h2>
-            <p class="m-meta">
-              <time class={m.precision}>{comoSeLee(m)}</time>
-              {m.sitios.length > 0 && <> · {m.sitios.map(s => s.nombre).join(', ')}</>}
-              {!m.ubicada && <span class="sin-ubic"> · sin ubicación conocida</span>}
-            </p>
+          <time class={`hito-anio ${m.precision}`} datetime={String(m.anio)}>{comoSeLee(m)}</time>
+          <h2>{m.titulo}</h2>
+          {m.descripcion && <p class="hito-desc">{m.descripcion}</p>}
+          {/* El lugar ya está en el rótulo del espinazo: repetirlo acá lo dice
+              dos veces en la misma pantalla. Lo que no se puede perder es
+              cuando NO hay lugar, que es un hueco con nombre. */}
+          <p class="hito-meta">
+            {m.sitios.length === 0 && <span class="sin-ubic">sin ubicación conocida</span>}
+            {m.sitios.length === 0 && m.gente.length > 0 && <> · </>}
             {m.gente.length > 0 && (
-              <p class="m-gente">{m.gente.slice(0, 4).map(g => g.nombre).join(' · ')}
-                {m.gente.length > 4 && <> y {m.gente.length - 4} más</>}</p>
+              <>{m.gente.slice(0, 3).map(g => g.nombre).join(' · ')}
+                {m.gente.length > 3 && <> y {m.gente.length - 3} más</>}</>
             )}
-          </div>
+          </p>
         </a>
       </li>
     ))}
-  </ul>
+  </ol>
+
+  {sinFechaLista.length > 0 && (
+    <section class="sin-fecha" id="sinFecha">
+      <h2>Todavía sin fecha</h2>
+      <p class="ayuda-sf">
+        Están en el archivo igual. Una memoria incompleta sigue siendo una
+        memoria, y el año es de las cosas que el pueblo completa.
+      </p>
+      <ol class="tl tl-corta">
+        {sinFechaLista.map(m => (
+          <li class="hito" data-anio="" data-decada="sin"
+              data-apellidos={m.apellidos.join('|')}
+              data-lugar={m.sitios[0]?.nombre || ''}
+              data-lugares={m.sitios.length ? m.sitios.map(s => s.slug).join('|') : 'sin'}>
+            <a class="hito-c" href={`/memorias/${m.slug}/`}>
+              <figure>
+                {m.foto
+                  ? <img src={m.foto} alt="" loading="lazy" decoding="async" />
+                  : <span class="sinfoto" aria-hidden="true"></span>}
+                {m.nFotos > 1 && <figcaption>{m.nFotos} fotos</figcaption>}
+              </figure>
+              <span class="hito-anio falta"><i>dato pendiente</i></span>
+              <h2>{m.titulo}</h2>
+              {m.descripcion && <p class="hito-desc">{m.descripcion}</p>}
+              <p class="hito-meta">
+                {m.sitios.length > 0
+                  ? m.sitios.map(s => s.nombre).join(', ')
+                  : <span class="sin-ubic">sin ubicación conocida</span>}
+              </p>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )}
 
   <p class="nada" id="nada" hidden>Ninguna memoria cumple esos filtros.</p>
 
@@ -151,14 +220,31 @@ const listaLugares = lugares
   <script>
     /* Los filtros trabajan sobre el HTML ya impreso: el archivo entero está en
        la página, así que funciona sin JavaScript y Google lo indexa completo.
-       El script sólo esconde y muestra. */
+       El script sólo esconde, muestra y marca dónde estás. */
     const rejilla = document.getElementById('rejilla');
-    const tarjetas = [...rejilla.querySelectorAll('.memoria')];
+    const tarjetas = [...document.querySelectorAll('.hito')];
     const cuenta = document.getElementById('cuenta');
     const cuentaPal = document.getElementById('cuenta-pal');
     const nada = document.getElementById('nada');
     const limpiar = document.getElementById('limpiar');
+    const sinFechaSec = document.getElementById('sinFecha');
+    const donde = document.getElementById('donde');
+    const dondeTexto = document.getElementById('dondeTexto');
     const estado = { decada: '', apellido: '', lugar: '' };
+
+    /* De qué lado cae cada hito. No se puede dejar en `:nth-child(even)`: al
+       filtrar quedan huecos y la alternancia se rompe —dos seguidos del mismo
+       lado, y el recorrido deja de leerse como un zigzag—. Se reparte sobre los
+       VISIBLES, cada vez. */
+    function alternar() {
+      let i = 0;
+      for (const t of tarjetas) {
+        if (t.hidden) { t.classList.remove('izq', 'der'); continue; }
+        t.classList.toggle('der', i % 2 === 1);
+        t.classList.toggle('izq', i % 2 === 0);
+        i++;
+      }
+    }
 
     function aplicar() {
       let n = 0;
@@ -176,6 +262,11 @@ const listaLugares = lugares
       cuentaPal.textContent = n === 1 ? 'memoria' : 'memorias';
       nada.hidden = n > 0;
       limpiar.hidden = !Object.values(estado).some(Boolean);
+      /* El encabezado de "todavía sin fecha" se va con sus memorias: un título
+         solo, sin nada debajo, se lee como que algo se rompió. */
+      if (sinFechaSec)
+        sinFechaSec.hidden = !tarjetas.some(t => t.dataset.decada === 'sin' && !t.hidden);
+      alternar();
     }
 
     for (const b of document.querySelectorAll('.chip')) {
@@ -203,7 +294,46 @@ const listaLugares = lugares
       for (const o of document.querySelectorAll(`.chip[data-f="${k}"]`))
         o.classList.toggle('act', (o.dataset.v || '') === v);
     }
-    if ([...q.keys()].length) aplicar();
+    aplicar();
+
+    /* ---- cuál es el hito que se está mirando ----
+       Con un `scroll` que pregunta la posición de cada hito —que es como lo
+       hace el modelo del que salió esto— son ciento y pico de mediciones por
+       cuadro, y cada una obliga al navegador a recalcular el diseño entero. Un
+       observador avisa solo y no mide nada: el margen negativo arriba y abajo
+       deja una franja angosta en el medio de la pantalla, y activo es el que la
+       cruza. */
+    const activos = new Set();
+    const ojo = new IntersectionObserver(entradas => {
+      for (const e of entradas) {
+        e.target.classList.toggle('mirando', e.isIntersecting);
+        if (e.isIntersecting) activos.add(e.target); else activos.delete(e.target);
+      }
+      if (!donde) return;
+      /* El más alto de los que cruzan la franja, para que el rótulo no salte
+         entre dos cuando los dos están a la vista. */
+      let arriba = null;
+      for (const t of activos)
+        if (!arriba || t.getBoundingClientRect().top < arriba.getBoundingClientRect().top) arriba = t;
+      if (!arriba) return;
+      const anio = arriba.dataset.anio;
+      dondeTexto.textContent = anio ? `década de ${Math.floor(+anio / 10) * 10}` : 'todavía sin fecha';
+      donde.hidden = false;
+    }, { rootMargin: '-45% 0px -45% 0px' });
+    for (const t of tarjetas) ojo.observe(t);
+
+    /* La barra de arriba es pegajosa y cambia de alto según el ancho —en el
+       teléfono el menú baja a dos renglones—, así que el rótulo de "dónde
+       estás" no puede colgarse de un número escrito a mano. */
+    const barra = document.querySelector('header.sitio');
+    const medirBarra = () => document.documentElement.style
+      .setProperty('--alto-barra', (barra?.offsetHeight || 67) + 'px');
+    medirBarra();
+    if (barra) new ResizeObserver(medirBarra).observe(barra);
+
+    /* Sin él, el primer hito queda apagado hasta que alguien se mueve: la
+       página abre con su propia portada en gris. */
+    tarjetas.find(t => !t.hidden)?.classList.add('mirando');
   </script>
 
   <style>
@@ -231,30 +361,123 @@ const listaLugares = lugares
                  font-family: var(--texto); font-size: .76rem; color: var(--cursor);
                  text-decoration: underline; padding: 0; }
 
-    .rejilla-memorias { list-style: none; margin: 0; padding: 0;
-                        display: grid; gap: 1.5rem 1.25rem;
-                        grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
-    .memoria a { display: block; border: 0; }
-    .memoria figure { margin: 0 0 .7rem; position: relative; aspect-ratio: 4 / 3;
-                      background: var(--panel-2); overflow: hidden; border-radius: 3px; }
-    .memoria img { width: 100%; height: 100%; object-fit: cover; display: block;
-                   transition: transform .5s ease; }
-    .memoria a:hover img { transform: scale(1.03); }
-    .memoria .sinfoto { position: absolute; inset: 0; border: 1px dashed var(--linea-viva);
-                        border-radius: 3px; }
-    .memoria figcaption { position: absolute; right: .5rem; bottom: .5rem;
-                          background: rgba(24,30,27,.72); color: #fff; font-size: .66rem;
-                          padding: .15rem .45rem; border-radius: 10px; }
-    .memoria h2 { font-size: .95rem; font-weight: 500; margin: 0 0 .25rem;
-                  text-transform: none; letter-spacing: 0; color: var(--tinta);
-                  line-height: 1.3; }
-    .memoria a:hover h2 { color: var(--cursor); }
-    .m-meta { margin: 0 0 .2rem; font-size: .76rem; color: var(--tinta-2); }
-    /* La precisión de la fecha se lee en el texto, no en un color que haya que
-       decodificar: "1966", "aprox. 1967", "década de 1940". */
-    .m-meta time.circa, .m-meta time.decada { font-style: italic; }
-    .sin-ubic { color: var(--tinta-2); }
-    .m-gente { margin: 0; font-size: .74rem; color: var(--tinta-2); }
+    /* ---- el recorrido ----
+       El espinazo es una línea al medio; cada hito cae a un lado y el año queda
+       del otro, sobre la línea. Es el lenguaje de una línea de tiempo y no hace
+       falta explicarlo. */
+    .tl { list-style: none; margin: 0; padding: 0; position: relative;
+          max-width: 46rem; margin-inline: auto; }
+    .tl::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0;
+                  width: 1px; margin-left: -.5px; background: var(--linea); }
+
+    /* El aire entre hitos es el pulso del recorrido, pero con ciento cuarenta
+       memorias cada centímetro de más son metros de scroll. Medido: con el
+       primer valor la página daba casi noventa mil píxeles de alto. */
+    .hito { position: relative; box-sizing: border-box;
+            width: calc(50% - 2.6rem); padding: 1.3rem 0;
+            /* Apagado, pero legible. Nunca `blur`. */
+            opacity: .5; transform: translateY(1.2rem);
+            transition: opacity .45s ease, transform .45s ease; }
+    .hito.der { margin-left: auto; }
+    .hito.mirando { opacity: 1; transform: translateY(0); }
+
+    /* El rótulo del espinazo lleva el LUGAR, que es un dato de la memoria. En
+       el modelo del que salió esto el rótulo repetía la misma frase en los doce
+       ítems: un adorno con forma de dato. Si no hay lugar, no hay rótulo — el
+       hueco ya está nombrado abajo, en la ficha. */
+    .hito[data-lugar]:not([data-lugar=""])::before {
+      /* Arriba, a la altura en que arranca el hito, y no a la mitad: con la
+         foto ocupando el tercio de arriba, el 50% caía en el aire debajo del
+         texto y el rótulo quedaba flotando lejos de lo que nombra. Se vio
+         sacando una captura. */
+      content: attr(data-lugar); position: absolute; top: 1.5rem; opacity: 0;
+      font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--tinta-2); width: max-content; max-width: 11rem;
+      transition: opacity .35s ease .15s; }
+    .hito.izq[data-lugar]:not([data-lugar=""])::before {
+      left: calc(100% + 2.6rem); padding-left: .9rem;
+      border-left: 1px solid var(--linea-viva); }
+    .hito.der[data-lugar]:not([data-lugar=""])::before {
+      right: calc(100% + 2.6rem); padding-right: .9rem; text-align: right;
+      border-right: 1px solid var(--linea-viva); }
+    /* Con el mismo atributo en el selector: sin esto la regla de arriba —que
+       lleva `[data-lugar]` y un `:not`— gana por especificidad y el rótulo se
+       queda en opacidad 0 para siempre. Se veía abriendo la página: el espinazo
+       quedaba mudo. */
+    .hito.mirando[data-lugar]:not([data-lugar=""])::before { opacity: 1; }
+
+    .hito-c { display: block; border: 0; }
+    /* Tope de alto además de proporción: una foto apaisada y una vertical no
+       pueden dar hitos de alturas muy distintas, o el zigzag se desarma. */
+    .hito figure { margin: 0 0 .7rem; position: relative; aspect-ratio: 4 / 3;
+                   max-height: 15rem; background: var(--panel-2); overflow: hidden;
+                   border-radius: 3px; }
+    .hito img { width: 100%; height: 100%; object-fit: cover; display: block;
+                transition: transform .5s ease; }
+    .hito-c:hover img { transform: scale(1.03); }
+    .hito .sinfoto { position: absolute; inset: 0; border: 1px dashed var(--linea-viva);
+                     border-radius: 3px; }
+    .hito figcaption { position: absolute; right: .5rem; bottom: .5rem;
+                       background: rgba(24,30,27,.72); color: #fff; font-size: .66rem;
+                       padding: .15rem .45rem; border-radius: 10px; }
+
+    /* El año es el titular: es lo que ordena el archivo. El título de la
+       memoria va debajo y más chico, pero es lo que la identifica, así que no
+       puede quedar en letra de pie de foto. */
+    .hito-anio { display: block; font-family: var(--titulo, var(--texto));
+                 font-size: clamp(2rem, 5.5vw, 3rem); line-height: 1;
+                 font-weight: 400; color: var(--tinta); margin: 0 0 .35rem; }
+    .hito-anio.circa, .hito-anio.decada { font-size: clamp(1.4rem, 3.4vw, 1.9rem);
+                                          font-style: italic; }
+    .hito-anio.falta { font-size: 1.3rem; color: var(--tinta-2); }
+    .hito-anio.falta i { font-style: italic; }
+    .hito h2 { font-size: 1.1rem; font-weight: 500; margin: 0 0 .4rem;
+               text-transform: none; letter-spacing: 0; color: var(--tinta);
+               line-height: 1.3; }
+    .hito-c:hover h2 { color: var(--cursor); }
+    .hito-desc { margin: 0 0 .4rem; font-size: .88rem; line-height: 1.55;
+                 color: var(--tinta-2);
+                 /* Tres renglones y basta: el relato entero está en la memoria,
+                    y un párrafo largo acá convierte el recorrido en una lista
+                    de textos con una foto al lado. */
+                 display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+                 overflow: hidden; }
+    .hito-meta { margin: 0; font-size: .78rem; color: var(--tinta-2); }
+
+    /* Se pega justo debajo de la barra, y la altura de la barra la mide el
+       script: en el teléfono el menú pasa a dos renglones y un valor fijo
+       dejaba el rótulo escondido atrás. Se vio en la captura de 390 px. */
+    .tl-donde { position: sticky; top: calc(var(--alto-barra, 4.2rem) + .5rem); z-index: 3; width: max-content;
+                margin: 0 auto 1rem; padding: .3rem .85rem; border-radius: 2rem;
+                font-size: .74rem; letter-spacing: .06em; text-transform: uppercase;
+                color: var(--tinta-2); background: var(--panel);
+                border: 1px solid var(--linea); }
+
+    .sin-fecha { margin-top: 3.5rem; padding-top: 2.5rem;
+                 border-top: 1px solid var(--linea); }
+    .sin-fecha > h2 { font-size: 1.15rem; font-weight: 500; margin: 0 0 .3rem; }
+    .ayuda-sf { margin: 0 0 1.5rem; font-size: .85rem; color: var(--tinta-2);
+                max-width: 32rem; }
+
+    /* Una sola columna: el espinazo pasa a la izquierda y los hitos cuelgan de
+       él. A este ancho no hay dos lados que alternar. */
+    @media (max-width: 46rem) {
+      .tl::before { left: .5rem; }
+      .hito, .hito.der, .hito.izq { width: 100%; margin-left: 0;
+                                    padding: 1.6rem 0 1.6rem 2.2rem; }
+      .hito.izq[data-lugar]:not([data-lugar=""])::before,
+      .hito.der[data-lugar]:not([data-lugar=""])::before {
+        position: static; display: block; opacity: 1; text-align: left;
+        border: 0; padding: 0 0 .4rem; max-width: none; }
+    }
+
+    /* El movimiento es respuesta al lector; si pidió que no haya, no hay. Lo
+       que no se puede perder es la diferencia entre lo que estás mirando y lo
+       demás, así que esa queda en la opacidad. */
+    @media (prefers-reduced-motion: reduce) {
+      .hito { transform: none; transition: opacity .2s linear; }
+      .hito img, .hito::before { transition: none; }
+    }
 
     .nada { color: var(--tinta-2); font-size: .85rem; padding: 2rem 0; }
     .tiempo { margin-top: 4rem; padding-top: 2.5rem; border-top: 1px solid var(--linea); }

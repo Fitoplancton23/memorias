@@ -240,6 +240,8 @@ el test se verifica **rompiendo la función a propósito** y viendo que falle.
 
 ## Documentación
 
+- `claude/usuarios.md` — para quién es esto y qué necesita. La base de público:
+  cuando una decisión de interfaz dude, se resuelve contra ahí.
 - `claude/arquitectura-tecnica.md` — el pipeline, el modelo, las decisiones.
 - `claude/sistema-visual.md` — paleta validada, lenguaje de formas, movimiento.
 - `claude/roadmap.md` — sprints y bloqueos.

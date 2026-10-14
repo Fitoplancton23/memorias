@@ -67,6 +67,15 @@ audio sería peso que nadie va a escuchar. `+faststart` mueve el índice al
 principio del archivo; sin eso el navegador se baja el archivo completo antes
 de mostrar un fotograma.
 
+## Antes de publicar
+
+    node scripts/revisar-intro.mjs
+
+Contesta lo que no se ve abriendo el archivo: si dura los diez segundos, si las
+dos versiones duran lo mismo, si quedó una pista de audio adentro, si el índice
+está al principio —sin eso el navegador se baja el archivo entero antes de
+mostrar un cuadro— y cuánto pesa cada uno. Sale con 1 si hay algo que arreglar.
+
 ## Los tiempos
 
 La puerta entera dura 10 segundos y está repartida así:

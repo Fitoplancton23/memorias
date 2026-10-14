@@ -11,7 +11,12 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, statSync, readdirSync, openSync, readSync, closeSync } from 'node:fs';
 
 const DIR = 'public/intro';
-const DURACION = 10;        /* lo que el sitio espera, en segundos */
+/* El sitio ya no espera un largo fijo: se lo pregunta al archivo. Lo que sí
+   tiene que cumplirse es que las dos versiones duren lo mismo —el navegador lee
+   el largo del archivo que le tocó, así que si no coinciden el isotipo cuadra
+   en escritorio y no en teléfono— y que el largo sea razonable para una puerta
+   de entrada. */
+const MIN = 1, MAX = 20;    /* segundos, para una intro */
 const TOLERANCIA = 0.15;    /* un cuadro y pico de margen */
 const PESO_AVISO = 1.5;     /* MB a partir de los cuales conviene mirar */
 /* Arriba de esto no es una opinión: Cloudflare Pages no sirve archivos de más
@@ -119,9 +124,8 @@ for (const [nombre, obligatorio] of esperados) {
 
   if (nombre.endsWith('.webp')) continue;
 
-  if (dur != null && Math.abs(dur - DURACION) > TOLERANCIA)
-    mal(`${nombre} dura ${dur.toFixed(2)} s y el sitio está armado para ${DURACION}. ` +
-        `O se reexporta, o se mueven DURACION en Base.astro y los dos retrasos del isotipo.`);
+  if (dur != null && (dur < MIN || dur > MAX))
+    mal(`${nombre} dura ${dur.toFixed(2)} s. Para una intro conviene entre ${MIN} y ${MAX}.`);
   if (audio === true)
     ojo(`${nombre} trae pista de audio. El video arranca silenciado siempre, ` +
         `así que es peso que nadie va a escuchar: reexportar con -an.`);

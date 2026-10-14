@@ -69,7 +69,13 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
       —el mapa, los linajes— se atenúa: ahí el dibujo es lo que hay que leer. */}
   <Fondo intensidad={suelto ? 'tenue' : 'normal'} />
 
-  <div class="cargando" id="cargando">
+  {/* `con-video` lo pone el BUILD, no el script. Si lo pusiera el script, entre
+      que se pinta la página y que el video arranca se alcanza a ver el isotipo
+      verde dibujándose, y lo que sigue es un corte a la pieza: tres cosas
+      distintas en dos segundos. Naciendo en modo video, lo primero que se ve
+      es el afiche de la pieza. Si después resulta que el video no corre, el
+      script saca la clase y vuelve la portada de siempre, entera. */}
+  <div class={`cargando${hayIntro ? ' con-video' : ''}`} id="cargando">
     {hayIntro && (
       <>
         {/* `preload="none"`: la intro no puede competir por ancho de banda con
@@ -205,6 +211,7 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
             || /^[23]g$/.test(navigator.connection.effectiveType || '')));
 
       if (sinIntro) {
+        capa.classList.remove('con-video');
         Promise.race([Promise.all([esperar(2050), listo]), esperar(3400)]).then(irse);
       } else {
         const SALIDA = 600;        /* lo que tarda la cortina en abrirse */
@@ -254,6 +261,7 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
 
         arranco.then(anda => {
           if (!anda) {
+            capa.classList.remove('con-video');
             video.remove();
             if (saltar) saltar.remove();
             Promise.race([Promise.all([esperar(2050), listo]), esperar(3400)]).then(irse);
@@ -281,6 +289,12 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
              relleno cerraba 200 ms antes de tiempo —medido— y con una pieza de
              tres segundos eso es casi un diez por ciento de la puerta. Apagar,
              forzar el recálculo leyendo una medida, y volver a encender. */
+          /* Que el mapa no se vele con las ondas cuando la portada se va: la
+             entrega ya la hizo la pieza, y dos entregas seguidas —el video que
+             se funde y después las ondas que se abren— se leen como que algo
+             salió mal. */
+          document.documentElement.classList.add('vino-con-intro');
+
           const marca = capa.querySelector('.cargando-marca');
           if (marca) { marca.style.animation = 'none'; void marca.offsetWidth; }
           capa.classList.add('con-intro');

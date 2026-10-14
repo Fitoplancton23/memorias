@@ -1168,6 +1168,14 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     const transicion = document.getElementById('transicion');
     if (transicion) {
       addEventListener('carga-se-va', () => {
+        /* La pregunta se hace ACÁ y no al registrar el oyente: cuando esta
+           línea se lee todavía no se sabe si el video va a arrancar, porque eso
+           se resuelve un rato después. Preguntado antes, la respuesta sería
+           siempre que no y el velo correría igual. */
+        if (document.documentElement.classList.contains('vino-con-intro')) {
+          transicion.remove();
+          return;
+        }
         transicion.classList.add('corre');
         setTimeout(() => transicion.remove(), 1600);
       }, { once: true });

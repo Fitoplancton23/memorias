@@ -355,23 +355,31 @@ body.con-memoria { overflow: hidden; }
 html.sin-carga .cargando { display: none; }
 
 /* ---- la intro en video ----------------------------------------------------
-   La portada sólo entra en este modo cuando el video YA está corriendo
-   (`con-intro` lo pone el script). Si no arranca, nada de esto existe y la
-   pantalla de carga es la de siempre: dos segundos y el logo.
-
    Los tiempos no están acá: los calcula el script a partir de lo que dura el
-   video y los deja en estas cuatro variables. Cambiar la pieza de diez
-   segundos a tres no pide tocar ni una línea. Los valores de reserva son los
-   que corresponden a una pieza de 3 s, por si el script no llegara a
-   escribirlos. */
+   video y los deja en cuatro variables. Los valores de reserva son los de una
+   pieza de 3 s, por si el script no llegara a escribirlos.
+
+*/
+/* Dos clases y hacen cosas distintas. `con-video` la pone el build y significa
+   "acá va a haber una pieza": enciende el video y apaga todo lo que es de la
+   portada normal, desde el primer cuadro pintado. `con-intro` la pone el
+   script cuando la pieza YA está corriendo, y es la que larga el isotipo con
+   los tiempos calculados. Entre una y otra no se ve nada del sitio: se ve el
+   afiche de la pieza. */
 .cargando-video { position: absolute; inset: 0; width: 100%; height: 100%;
                   object-fit: cover; display: none; }
-.cargando.con-intro .cargando-video { display: block; }
+.cargando.con-video .cargando-video { display: block; }
+
+/* El isotipo verde dibujándose es de la portada de siempre. Con pieza, no
+   existe hasta que el script le da sus tiempos: si no, se lo ve arrancar en
+   verde, cortarse, y volver a empezar encima del video. */
+.cargando.con-video .cargando-marca { animation: none; stroke-dashoffset: 1;
+                                      fill-opacity: 0; }
 
 /* Un velo suave y sólo en el centro, no un lavado gris encima de todo: lo que
    hace falta es que el isotipo se despegue del fondo, no apagar la pieza que
    alguien animó. Es estático, así que no cuesta nada repintarlo. */
-.cargando.con-intro::after {
+.cargando.con-video::after {
   content: ""; position: absolute; inset: 0; pointer-events: none;
   background: radial-gradient(circle at 50% 50%, rgba(10, 18, 14, .46) 0%,
                               rgba(10, 18, 14, .22) 34%, transparent 62%); }
@@ -387,7 +395,7 @@ html.sin-carga .cargando { display: none; }
 
 /* Los puntos dicen "se está esperando algo", y durante la intro no se espera
    nada: se está mirando. El que quiere entrar ya tiene el botón. */
-.cargando.con-intro .cargando-puntos { display: none; }
+.cargando.con-video .cargando-puntos { display: none; }
 
 .cargando-saltar { position: absolute; z-index: 2; right: 1.1rem; bottom: 1.1rem;
                    font: inherit; font-size: .84rem; color: var(--fondo);

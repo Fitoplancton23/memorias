@@ -3,6 +3,7 @@ import Base from '../../layouts/Base.astro';
 import Aportar from '../../components/Aportar.astro';
 import LineaDeTiempo from '../../components/LineaDeTiempo.astro';
 import Buscador from '../../components/Buscador.astro';
+import Indicacion from '../../components/Indicacion.astro';
 import { documentos, personas, lugares, acontecimientos, memoriasBuscables } from '../../lib/datos.js';
 
 /* El archivo, leído como recorrido. Es una de las dos vistas del sitio —la
@@ -228,6 +229,11 @@ const listaLugares = lugares
       </ol>
     </section>
   )}
+
+  {/* Acá lo que no se ve es que el recorrido sigue: la primera pantalla
+      muestra una memoria y media, y nada dice que abajo hay ciento cuarenta
+      ordenadas por año. */}
+  <Indicacion clave="tiempo" texto="Bajá para recorrer los años, de la memoria más vieja a la más nueva." />
 
   <p class="nada" id="nada" hidden>Ninguna memoria cumple esos filtros.</p>
 

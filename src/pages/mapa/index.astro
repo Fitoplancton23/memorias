@@ -5,6 +5,7 @@ import { aNormalizado } from '../../lib/proyeccion.js';
 import mapas from '../../../public/mapa/mapa.json';
 import Ondas from '../../components/Ondas.astro';
 import Buscador from '../../components/Buscador.astro';
+import Indicacion from '../../components/Indicacion.astro';
 import { memoriasBuscables } from '../../lib/datos.js';
 
 /* El ejido, no el casco: de los once lugares relevados, tres caen fuera del
@@ -175,6 +176,11 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         <b>{sinUbicar}</b> memorias sin ubicación conocida
       </a>
     )}
+
+    {/* Lo que nadie adivina del mapa es que los círculos se tocan. Lo demás
+        —arrastrar, pellizcar— ya lo sabe cualquiera que usó un mapa en el
+        teléfono, y decirlo sería tratar de tontos a los que leen. */}
+    <Indicacion clave="mapa" texto="Tocá un círculo para ver las memorias de ese lugar." />
 
     <aside class="mapa-ficha vidrio" id="ficha" hidden></aside>
 

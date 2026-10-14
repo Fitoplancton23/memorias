@@ -1,0 +1,122 @@
+---
+/* La indicación del primer acceso.
+   -------------------------------------------------------------------------
+   Una sola frase, la primera vez, y nada más. No es un tutorial: buena parte
+   del público pasa los setenta años y un cartel con cuatro pasos numerados se
+   lee como un trámite antes de poder mirar las fotos.
+
+   Lo que dice es el gesto que nadie adivina —que los círculos se tocan, que
+   los años siguen hacia abajo—, no lo que ya está a la vista.
+
+   Tres reglas, y las tres salen del pedido:
+   · no bloquea: el mapa se arrastra y la página baja con la indicación puesta,
+     porque sólo el botón recibe el dedo;
+   · se descarta, y también se va sola apenas alguien hace algo, que es la
+     prueba de que entendió;
+   · es de la primera vez. Después no vuelve.
+
+   Si el navegador no deja guardar nada —ventana privada, cookies bloqueadas—
+   se muestra igual. Molestar una vez de más es mejor que esconderle a alguien
+   la única pista que iba a recibir. */
+interface Props {
+  /* Qué pantalla es. Cada una se recuerda por su lado: alguien puede conocer
+     el mapa de memoria y entrar por primera vez a la línea de tiempo. */
+  clave: string;
+  texto: string;
+}
+const { clave, texto } = Astro.props;
+---
+<aside class="indicacion vidrio" data-clave={clave} hidden>
+  <p>{texto}</p>
+  <button type="button" class="ind-ok">Entendido</button>
+</aside>
+
+<script>
+  const caja = document.querySelector('.indicacion');
+  if (caja) {
+    const llave = 'memorias:visto:' + caja.dataset.clave;
+    /* Un localStorage que tira error no puede tumbar la página entera. */
+    const leer = () => { try { return localStorage.getItem(llave); } catch (e) { return null; } };
+    const anotar = () => { try { localStorage.setItem(llave, '1'); } catch (e) {} };
+
+    if (!leer()) {
+      let ido = false;
+      const irse = () => {
+        if (ido) return;
+        ido = true;
+        anotar();
+        caja.classList.add('yendose');
+        setTimeout(() => { caja.hidden = true; }, 260);
+        removeEventListener('scroll', irse);
+        removeEventListener('pointerdown', afuera, true);
+      };
+      /* Cualquier toque que no sea en la propia indicación ya dice que la
+         persona está navegando: ahí la pista cumplió y se retira sola. */
+      const afuera = ev => { if (!caja.contains(ev.target)) irse(); };
+
+      caja.querySelector('.ind-ok').addEventListener('click', irse);
+
+      const mostrar = () => {
+        if (ido) return;
+        caja.hidden = false;
+        requestAnimationFrame(() => caja.classList.add('puesta'));
+        addEventListener('scroll', irse, { once: true, passive: true });
+        addEventListener('pointerdown', afuera, true);
+      };
+
+      /* Entre la entrada al sitio y el mapa pasan dos telones —la cortina de
+         carga y la cortina de ondas—, y el segundo dura varios segundos. La
+         primera versión esperaba sólo al primero: la indicación aparecía
+         detrás del segundo, gastaba su única vez sin que nadie la viera y no
+         volvía nunca más. No se notaba en el código ni en el diff; se notó
+         sacando una captura, donde la pantalla estaba vacía mientras la
+         medición decía "visible".
+
+         Por eso ahora no se pregunta por una cortina en particular, sino si
+         queda alguna encima. Un telón nuevo mañana no vuelve a romper esto. */
+      const tapada = () => [...document.querySelectorAll('#cargando, .transicion')]
+        .some(e => e.isConnected && !e.hidden && parseFloat(getComputedStyle(e).opacity) > .05);
+      const desde = Date.now();
+      const esperar = () => {
+        if (ido) return;
+        /* Un tope, por si alguna cortina se queda puesta por un error: mejor
+           la indicación encima de algo que una pista que nunca aparece. */
+        if (tapada() && Date.now() - desde < 12000) return setTimeout(esperar, 200);
+        setTimeout(mostrar, 350);
+      };
+      esperar();
+    }
+  }
+</script>
+
+<style>
+  /* Arriba del conmutador y centrada: es el único lugar de las dos vistas que
+     está libre en las dos, y además queda al lado del control que la propia
+     frase no menciona pero que la persona va a necesitar después. */
+  .indicacion { position: fixed; z-index: 6; left: 50%; bottom: 5.4rem;
+                transform: translate(-50%, .6rem); opacity: 0;
+                display: flex; align-items: center; gap: .9rem;
+                width: max-content; max-width: min(30rem, calc(100vw - 2rem));
+                padding: .7rem .7rem .7rem 1.1rem; border-radius: 2rem;
+                transition: opacity .3s ease, transform .3s ease;
+                /* No bloquea: la página se mueve con la indicación puesta. */
+                pointer-events: none; }
+  .indicacion.puesta { opacity: 1; transform: translate(-50%, 0); }
+  .indicacion.yendose { opacity: 0; transform: translate(-50%, .4rem); }
+
+  .indicacion p { margin: 0; font-size: .95rem; line-height: 1.4; color: var(--tinta); }
+
+  .ind-ok { flex: none; pointer-events: auto; cursor: pointer;
+            border: 0; border-radius: 1.4rem; padding: .5rem 1rem;
+            background: var(--tinta); color: var(--placa);
+            font-family: var(--texto); font-size: .9rem; }
+  .ind-ok:hover { opacity: .88; }
+
+  @media (max-width: 760px) {
+    .indicacion { bottom: 5rem; padding: .6rem .6rem .6rem .9rem; gap: .6rem; }
+    .indicacion p { font-size: .9rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .indicacion { transition: none; }
+  }
+</style>

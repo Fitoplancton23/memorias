@@ -114,6 +114,30 @@ const RELACIONES = Object.fromEntries(documentos.map(x => [x.slug,
     foto: porDoc[r.slug]?.archivo || null,
   }))]).filter(([, v]) => v.length));
 
+/* Con qué encuadre abre el mapa la primera vez.
+   -------------------------------------------------------------------------
+   Abría mostrando TODOS los lugares con material, y entre ellos están Salto
+   Encantado y el Paraje Cerro Moreno, que quedan a kilómetros del pueblo. El
+   encuadre que los incluye a todos deja el casco del tamaño de una moneda:
+   no se lee una sola calle y los marcadores del centro se amontonan en un
+   borrón. Alguien que entra por primera vez tiene que reconocer su pueblo.
+
+   Así que abre en el casco —el recuadro del mapa chico, que ya está medido en
+   `mapa.json`— y lo de afuera sigue estando: alejando un poco aparece, el
+   botón de ver todo lo encuadra entero, y el mapa nunca escondió nada.
+
+   Si ningún lugar cae dentro del casco —puede pasar con pocos datos reales—
+   se encuadra lo que haya, que es mejor que abrir en un recuadro vacío. */
+const cascoMapa = mapas.mapas.find(m => m.nombre === 'casco');
+const enElCasco = (() => {
+  if (!cascoMapa) return [];
+  const [minlat, minlon, maxlat, maxlon] = cascoMapa.bounds;
+  return lugares
+    .filter(l => l.lat != null && l.lng != null && (l.documentos || []).length > 0)
+    .filter(l => l.lat >= minlat && l.lat <= maxlat && l.lng >= minlon && l.lng <= maxlon)
+    .map(l => l.slug);
+})();
+
 const conMaterial = puntos.length;
 const totalDocs = puntos.reduce((a, p) => a + p.n, 0);
 const anios = puntos.flatMap(p => p.docs.map(d => d.anio)).filter(Boolean);
@@ -288,8 +312,8 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     )}
   </section>
 
-  <script define:vars={{ PUNTOS: puntos, ANCHO, ALTO, M_POR_UNIDAD, RELACIONES }}>
-    window.__MAPA = { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD, RELACIONES };
+  <script define:vars={{ PUNTOS: puntos, ANCHO, ALTO, M_POR_UNIDAD, RELACIONES, EN_EL_CASCO: enElCasco }}>
+    window.__MAPA = { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD, RELACIONES, EN_EL_CASCO };
   </script>
 
   <script>
@@ -300,7 +324,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     import { geometria, inicial, acercar, recorrer, LUPA } from '../../lib/lupa.js';
     import { buscarMemorias, comoSeEncontro } from '../../lib/buscar.js';
 
-    const { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD, RELACIONES } = window.__MAPA;
+    const { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD, RELACIONES, EN_EL_CASCO } = window.__MAPA;
     const svgEl = document.getElementById('mapa');
     const mundo = document.getElementById('mundo');
     const base = document.getElementById('base');
@@ -677,14 +701,14 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     /* Todo en unidades del viewBox. El SVG escala entero al contenedor, así que
        mezclar píxeles de pantalla con unidades del mapa —que es lo que hacía la
        primera versión— da un encuadre que nunca acerca. */
-    function encuadrar(slugs) {
+    function encuadrar(slugs, margen) {
       const ps = slugs ? PUNTOS.filter(p => slugs.includes(p.slug)) : PUNTOS;
       if (!ps.length) return;
       const xs = ps.map(p => p.cx), ys = ps.map(p => p.cy);
       const x0 = Math.min(...xs), x1 = Math.max(...xs);
       const y0 = Math.min(...ys), y1 = Math.max(...ys);
       /* Un solo punto no tiene caja: se le da una ventana de barrio. */
-      const m = ps.length === 1 ? 70 : 90;
+      const m = margen != null ? margen : (ps.length === 1 ? 70 : 90);
       const bw = Math.max(x1 - x0, 1) + m * 2, bh = Math.max(y1 - y0, 1) + m * 2;
       const k = Math.min(40, Math.max(kMin, Math.min(ANCHO / bw, ALTO / bh)));
       zm.transform(sel, acotar(zoomIdentity
@@ -1399,7 +1423,17 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       zm.transform(sel, acotar(zoomIdentity.translate(vuelta.x, vuelta.y).scale(vuelta.k)));
       if (vuelta.abierta && porSlug[vuelta.abierta]) mostrar(vuelta.abierta);
     } else {
-      encuadrar(PUNTOS.filter(p => p.n > 0).map(p => p.slug));
+      /* El casco, no el ejido entero: ver el pueblo entero chiquito no es ver
+         el pueblo. Lo de afuera aparece alejando, y el botón ⌖ lo encuadra
+         todo — que es para lo que está. */
+      const conM = PUNTOS.filter(p => p.n > 0).map(p => p.slug);
+      const casco = conM.filter(s => EN_EL_CASCO.includes(s));
+      /* Margen más chico que el de un encuadre cualquiera: al abrir, lo que
+         importa es que se lean las calles y los rótulos, no que sobre aire
+         alrededor. En el teléfono, donde el ancho manda, esos cincuenta de
+         margen a cada lado son la diferencia entre reconocer el pueblo y ver
+         una maraña gris. */
+      encuadrar(casco.length ? casco : conM, casco.length ? 40 : null);
     }
 
     /* Redimensionar no vuelve a encuadrar: la ventana que cambia de tamaño no

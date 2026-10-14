@@ -43,6 +43,23 @@ const { titulo, descripcion, suelto = false } = Astro.props;
 const ruta = Astro.url.pathname;
 const vista = ruta === '/mapa/' || ruta === '/mapa' ? 'mapa'
             : ruta === '/memorias/' || ruta === '/memorias' ? 'tiempo' : null;
+/* A dónde lleva el botón de volver cuando no hay a dónde volver.
+   -------------------------------------------------------------------------
+   Antes decía "Volver al mapa" en todas las páginas que no son una de las dos
+   vistas, y eso quedó de cuando el mapa era el centro del sitio. Hoy alguien
+   puede llegar a una memoria desde la línea de tiempo, desde una persona o
+   desde otra memoria, y mandarlo al mapa es mandarlo a cualquier lado.
+
+   El botón vuelve de verdad —al paso anterior— cuando hay un paso anterior
+   dentro del sitio. Cuando no lo hay, porque el enlace llegó por WhatsApp o
+   por Google, no se puede "volver" a ningún lado: ahí lleva a la lista que
+   contiene a esta página y lo dice con su nombre, en vez de prometer una
+   vuelta que no existe. El rótulo lo cambia el guion recién cuando comprueba
+   que hay historia, así que sin JavaScript el enlace sigue siendo honesto. */
+const vuelta = ruta.startsWith('/lugares/')
+  ? { href: '/mapa/', rotulo: 'Ver el mapa' }
+  : { href: '/memorias/', rotulo: 'Todas las memorias' };
+
 const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
 ---
 <!doctype html>
@@ -146,9 +163,9 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
   </header>
   {vista && <Conmutador actual={vista} />}
   {!vista && ruta !== "/" && (
-    <a class="volver-mapa" href="/mapa/">
+    <a class="volver-mapa" id="volver" href={vuelta.href}>
       <span aria-hidden="true">←</span>
-      <b>Volver al mapa</b>
+      <b>{vuelta.rotulo}</b>
     </a>
   )}
   <main class={suelto ? "suelto" : "envoltorio"}><slot /></main>
@@ -178,6 +195,30 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
       que importa d3. La pantalla de carga no se podría ir hasta que bajaran
       57 KB de JavaScript, que es exactamente al revés de lo que tiene que
       pasar. Así son 400 bytes en el HTML y corre apenas se parsea. */}
+  <script is:inline>
+    /* El botón de volver, cuando hay a dónde.
+       -------------------------------------------------------------------
+       `history.back()` sólo es "volver a donde estabas" si el paso anterior
+       es de este sitio. Si alguien abrió el enlace desde WhatsApp, el paso
+       anterior es WhatsApp, y mandarlo ahí no es volver al archivo: es
+       sacarlo del archivo. `document.referrer` lo distingue, y como la
+       navegación dentro del sitio no es de una sola página, alcanza con
+       mirarlo al cargar.
+
+       Un `pushState` nuestro también cuenta: en el mapa, abrir una memoria
+       empuja una entrada, y ahí volver tiene que cerrarla. */
+    (() => {
+      const b = document.getElementById('volver');
+      if (!b) return;
+      let propio = false;
+      try { propio = !!document.referrer &&
+        new URL(document.referrer).origin === location.origin; } catch (e) {}
+      if (!propio || history.length <= 1) return;   /* el enlace queda como está */
+      b.querySelector('b').textContent = 'Volver';
+      b.addEventListener('click', ev => { ev.preventDefault(); history.back(); });
+    })();
+  </script>
+
   <script is:inline>
     /* La pantalla de carga no retrasa nada: se va en cuanto el sitio está, con
        un piso para que el trazo del logo se llegue a leer y un techo para que

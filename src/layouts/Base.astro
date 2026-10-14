@@ -10,8 +10,31 @@ import { existsSync } from 'node:fs';
 /* La intro existe sólo si el archivo está. Se mira en el build y no en el
    navegador: así, sin video, el HTML ni siquiera menciona una etiqueta de
    video, y la portada es exactamente la que fue siempre. Para sacarla, se
-   borran los archivos de public/intro/ y se vuelve a construir. */
-const hayIntro = existsSync('public/intro/intro.mp4') || existsSync('public/intro/intro.webm');
+   borran los archivos de public/intro/ y se vuelve a construir.
+
+   Dos versiones, una por forma de pantalla. No es un lujo: un apaisado de
+   1280 estirado para cubrir una pantalla de 390 de ancho tira casi todos sus
+   píxeles afuera del cuadro, y encima pesa de más. La elige el navegador; el
+   build sólo informa cuáles existen.
+
+   El WebM es opcional en los dos casos. El MP4 solo alcanza y se reproduce en
+   todos lados; el WebM está únicamente para pesar menos, así que si no está,
+   se usa el MP4 y listo. */
+const cual = n => ({
+  mp4:  existsSync(`public/intro/${n}.mp4`),
+  webm: existsSync(`public/intro/${n}.webm`),
+  poster: existsSync(`public/intro/${n}.webp`),
+});
+const introWeb = cual('intro-web');
+const introMob = cual('intro-mob');
+const fuente = (n, v) => v.webm ? `/intro/${n}.webm` : v.mp4 ? `/intro/${n}.mp4` : '';
+/* Sin versión de escritorio no hay intro: es la que cubre el caso general, y
+   encender la intro sólo en teléfonos sería una sorpresa, no una decisión. */
+const hayIntro = introWeb.mp4 || introWeb.webm;
+const srcWeb = fuente('intro-web', introWeb);
+const srcMob = fuente('intro-mob', introMob) || srcWeb;
+const posterWeb = introWeb.poster ? '/intro/intro-web.webp' : '';
+const posterMob = introMob.poster ? '/intro/intro-mob.webp' : posterWeb;
 
 const { titulo, descripcion, suelto = false } = Astro.props;
 const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
@@ -52,11 +75,14 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
         {/* `preload="none"`: la intro no puede competir por ancho de banda con
             lo que hace falta para que el sitio exista. La carga la arranca el
             script, y si no llega a tiempo no hay intro. */}
+        {/* Sin `src` ni `<source>`: lo pone el script según el ancho de la
+            pantalla. `<source media>` adentro de un video no es confiable
+            —anda en `<picture>` y en video los motores lo trataron distinto a
+            lo largo de los años—, y acá el script ya maneja todo lo demás. */}
         <video class="cargando-video" id="introVideo" muted playsinline
-               preload="none" poster="/intro/intro.webp" aria-hidden="true" tabindex="-1">
-          <source src="/intro/intro.webm" type="video/webm" />
-          <source src="/intro/intro.mp4" type="video/mp4" />
-        </video>
+               preload="none" aria-hidden="true" tabindex="-1"
+               data-web={srcWeb} data-mob={srcMob}
+               data-poster-web={posterWeb} data-poster-mob={posterMob}></video>
         {/* La salida, visible desde el primer segundo. Una intro de diez
             segundos sin forma de saltarla es una pared, y buena parte de quien
             entra acá viene de un enlace de WhatsApp a buscar una foto, no a
@@ -188,6 +214,14 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
         /* El presupuesto. Si en PACIENCIA el video no empezó a correr, no hay
            intro y la portada se comporta como siempre: nadie se queda mirando
            un rectángulo negro esperando algo que no va a llegar. */
+        /* La forma de la pantalla elige la versión, con el mismo corte que usa
+           el resto del sitio. Se decide una vez y no se vuelve a mirar: girar
+           el teléfono a mitad de la intro no puede reiniciar el video. */
+        const chica = matchMedia('(max-width: 46rem)').matches;
+        const poster = video.dataset[chica ? 'posterMob' : 'posterWeb'];
+        if (poster) video.poster = poster;
+        video.src = video.dataset[chica ? 'mob' : 'web'];
+
         const arranco = new Promise(r => {
           video.addEventListener('playing', () => r(true), { once: true });
           video.addEventListener('error', () => r(false), { once: true });

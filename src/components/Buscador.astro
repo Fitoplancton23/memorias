@@ -1,0 +1,73 @@
+---
+/* El buscador, igual en las dos vistas.
+   -------------------------------------------------------------------------
+   De las tres quejas contra el grupo de Facebook —ordena por fecha de
+   publicación, no tiene índice, no se puede buscar— ésta es la tercera, y es
+   la única que no se arregla con filtros: alguien que viene a buscar a su
+   abuelo escribe el apellido, no elige una década.
+
+   El campo es el mismo objeto en el mapa y en la línea de tiempo, en el mismo
+   lugar de la pantalla, y lo que cambia es qué hace cada vista con lo que
+   encuentra. Dos buscadores distintos con la misma función obligarían a
+   aprender dos veces lo mismo, y buena parte del público tiene setenta años.
+
+   Grande a propósito: 3 rem de alto y letra de 1,05 rem. Un campo de búsqueda
+   de 28 píxeles es invisible para quien ya usa anteojos para leer el diario.  */
+interface Props {
+  /* Qué se puede escribir, con ejemplos del archivo y no categorías: "un
+     apellido, un apodo" dice más que "término de búsqueda". */
+  ejemplo?: string;
+}
+const { ejemplo = 'Un apellido, un apodo, un lugar, un año…' } = Astro.props;
+---
+<search class="buscador">
+  {/* `onsubmit` no hace falta: el formulario no existe. Un <form> acá daría
+      una recarga al apretar Enter en el teléfono, y el filtrado es en vivo. */}
+  <div class="b-campo">
+    <svg class="b-lupa" viewBox="0 0 24 24" aria-hidden="true" fill="none"
+         stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+      <circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.4 15.4 21 21"></path>
+    </svg>
+    <input class="b-input" type="search" id="q" name="q" autocomplete="off"
+           autocorrect="off" spellcheck="false" enterkeyhint="search"
+           placeholder={ejemplo} aria-label="Buscar en las memorias" />
+    <button type="button" class="b-borrar" id="qBorrar" hidden
+            aria-label="Borrar la búsqueda">×</button>
+  </div>
+  {/* Qué pasó con lo que se escribió. Nunca queda en silencio: un buscador que
+      no encuentra y no dice nada se lee como "esa persona no está en el
+      archivo". */}
+  <p class="b-dicho" id="qDicho" hidden aria-live="polite"></p>
+</search>
+
+<style>
+  .buscador { display: grid; gap: .5rem; }
+
+  .b-campo { display: flex; align-items: center; gap: .6rem;
+             background: var(--panel); border: 1px solid var(--linea-viva);
+             border-radius: 2rem; padding: 0 .5rem 0 .9rem; min-height: 3rem;
+             transition: border-color .2s ease, box-shadow .2s ease; }
+  .b-campo:focus-within { border-color: var(--cursor);
+                          box-shadow: 0 0 0 3px color-mix(in srgb, var(--cursor) 18%, transparent); }
+  .b-lupa { width: 1.15rem; height: 1.15rem; flex: none; color: var(--tinta-2); }
+
+  .b-input { flex: 1; min-width: 0; border: 0; background: none; outline: none;
+             font-family: var(--texto); font-size: 1.05rem; color: var(--tinta);
+             padding: .65rem 0; }
+  .b-input::placeholder { color: var(--tinta-2); opacity: .85; }
+  /* La cruz propia de Safari y Chrome aparece y desaparece sola, y queda al
+     lado de la nuestra. Una sola cruz, la que controlamos. */
+  .b-input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+
+  .b-borrar { flex: none; width: 2.1rem; height: 2.1rem; border: 0; cursor: pointer;
+              border-radius: 50%; background: none; color: var(--tinta-2);
+              font-size: 1.35rem; line-height: 1; display: grid; place-items: center;
+              font-family: var(--texto); }
+  .b-borrar:hover { background: var(--panel-2); color: var(--tinta); }
+
+  .b-dicho { margin: 0; padding: 0 .3rem; font-size: .85rem; line-height: 1.5;
+             color: var(--tinta-2); }
+  .b-dicho b { color: var(--tinta); font-weight: 500; }
+  .b-dicho .b-nada { color: var(--tinta); }
+</style>
+</style>

@@ -1,6 +1,6 @@
 /* El buscador falla en silencio: cuando no encuentra, devuelve vacío, y vacío
    se lee como "esa persona no está en el archivo". Por eso va cubierto. */
-import { calza, plano, otrosNombres } from '../src/lib/buscar.js';
+import { calza, plano, otrosNombres, calzaMemoria, buscarMemorias } from '../src/lib/buscar.js';
 
 let fallan = 0;
 const caso = (nombre, consulta, persona, esperado) => {
@@ -63,5 +63,93 @@ if (otrosNombres(nelida).length !== 0) {
   fallan++; console.error('  ✗ otrosNombres: sin apodo tiene que dar vacío');
 }
 
+
+/* ---------------------------------------------------------------------- */
+/* Buscar una memoria                                                      */
+/* ---------------------------------------------------------------------- */
+const baile = { slug: 'baile', titulo: 'Baile del club', texto: 'La orquesta vino de Oberá.',
+  gente: [{ nombre: 'Roberto Silveira', otros: ['el Negro'] },
+          { nombre: 'Nélida Müller', otros: [] }],
+  lugares: ['Club Social'], hechos: ['Carnaval'], anio: 1958 };
+const acto = { slug: 'acto', titulo: 'Acto escolar', texto: '',
+  gente: [{ nombre: 'Juan Potkova', otros: [] }],
+  lugares: ['Escuela 425'], hechos: [], anio: 1948 };
+const suelta = { slug: 'suelta', titulo: 'Grupo familiar', texto: '', gente: [], lugares: [], hechos: [], anio: null };
+const archivo = [baile, acto, suelta];
+
+const mem = (nombre, consulta, m, esperado) => {
+  const r = calzaMemoria(consulta, m);
+  const dio = r === null ? null : (r.por || 'sí');
+  if (dio !== esperado) {
+    fallan++;
+    console.error(`  ✗ ${nombre}: esperaba ${JSON.stringify(esperado)}, dio ${JSON.stringify(dio)}`);
+  }
+};
+
+mem('por el título', 'baile', baile, 'sí');
+mem('por el título, sin tilde ni mayúscula', 'BAILE DEL CLUB', baile, 'sí');
+mem('por el lugar', 'club social', baile, 'Club Social');
+mem('por la persona', 'potkova', acto, 'Juan Potkova');
+mem('por el apodo, que es como se nombra acá', 'negro', baile, 'Roberto Silveira (el Negro)');
+mem('por el apodo sin tilde', 'nelida', baile, 'Nélida Müller');
+mem('la ñ se pliega para buscar', 'muller', baile, 'Nélida Müller');
+mem('por el acontecimiento', 'carnaval', baile, 'Carnaval');
+mem('por el año', '1948', acto, '1948');
+mem('por el relato, plegando la tilde de Oberá', 'obera', baile, 'el relato');
+mem('por el relato', 'orquesta', baile, 'el relato');
+mem('las palabras se reparten entre campos', 'escuela 1948', acto, 'Escuela 425');
+mem('título y lugar juntos', 'acto escuela', acto, 'Escuela 425');
+mem('una palabra que no está no encuentra nada', 'panadería', baile, null);
+mem('todas las palabras tienen que estar', 'baile 1948', baile, null);
+mem('consulta vacía no encuentra nada', '', baile, null);
+mem('consulta de espacios no encuentra nada', '   ', baile, null);
+mem('una memoria sin nada más que título se encuentra igual', 'grupo', suelta, 'sí');
+mem('y no se la encuentra por un año que no tiene', '1958', suelta, null);
+
+/* El orden de la explicación: la persona antes que el lugar.
+   Acá hace falta una memoria donde los dos hilos calcen con la MISMA palabra,
+   o el test no fija nada: con "silveira club" el lugar no contiene "silveira"
+   y la persona gana sola, aunque el orden estuviera al revés. En el pueblo
+   pasa seguido —los lugares se llaman como las familias— y ahí la pregunta es
+   real: quien busca "silveira" busca a la persona, no a la casa. */
+const casa = { slug: 'casa', titulo: 'Frente de la casa', texto: '',
+  gente: [{ nombre: 'Roberto Silveira', otros: ['el Negro'] }],
+  lugares: ['Casa de Silveira'], hechos: [], anio: null };
+const r1 = calzaMemoria('silveira', casa);
+if (!r1 || r1.que !== 'persona') {
+  fallan++; console.error(`  ✗ con persona y lugar homónimos, explica por la persona (dio ${r1 && r1.que})`);
+}
+/* Y lo que se muestra es el nombre entero, no el apodo entre paréntesis.
+   (Esto no fija el orden persona/apodo: el hilo del apodo guarda sólo el
+   apodo, así que una búsqueda por nombre nunca puede caer ahí. Fija que el
+   resultado se explique con el nombre como lo escribe la familia.) */
+const r2 = calzaMemoria('roberto', casa);
+if (!r2 || r2.por !== 'Roberto Silveira') {
+  fallan++; console.error(`  ✗ el nombre explica antes que el apodo (dio ${r2 && r2.por})`);
+}
+
+/* La lista: el invariante es que todo lo que devuelve contiene todas las
+   palabras. Si alguna vez se cuela algo que no las tiene, el buscador deja de
+   ser confiable sin que se note. */
+const consultas = ['club', 'negro', '1948', 'escuela 425', 'acto', 'zzz', 'baile club'];
+let coladas = 0;
+for (const q of consultas) {
+  const partes = plano(q).split(/\s+/).filter(Boolean);
+  for (const m of buscarMemorias(q, archivo)) {
+    const todo = plano([m.titulo, m.texto,
+      ...(m.gente || []).flatMap(p => [p.nombre, ...(p.otros || [])]),
+      ...(m.lugares || []), ...(m.hechos || []), m.anio].join(' '));
+    if (!partes.every(w => todo.includes(w))) coladas++;
+  }
+}
+if (coladas) { fallan++; console.error(`  ✗ ${coladas} resultado(s) sin todas las palabras`); }
+
+if (buscarMemorias('zzz', archivo).length !== 0) {
+  fallan++; console.error('  ✗ una consulta que no calza tiene que dar la lista vacía');
+}
+if (buscarMemorias('a', archivo).length === 0) {
+  fallan++; console.error('  ✗ una letra sola tiene que encontrar algo en este archivo');
+}
+
 if (fallan) { console.error(`${fallan} caso(s) de búsqueda fallan`); process.exit(1); }
-console.log('24 casos de búsqueda: todos pasan');
+console.log('50 casos de búsqueda: todos pasan');

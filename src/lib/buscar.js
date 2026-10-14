@@ -53,3 +53,84 @@ export function calza(consulta, persona) {
     partes.some(w => !unNombre.includes(w) && plano(o).includes(w)));
   return { por: por || null };
 }
+
+/* ------------------------------------------------------------------------ */
+/* Cómo se busca una MEMORIA                                                 */
+/* ------------------------------------------------------------------------ */
+/* Buscar una persona y buscar una memoria no son lo mismo. A una persona se
+   la busca por su nombre; a una memoria se la busca por cualquier hilo del
+   que alguien se acuerde: "el baile del club", "la escuela", "mi abuelo",
+   "1948". Nadie recuerda el título que le puso el que la cargó.
+
+   Por eso todas las palabras pueden repartirse entre todos los campos:
+   "escuela 1948" encuentra la foto de la escuela de ese año aunque el título
+   no diga ninguna de las dos cosas. Y por eso busca también por apodo, que es
+   como se nombra a la gente acá.
+
+   El año entra como texto y no como número: quien escribe "1948" está
+   escribiendo una palabra más, y "194" no tiene que encontrar los años
+   cuarenta — eso sería adivinar. La década se busca con el filtro, que para
+   eso está. */
+
+/* Todo lo que una memoria ofrece para ser encontrada, cada cosa con su
+   etiqueta, para después poder decir por dónde se la encontró. */
+function hilos(m) {
+  const h = [];
+  if (m.titulo) h.push({ que: 'titulo', texto: m.titulo, nombre: m.titulo });
+  for (const p of m.gente || []) {
+    h.push({ que: 'persona', texto: p.nombre, nombre: p.nombre });
+    for (const o of p.otros || otrosNombres(p))
+      h.push({ que: 'apodo', texto: o, nombre: `${p.nombre} (${o})` });
+  }
+  for (const l of m.lugares || []) h.push({ que: 'lugar', texto: l, nombre: l });
+  for (const a of m.hechos || []) h.push({ que: 'hecho', texto: a, nombre: a });
+  if (m.anio) h.push({ que: 'anio', texto: String(m.anio), nombre: String(m.anio) });
+  /* El relato no se muestra entero —puede ser un párrafo del que una palabra
+     calzó— pero sí se dice que fue ahí. Devolver `null` dejaba un resultado
+     sin explicación, que es justo lo que este archivo no puede permitirse: lo
+     encontró el buscador y nadie sabe por qué. */
+  if (m.texto) h.push({ que: 'relato', texto: m.texto, nombre: 'el relato' });
+  return h;
+}
+
+/* ¿Esta memoria calza con lo que se escribió?
+   Devuelve null si no, y si sí devuelve por dónde se la encontró — cuando fue
+   algo distinto del título lo que aportó una palabra que el título no tenía.
+   Un resultado que no se puede explicar es un resultado en el que no se puede
+   confiar: si alguien busca "el Negro" y le aparece "Baile del club", sin esa
+   línea no sabe si el archivo entendió lo que preguntó. */
+export function calzaMemoria(consulta, m) {
+  const partes = plano(consulta).trim().split(/\s+/).filter(Boolean);
+  if (!partes.length) return null;
+
+  const hs = hilos(m);
+  const todo = plano(hs.map(h => h.texto).join(' '));
+  if (!partes.every(w => todo.includes(w))) return null;
+
+  /* Qué hilo explica el hallazgo. Se prefiere en este orden —persona, apodo,
+     lugar, acontecimiento, año— porque es el orden en que la gente nombra lo
+     que busca, y porque el relato es el menos útil de mostrar: puede ser un
+     párrafo entero del que una palabra calzó de casualidad. */
+  const orden = ['persona', 'apodo', 'lugar', 'hecho', 'anio', 'relato'];
+  const delTitulo = plano(m.titulo || '');
+  const faltan = partes.filter(w => !delTitulo.includes(w));
+  if (!faltan.length) return { por: null, que: 'titulo' };
+
+  for (const que of orden) {
+    const h = hs.find(x => x.que === que && faltan.some(w => plano(x.texto).includes(w)));
+    if (h) return { por: h.nombre, que };
+  }
+  return { por: null, que: 'titulo' };
+}
+
+/* La lista, en el orden en que entró. Ordenar por "relevancia" pediría una
+   puntuación inventada; acá el orden lo pone quien llama —la línea de tiempo
+   por año, el mapa por lugar— y eso es más honesto que un número. */
+export function buscarMemorias(consulta, memorias) {
+  const r = [];
+  for (const m of memorias) {
+    const c = calzaMemoria(consulta, m);
+    if (c) r.push({ ...m, ...c });
+  }
+  return r;
+}

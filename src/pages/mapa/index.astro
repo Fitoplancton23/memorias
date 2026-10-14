@@ -102,7 +102,7 @@ const puntos = lugares
    Cuatro y no ocho: la tarjeta es chica y abajo ya están la tira de años del
    lugar y las dos salidas del pie. */
 const nombresDe = Object.fromEntries([
-  ...Object.values(P).map(x => [x.slug, [x.nombre, x.apellido].filter(Boolean).join(' ') || x.slug]),
+  ...Object.values(P).map(x => [x.slug, [x.nombre, x.apellido].filter(Boolean).join(' ') || x.apodo || x.slug]),
   ...Object.values(L).map(x => [x.slug, x.nombre]),
   ...Object.values(A).map(x => [x.slug, x.titulo]),
 ]);

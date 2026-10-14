@@ -23,7 +23,7 @@ import { documentos, personas, lugares, acontecimientos, memoriasBuscables } fro
 const P = Object.fromEntries(personas.map(p => [p.slug, p]));
 const L = Object.fromEntries(lugares.map(l => [l.slug, l]));
 const A = Object.fromEntries(acontecimientos.map(a => [a.slug, a]));
-const nombre = p => [p.nombre, p.apellido].filter(Boolean).join(' ') || p.slug;
+const nombre = p => [p.nombre, p.apellido].filter(Boolean).join(' ') || p.apodo || p.slug;
 
 const memorias = documentos.map(d => {
   const gente = (d.personas || []).map(s => P[s]).filter(Boolean);

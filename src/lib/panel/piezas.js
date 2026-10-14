@@ -5,6 +5,8 @@
    dejado dos buscadores que se separan con el tiempo: uno plegaría tildes y el
    otro no, y nadie se daría cuenta hasta que alguien no encuentre a su abuela.  */
 
+import { partir, sirve, comoSeLlama } from '../persona-nueva.js';
+
 /* El pueblo escribe sin acentos y de apuro. Se pliegan las tildes para buscar,
    igual que en el buscador del sitio. */
 export const sinTildes = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -73,5 +75,86 @@ export function unico(base, existentes) {
 }
 
 export const nombreDe = p => p
-  ? ([p.nombre, p.apellido].filter(Boolean).join(' ') || '(sin nombre)')
+  ? (comoSeLlama(p) || '(sin nombre)')
   : '(sin nombre)';
+
+/* ------------------------------------------------------------------ */
+/* El alta de una persona, preguntando en vez de adivinando            */
+/* ------------------------------------------------------------------ */
+/* Antes el panel partía el texto escrito por la última palabra y guardaba sin
+   mostrar nada: "Juan Potkova" salía bien y "Ana María De Souza" salía con
+   apellido "Souza" y nombre "Ana María De", y el error se descubría después,
+   en la ficha, si alguien lo miraba.
+
+   Y sobre todo: no había dónde poner un apodo. A alguien que en el pueblo es
+   "el Negro" y nada más, el panel le inventaba el nombre "el" y el apellido
+   "Negro" para que la base lo aceptara. Inventar un dato que no tenemos es
+   justamente lo que este archivo no hace.
+
+   Ahora los tres campos se muestran, con la partición como propuesta y no
+   como decisión, y alcanza con llenar uno. */
+export function altaPersona(texto, alGuardar, alCancelar) {
+  const caja = document.createElement('div');
+  caja.className = 'alta-persona';
+
+  const prop = partir(texto);
+  const campos = {};
+  const fila = document.createElement('div');
+  fila.className = 'alta-campos';
+  for (const [clave, rotulo, pista] of [
+    ['nombre',   'Nombre',   'Juan'],
+    ['apellido', 'Apellido', 'Potkova'],
+    ['apodo',    'Apodo',    'el Negro'],
+  ]) {
+    const l = document.createElement('label');
+    l.textContent = rotulo;
+    const i = document.createElement('input');
+    i.type = 'text'; i.value = prop[clave] || ''; i.placeholder = pista;
+    i.autocomplete = 'off'; i.spellcheck = false;
+    campos[clave] = i;
+    l.append(i);
+    fila.append(l);
+  }
+
+  /* Qué falta, dicho como lo diría una persona. Un botón apagado sin razón
+     escrita al lado se lee como que el panel se rompió. */
+  const aviso = document.createElement('p');
+  aviso.className = 'alta-aviso';
+  aviso.textContent = 'Con uno solo alcanza: puede ser nada más que el apodo.';
+
+  const botones = document.createElement('div');
+  botones.className = 'alta-botones';
+  const ok = document.createElement('button');
+  ok.type = 'button'; ok.className = 'primario'; ok.textContent = 'Agregar';
+  const no = document.createElement('button');
+  no.type = 'button'; no.className = 'enlace'; no.textContent = 'Cancelar';
+  botones.append(ok, no);
+
+  const leer = () => ({
+    nombre: campos.nombre.value, apellido: campos.apellido.value, apodo: campos.apodo.value,
+  });
+  const revisar = () => {
+    const vale = sirve(leer());
+    ok.disabled = !vale;
+    aviso.textContent = vale
+      ? `Se va a cargar como «${comoSeLlama(leer())}».`
+      : 'Falta el nombre, el apellido o el apodo. Con uno solo alcanza.';
+    aviso.classList.toggle('alta-falta', !vale);
+  };
+  for (const i of Object.values(campos)) {
+    i.addEventListener('input', revisar);
+    i.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter' && !ok.disabled) { ev.preventDefault(); ok.click(); }
+      if (ev.key === 'Escape') { ev.preventDefault(); no.click(); }
+    });
+  }
+  ok.addEventListener('click', () => { if (!ok.disabled) alGuardar(leer()); });
+  no.addEventListener('click', () => alCancelar && alCancelar());
+
+  caja.append(fila, aviso, botones);
+  revisar();
+  /* Al primero que esté vacío, que es donde la persona va a querer escribir:
+     si vino "Potkova" solo, el foco va al apellido y no al nombre lleno. */
+  setTimeout(() => (Object.values(campos).find(i => !i.value) || campos.nombre).focus(), 0);
+  return caja;
+}

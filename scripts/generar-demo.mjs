@@ -66,10 +66,34 @@ function alta(nombre, apellido, sexo, anioNac, lugar) {
     const apodo = r < .4
       ? (r < .1 ? `${uno}; ${elegir(bolsa.filter(x => x !== uno))}` : uno)
       : '';
-    personas.set(s, {
-      slug: s, nombre, apellido, sexo, nac: anioNac, apodo,
-      def: vive ? null : anioNac + entre(58, 92), vive, lugar, completo
+    /* Y una de cada veinticinco es SÓLO apodo: nadie sabe cómo se llamaba,
+       en el pueblo era "el Gringo" y nada más. Es un caso real y es el que
+       más fácil se rompe —el rótulo cae al slug y en pantalla sale
+       "el-gringo"—, así que tiene que estar en los datos de prueba o el error
+       aparece recién con una carga de verdad. */
+    const soloApodo = !!apodo && rnd() < .1;
+    /* Y entonces la dirección pública sale del apodo, no del nombre que no
+       tiene: /personas/el-turco/. Dejarla saliendo del nombre borrado daba
+       un slug que afirmaba un nombre —teresa-ojeda— para alguien de quien el
+       archivo no sabe el nombre. Eso es inventar un dato, que es lo único
+       que este archivo no hace. */
+    const unApodo = apodo.split(';')[0].trim();
+    let k = s;
+    if (soloApodo) {
+      k = slug(unApodo);
+      for (let i = 2; personas.has(k); i++) k = slug(unApodo) + '-' + i;
+    }
+    personas.set(k, {
+      slug: k,
+      nombre: soloApodo ? '' : nombre,
+      apellido: soloApodo ? '' : apellido,
+      sexo, nac: anioNac, apodo,
+      def: vive ? null : anioNac + entre(58, 92), vive, lugar,
+      /* `completo` es cómo se la nombra en el resto del generador —las líneas
+         de familia, por ejemplo—. Sin nombre, es el apodo. */
+      completo: soloApodo ? unApodo : completo,
     });
+    return personas.get(k);
   }
   return personas.get(s);
 }

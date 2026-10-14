@@ -87,6 +87,15 @@ const mem = (nombre, consulta, m, esperado) => {
   }
 };
 
+/* La frase que se le muestra a quien buscó. Una sola para todo el sitio. */
+const dicho = (nombre, consulta, m, esperado) => {
+  const dio = comoSeEncontro(calzaMemoria(consulta, m));
+  if (dio !== esperado) {
+    fallan++;
+    console.error(`  ✗ ${nombre}: esperaba ${JSON.stringify(esperado)}, dio ${JSON.stringify(dio)}`);
+  }
+};
+
 mem('por el título', 'baile', baile, 'sí');
 mem('por el título, sin tilde ni mayúscula', 'BAILE DEL CLUB', baile, 'sí');
 mem('por el lugar', 'club social', baile, 'Club Social');
@@ -112,6 +121,15 @@ mem('consulta vacía no encuentra nada', '', baile, null);
 mem('consulta de espacios no encuentra nada', '   ', baile, null);
 mem('una memoria sin nada más que título se encuentra igual', 'grupo', suelta, 'sí');
 mem('y no se la encuentra por un año que no tiene', '1958', suelta, null);
+
+/* Quien en el pueblo ES su apodo y nada más. Desde que una persona se puede
+   cargar sólo con el apodo, su nombre en pantalla es el apodo, y el hilo de
+   la persona y el del apodo dicen lo mismo. La explicación no puede salir
+   «por el apodo el Turco (el Turco)». */
+const soloApodo = { slug: 'turco', titulo: 'Procesion', texto: '', anio: 1950,
+  lugares: [], hechos: [], gente: [{ nombre: 'el Turco', otros: ['el Turco'] }] };
+dicho('quien es su apodo no se explica dos veces', 'turco', soloApodo, 'por el Turco');
+mem('y se la encuentra igual', 'turco', soloApodo, 'el Turco');
 
 /* El orden de la explicación: la persona antes que el lugar.
    Acá hace falta una memoria donde los dos hilos calcen con la MISMA palabra,
@@ -158,14 +176,6 @@ if (buscarMemorias('a', archivo).length === 0) {
   fallan++; console.error('  ✗ una letra sola tiene que encontrar algo en este archivo');
 }
 
-/* La frase que se le muestra a quien buscó. Una sola para todo el sitio. */
-const dicho = (nombre, consulta, m, esperado) => {
-  const dio = comoSeEncontro(calzaMemoria(consulta, m));
-  if (dio !== esperado) {
-    fallan++;
-    console.error(`  ✗ ${nombre}: esperaba ${JSON.stringify(esperado)}, dio ${JSON.stringify(dio)}`);
-  }
-};
 dicho('el apodo se nombra como apodo', 'negro', baile, 'por el apodo Roberto Silveira (el Negro)');
 dicho('la persona se nombra sola', 'potkova', acto, 'por Juan Potkova');
 dicho('el lugar se nombra como lugar', 'club social', baile, 'por el lugar Club Social');
@@ -178,4 +188,4 @@ dicho('el título no se explica a sí mismo', 'baile', baile, '');
 dicho('lo que no calza no dice nada', 'panaderia', baile, '');
 
 if (fallan) { console.error(`${fallan} caso(s) de búsqueda fallan`); process.exit(1); }
-console.log('60 casos de búsqueda: todos pasan');
+console.log('62 casos de búsqueda: todos pasan');

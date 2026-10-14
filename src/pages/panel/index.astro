@@ -752,6 +752,23 @@ import { tituloSitio } from '../../lib/sitio.js';
     .sugerencias li:hover, .sugerencias li[aria-selected=true] { background: var(--panel-2); }
     .sugerencias small { color: var(--tinta-2); margin-left: .4rem; }
 
+    /* El alta de una persona: tres campos y nada más. Aparece debajo del
+       buscador y no en una ventana aparte — tapar el formulario de la memoria
+       para cargar a alguien que aparece en ella hace perder de vista lo que
+       se estaba haciendo. */
+    .alta-persona { margin: .6rem 0 0; padding: .8rem; border: 1px solid var(--linea-viva);
+                    border-radius: 6px; background: var(--panel); }
+    .alta-campos { display: grid; gap: .6rem;
+                   grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); }
+    .alta-campos label { display: grid; gap: .25rem; font-size: .8rem;
+                         color: var(--tinta-2); }
+    .alta-campos input { width: 100%; }
+    .alta-aviso { margin: .6rem 0 .2rem; font-size: .82rem; color: var(--tinta-2); }
+    /* Lo que falta se dice, no se insinúa con un botón gris. */
+    .alta-aviso.alta-falta { color: var(--cursor); }
+    .alta-botones { display: flex; align-items: center; gap: .8rem; }
+    .alta-botones button[disabled] { opacity: .45; cursor: not-allowed; }
+
     .elegido { display: flex; align-items: center; justify-content: space-between;
                gap: 1rem; margin-top: .8rem; padding: .7rem .9rem; background: var(--panel);
                border: 1px solid var(--linea-viva); border-radius: .45rem; }

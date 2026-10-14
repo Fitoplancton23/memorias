@@ -14,7 +14,8 @@ import * as api from './api.js';
 import { parseFecha } from '../../../scripts/fechas.mjs';
 import { montarSelector, leerCoordenadas } from './selector-mapa.js';
 import { cablearFichero, abrirFichero } from './fichero.js';
-import { buscador, filtrar, sinTildes, unico } from './piezas.js';
+import { buscador, filtrar, sinTildes, unico, altaPersona } from './piezas.js';
+import { comoSeLlama, baseSlug, fila as filaPersona } from '../persona-nueva.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -1266,23 +1267,33 @@ function cablearPersonas() {
     },
     p => p.nueva
       ? { principal: `Crear a «${p.texto}»`, secundario: 'nueva persona' }
-      : { principal: [p.nombre, p.apellido].filter(Boolean).join(' '),
+      : { principal: comoSeLlama(p),
           secundario: p.apodo || (cacheAlias[p.id] || []).join(', ') },
-    p => p.nueva ? crearPersona(p.texto) : sumarPersona(p));
+    p => p.nueva ? pedirDatos(p.texto) : sumarPersona(p));
 }
 
-async function crearPersona(texto) {
-  const t = (texto || '').trim();
-  if (!t) return;
-  const partes = t.split(/\s+/);
-  /* Partir en nombre y apellido es una heurística, no una verdad. Se parte por
-     la última palabra, que acierta casi siempre, y queda editable después. */
-  const apellido = partes.length > 1 ? partes.pop() : '';
-  const nombre = partes.join(' ');
+/* Abrir el formulario de alta debajo del buscador. Antes se guardaba de una
+   con el texto partido por la última palabra; ahora se muestra lo que se va a
+   guardar, porque la partición es una suposición y porque hay gente que en el
+   pueblo es sólo un apodo. */
+function pedirDatos(texto) {
+  const campo = $('#buscarPersona');
+  cerrarAlta();
+  const caja = altaPersona(texto,
+    datos => { cerrarAlta(); campo.value = ''; crearPersona(datos); },
+    () => { cerrarAlta(); campo.focus(); });
+  caja.id = 'altaPersona';
+  $('#sugPersona').after(caja);
+}
+const cerrarAlta = () => document.getElementById('altaPersona')?.remove();
+
+async function crearPersona(datos) {
+  const f = filaPersona(datos);
+  if (!f) return;            /* la base lo rechaza igual: la regla vive en las dos */
   try {
     const fila = await api.insertar('personas', {
-      slug: unico(api.codigo(t), cachePersonas),
-      nombre, apellido: apellido || null, es_demo: false,
+      slug: unico(api.codigo(baseSlug(datos)), cachePersonas),
+      ...f, es_demo: false,
       /* Pendiente, igual que la memoria. La compuerta de moderación cubría las
          memorias pero no a la gente que esas memorias nombran: una persona
          creada mientras se carga una memoria sin aprobar aparecía en el sitio
@@ -1320,7 +1331,7 @@ function pintarPersonas() {
     const li = document.createElement('li');
     const nom = document.createElement('span');
     nom.className = 'crece';
-    nom.textContent = [p.nombre, p.apellido].filter(Boolean).join(' ');
+    nom.textContent = comoSeLlama(p);
     li.append(nom);
 
     if (p.nueva) {
@@ -1376,7 +1387,7 @@ function prepararVinculos() {
   ver($('#bloquePareja'), dos);
   ver($('#parejaEditando'), !!borrador.id && borrador.personas.length === 2);
   if (dos) {
-    const [a, b] = borrador.personas.map(p => [p.nombre, p.apellido].filter(Boolean).join(' '));
+    const [a, b] = borrador.personas.map(p => comoSeLlama(p));
     $('#textoPareja').textContent = `${a} y ${b} fueron pareja`;
   } else {
     $('#esPareja').checked = false;
@@ -1464,7 +1475,7 @@ function pintarResumen() {
         + (borrador.precisionPunto === 'aproximada' ? ' (aproximado)' : '')
       : ''],
     ['Personas', borrador.personas.map(p =>
-      [p.nombre, p.apellido].filter(Boolean).join(' ') +
+      comoSeLlama(p) +
       (p.confianza === 'probable' ? ' (probable)' : '')).join(', ')],
     ['Pareja', borrador.pareja ? $('#textoPareja').textContent : ''],
     ['Acontecimiento', borrador.acontecimiento?.nombre || ''],

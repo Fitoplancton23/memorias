@@ -1,5 +1,6 @@
 import snapshot from '../data/snapshot.json';
 import { otrosNombres } from './buscar.js';
+import { comoSeLlama } from './persona-nueva.js';
 
 export const { personas, lugares, acontecimientos, documentos, familias, anios, totales, avisos, generado, demo } = snapshot;
 export const sinAprobar = snapshot.sinAprobar || 0;
@@ -10,7 +11,11 @@ export const L = indexar(lugares);
 export const A = indexar(acontecimientos);
 export const D = indexar(documentos);
 
-export const nombre = (p) => [p?.nombre, p?.apellido].filter(Boolean).join(' ') || p?.slug || '?';
+/* Cómo se la nombra en pantalla. El apodo entra como último recurso y no
+   como adorno: a quien en el pueblo es "el Negro" y nada más, el archivo tiene
+   que llamarlo el Negro. Antes caía al slug y en pantalla salía "el-negro",
+   que es un dato técnico mostrado a una persona. */
+export const nombre = (p) => comoSeLlama(p) || p?.slug || '?';
 export const fecha = (f) => (f && f.texto) ? f.texto : 's/f';
 
 export function vida(p) {

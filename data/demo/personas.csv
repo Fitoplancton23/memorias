@@ -1,129 +1,121 @@
 slug,nombre,apellido,apodo,sexo,nacimiento,defuncion,lugar_origen,vive,notas
-ramon-silveira,Ramon,Silveira,Pepe; el Gringo,M,1888 aprox,1979,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
-dora-ferreyra,Dora,Ferreyra,Mecha,F,1894,1962,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-walter-hermann,Walter,Hermann,,M,1898,1989,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
-teresa-jhansson,Teresa,Jhansson,la Gorda,F,1904,1981,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
-luis-kaiser,Luis,Kaiser,,M,1890,,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-lucia-duarte,Lucia,Duarte,Beba,F,1886,1966,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
-pedro-muller,Pedro,Muller,el Rubio,M,1900,1966,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-susana-hermann,Susana,Hermann,la Gorda,F,1902 aprox,1964,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
-miguel-lang,Miguel,Lang,,M,1908,dec. 1990,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
-eva-wagner,Eva,Wagner,la Rusa,F,1907,dec. 1970,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
-hector-roth,Hector,Roth,el Rubio; el Ruso,M,1888,1977 aprox,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
-irma-ojeda,Irma,Ojeda,Tita; Pochi,F,dec. 1880,1953,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-walter-weber,Walter,Weber,,M,1904 aprox,,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-nelida-ojeda,Nelida,Ojeda,,F,,dec. 1980,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
-pedro-nicklas,Pedro,Nicklas,Tito; Cacho,M,,1988,salto-encantado,no,DATOS DE DEMOSTRACION - persona inventada
-ana-schmidt,Ana,Schmidt,la Tana,F,1907 aprox,1983,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-pedro-prytuluk,Pedro,Prytuluk,,M,1911,1999,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
-ana-machado,Ana,Machado,,F,1914 aprox,2003,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
-anibal-lizoski,Anibal,Lizoski,Pepe,M,,1979,capilla-vieja,no,DATOS DE DEMOSTRACION - persona inventada
-susana-wagner,Susana,Wagner,,F,1901 aprox,dec. 1970,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-antonio-semeniuk,Antonio,Semeniuk,el Tano,M,1893,1961 aprox,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
-dora-kaiser,Dora,Kaiser,,F,1898,1957,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
-roberto-kowalczuk,Roberto,Kowalczuk,,M,1912,1991,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
-celina-duarte,Celina,Duarte,la Nena; Pochi,F,,1980,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
-olga-silveira,Olga,Silveira,,F,dec. 1930,2027,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
-lucia-silveira,Lucia,Silveira,,F,1937 aprox,,salto-encantado,no,DATOS DE DEMOSTRACION - persona inventada
-miguel-paz,Miguel,Paz,el Ruso,M,dec. 1930,dec. 2000,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
-amalia-hermann,Amalia,Hermann,,F,1943,2022,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
-ida-hermann,Ida,Hermann,,F,dec. 1940,2008,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
-ramon-hermann,Ramon,Hermann,,M,1945,2029,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
-susana-hermann-2,Susana,Hermann,Moni; la Rubia,F,,2019,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
-ramon-hermann-2,Ramon,Hermann,,M,1953 aprox,dec. 2030,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
-otto-pereira,Otto,Pereira,Tito,M,1940,2020,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
-miguel-lizoski,Miguel,Lizoski,,M,1946,2017,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
-nelida-jhansson,Nelida,Jhansson,,F,,2024 aprox,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-oscar-ramirez,Oscar,Ramirez,,M,dec. 1950,dec. 2010,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
-clementina-benitez,Clementina,Benitez,,F,1957 aprox,2016,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
-oscar-kaiser,Oscar,Kaiser,,M,1939,2019,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
-miguel-kaiser,Miguel,Kaiser,,M,1941,2019,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
-ernesto-kaiser,Ernesto,Kaiser,el Gringo,M,1941 aprox,2025,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
-otto-kaiser,Otto,Kaiser,,M,1944,2016,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
-raul-kaiser,Raul,Kaiser,,M,1936 aprox,dec. 2020,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
-hilda-nicklas,Hilda,Nicklas,,F,dec. 1930,,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-berta-melnyk,Berta,Melnyk,la Rubia; Mecha,F,1934 aprox,2007 aprox,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
-anibal-muller,Anibal,Muller,,M,1944,2015,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-mirta-muller,Mirta,Muller,,F,1945 aprox,dec. 2020,secadero-grande,no,DATOS DE DEMOSTRACION - persona inventada
-juan-muller,Juan,Muller,,M,1952 aprox,2027 aprox,salto-encantado,no,DATOS DE DEMOSTRACION - persona inventada
-teresa-muller,Teresa,Muller,,F,1949 aprox,2010,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-amalia-lang,Amalia,Lang,,F,1943 aprox,2029,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-ramon-wagner,Ramon,Wagner,,M,1947 aprox,2013 aprox,salto-encantado,no,DATOS DE DEMOSTRACION - persona inventada
-nelida-jhansson-2,Nelida,Jhansson,,F,1957,,secadero-grande,si,DATOS DE DEMOSTRACION - persona inventada
-julio-duarte,Julio,Duarte,,M,dec. 1940,2022 aprox,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
-roberto-lang,Roberto,Lang,,M,1960 aprox,,barrio-teforito,si,DATOS DE DEMOSTRACION - persona inventada
-celina-lang,Celina,Lang,,F,1956 aprox,2019,salto-encantado,no,DATOS DE DEMOSTRACION - persona inventada
-ida-lang,Ida,Lang,,F,1962 aprox,,escuela-406,si,DATOS DE DEMOSTRACION - persona inventada
-ernesto-lang,Ernesto,Lang,,M,1953,2043,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-oscar-lang,Oscar,Lang,Tito,M,1954 aprox,2039,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
-marta-prytuluk,Marta,Prytuluk,,F,1963,,paraje-cerro-moreno,si,DATOS DE DEMOSTRACION - persona inventada
-jose-wagner,Jose,Wagner,Cacho; Tito,M,1957,,arroyo-cunapiru,si,DATOS DE DEMOSTRACION - persona inventada
-hector-ferreyra,Hector,Ferreyra,,M,1963 aprox,,arroyo-cunapiru,si,DATOS DE DEMOSTRACION - persona inventada
-mirta-kowalczuk,Mirta,Kowalczuk,,F,1956 aprox,2041 aprox,secadero-grande,no,DATOS DE DEMOSTRACION - persona inventada
-blanca-duarte,Blanca,Duarte,la Polaca,F,dec. 1940,dec. 2010,salto-encantado,no,DATOS DE DEMOSTRACION - persona inventada
-juan-roth,Juan,Roth,,M,,2026,capilla-vieja,no,DATOS DE DEMOSTRACION - persona inventada
-hilda-roth,Hilda,Roth,la Gorda,F,1938,2015 aprox,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-olga-kaiser,Olga,Kaiser,,F,1932,1998,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
-eduardo-paz,Eduardo,Paz,,M,1938,2003 aprox,capilla-vieja,no,DATOS DE DEMOSTRACION - persona inventada
-dora-weber,Dora,Weber,,F,1948,2033 aprox,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-luis-weber,Luis,Weber,,M,dec. 1950,,barrio-teforito,si,DATOS DE DEMOSTRACION - persona inventada
-walter-kowalczuk,Walter,Kowalczuk,el Polaco; el Gringo,M,,2034 aprox,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
-hilda-paz,Hilda,Paz,Chela; la Polaca,F,,,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-susana-nicklas,Susana,Nicklas,,F,1950,dec. 2010,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
-pedro-nicklas-2,Pedro,Nicklas,Lalo,M,1957,,salto-encantado,si,DATOS DE DEMOSTRACION - persona inventada
-ramona-muller,Ramona,Muller,Beba,F,1959 aprox,2048,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
-blanca-prytuluk,Blanca,Prytuluk,Coca; la Negra,F,1957 aprox,,loteo-lizoski,si,DATOS DE DEMOSTRACION - persona inventada
-oscar-prytuluk,Oscar,Prytuluk,,M,1961,,capilla-vieja,si,DATOS DE DEMOSTRACION - persona inventada
-dora-prytuluk,Dora,Prytuluk,,F,1957,2040,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
-ana-pereira,Ana,Pereira,la Negra,F,1962,2050 aprox,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
-walter-pereira,Walter,Pereira,Coco,M,1954,2025,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
-otto-lizoski,Otto,Lizoski,,M,1948,2034 aprox,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-juan-lizoski,Juan,Lizoski,,M,1943,2009 aprox,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
-elsa-lizoski,Elsa,Lizoski,,F,1941,2011,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
-irma-lang,Irma,Lang,,F,,2011,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
-ana-prytuluk,Ana,Prytuluk,,F,1938,2003 aprox,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
-hector-machado,Hector,Machado,,M,1945,2004,secadero-grande,no,DATOS DE DEMOSTRACION - persona inventada
-clementina-semeniuk,Clementina,Semeniuk,,F,1941,2008 aprox,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
-jose-semeniuk,Jose,Semeniuk,Coco,M,1941,2022,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
-nelida-semeniuk,Nelida,Semeniuk,,F,1941 aprox,dec. 2020,secadero-grande,no,DATOS DE DEMOSTRACION - persona inventada
-berta-kowalczuk,Berta,Kowalczuk,Pochi; la Polaca,F,,2006,capilla-vieja,no,DATOS DE DEMOSTRACION - persona inventada
-susana-kowalczuk,Susana,Kowalczuk,,F,1960,,escuela-406,si,DATOS DE DEMOSTRACION - persona inventada
-ana-kowalczuk,Ana,Kowalczuk,,F,1963,2023,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
-marta-kowalczuk,Marta,Kowalczuk,,F,1967,,plaza-libertad,si,DATOS DE DEMOSTRACION - persona inventada
-raul-kowalczuk,Raul,Kowalczuk,,M,1962,,ruta-14-km-1209,si,DATOS DE DEMOSTRACION - persona inventada
-celina-kowalczuk,Celina,Kowalczuk,,F,1964,,secadero-grande,si,DATOS DE DEMOSTRACION - persona inventada
-hector-nicklas,Hector,Nicklas,,M,1964,,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
-otto-silveira,Otto,Silveira,,M,1966,,salto-encantado,si,DATOS DE DEMOSTRACION - persona inventada
-ernesto-semeniuk,Ernesto,Semeniuk,el Negro,M,dec. 1960,,ruta-14-km-1209,si,DATOS DE DEMOSTRACION - persona inventada
-celina-paz,Celina,Paz,,F,dec. 2010,,secadero-grande,si,DATOS DE DEMOSTRACION - persona inventada
-alberto-paz,Alberto,Paz,el Chango,M,dec. 2000,,escuela-406,si,DATOS DE DEMOSTRACION - persona inventada
-celina-paz-2,Celina,Paz,Chela; la Polaca,F,2010 aprox,,paraje-cerro-moreno,si,DATOS DE DEMOSTRACION - persona inventada
-otto-paz,Otto,Paz,,M,2012 aprox,,ruta-14-km-1209,si,DATOS DE DEMOSTRACION - persona inventada
-anibal-roth,Anibal,Roth,Cacho; el Polaco,M,2006 aprox,,loteo-lizoski,si,DATOS DE DEMOSTRACION - persona inventada
-irma-pereira,Irma,Pereira,,F,2010 aprox,,barrio-teforito,si,DATOS DE DEMOSTRACION - persona inventada
-hector-pereira,Hector,Pereira,Lalo,M,dec. 2010,dec. 2090,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
-oscar-kaiser-2,Oscar,Kaiser,,M,2010,,arroyo-cunapiru,si,DATOS DE DEMOSTRACION - persona inventada
-rosa-lang,Rosa,Lang,,F,2014,,capilla-vieja,si,DATOS DE DEMOSTRACION - persona inventada
-tito-muller,Tito,Muller,,M,1962,,paraje-cerro-moreno,si,DATOS DE DEMOSTRACION - persona inventada
-ramon-hermann-3,Ramon,Hermann,,M,1992 aprox,,secadero-grande,si,DATOS DE DEMOSTRACION - persona inventada
-dora-hermann,Dora,Hermann,la Gorda,F,1986 aprox,,salto-encantado,si,DATOS DE DEMOSTRACION - persona inventada
-amalia-kaiser,Amalia,Kaiser,,F,2009,2089 aprox,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
-roberto-pereira,Roberto,Pereira,el Polaco,M,1944 aprox,2031 aprox,secadero-grande,no,DATOS DE DEMOSTRACION - persona inventada
-nelida-nicklas,Nelida,Nicklas,,F,dec. 1970,2051,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
-alberto-kaiser,Alberto,Kaiser,Coco,M,dec. 2000,dec. 2090,capilla-vieja,no,DATOS DE DEMOSTRACION - persona inventada
-ana-kaiser,Ana,Kaiser,la Tana,F,2006,,plaza-libertad,si,DATOS DE DEMOSTRACION - persona inventada
-norma-weber,Norma,Weber,,F,dec. 2000,,arroyo-cunapiru,si,DATOS DE DEMOSTRACION - persona inventada
-eduardo-prytuluk,Eduardo,Prytuluk,el Tano,M,dec. 2000,,loteo-lizoski,si,DATOS DE DEMOSTRACION - persona inventada
-tito-roth,Tito,Roth,el Ruso,M,2010,,capilla-vieja,si,DATOS DE DEMOSTRACION - persona inventada
-teresa-machado,Teresa,Machado,,F,,,loteo-lizoski,si,DATOS DE DEMOSTRACION - persona inventada
-antonio-paz,Antonio,Paz,el Flaco,M,2010,,barrio-teforito,si,DATOS DE DEMOSTRACION - persona inventada
-susana-jhansson,Susana,Jhansson,,F,2009,,barrio-teforito,si,DATOS DE DEMOSTRACION - persona inventada
-juan-machado,Juan,Machado,,M,,,salto-encantado,si,DATOS DE DEMOSTRACION - persona inventada
-ana-nicklas,Ana,Nicklas,la Polaca; Chela,F,1987 aprox,,arroyo-cunapiru,si,DATOS DE DEMOSTRACION - persona inventada
-julio-roth,Julio,Roth,,F,dec. 1900,1985,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
-anibal-roth-2,Anibal,Roth,Pepe,M,1957,2019,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
-roberto-lizoski,Roberto,Lizoski,,M,dec. 1920,1997,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
-susana-prytuluk,Susana,Prytuluk,,M,1935,2010,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
-tito-muller-2,Tito,Muller,,M,1948,,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
-antonio-roth,Antonio,Roth,,M,1953,2033,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
-susana-roth,Susana,Roth,el Tano,M,dec. 1900,1989,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
+ramon-silveira,Ramon,Silveira,Pepe; el Gringo,M,dec. 1880,1975,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
+amalia-ferreyra,Amalia,Ferreyra,la Polaca,F,1884,1956,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
+eduardo-hermann,Eduardo,Hermann,,M,1900,1990,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
+blanca-wagner,Blanca,Wagner,,F,1898,1959,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
+rodolfo-kaiser,Rodolfo,Kaiser,,M,1890,1949,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
+mirta-silveira,Mirta,Silveira,,F,1887 aprox,1962,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
+pedro-muller,Pedro,Muller,el Tano,M,1888,dec. 1980,salto-encantado,no,DATOS DE DEMOSTRACION - persona inventada
+norma-nicklas,Norma,Nicklas,,F,1891,1970,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
+tito-lang,Tito,Lang,Tito,M,1898,1969 aprox,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
+beba,,,Beba; la Gringa,F,1895,1969,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
+ramon-roth,Ramon,Roth,el Negro; Lalo,M,1910,1978,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
+nelida-pereira,Nelida,Pereira,Pochi; la Gringa,F,1913,,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
+raul-weber,Raul,Weber,,M,1891,1973,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
+rosa-duarte,Rosa,Duarte,la Rubia,F,dec. 1890,1955 aprox,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
+antonio-nicklas,Antonio,Nicklas,,M,1889 aprox,1979 aprox,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
+rosa-machado,Rosa,Machado,Chela,F,dec. 1890,1978,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
+julio-prytuluk,Julio,Prytuluk,,M,1898,1982,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
+rosa-benitez,Rosa,Benitez,,F,1896,dec. 1980,capilla-vieja,no,DATOS DE DEMOSTRACION - persona inventada
+gerardo-lizoski,Gerardo,Lizoski,Pepe,M,dec. 1900,1982 aprox,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
+eva-kaiser,Eva,Kaiser,,F,1897,1988 aprox,capilla-vieja,no,DATOS DE DEMOSTRACION - persona inventada
+luis-semeniuk,Luis,Semeniuk,,M,1901 aprox,1965,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
+coca,,,Coca; la Nena,F,1907,1985,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
+roberto-kowalczuk,Roberto,Kowalczuk,Beto,M,1895,1970 aprox,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
+clementina-paz,Clementina,Paz,,F,1901,1973,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
+berta-silveira,Berta,Silveira,Beba,F,1941 aprox,2020 aprox,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
+julio-silveira,Julio,Silveira,,M,1939,2021,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
+walter-silveira,Walter,Silveira,el Flaco,M,1943,2023,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
+alberto-silveira,Alberto,Silveira,el Gringo; Tito,M,1934,2017,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
+susana-ojeda,Susana,Ojeda,,F,1938,2012,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
+gerardo-hermann,Gerardo,Hermann,Cacho,M,,2019,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
+elsa-hermann,Elsa,Hermann,Pochi,F,1947,2021,capilla-vieja,no,DATOS DE DEMOSTRACION - persona inventada
+marta-hermann,Marta,Hermann,,F,1948,2019 aprox,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
+anibal-hermann,Anibal,Hermann,,M,1950,2023,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
+lucia-hermann,Lucia,Hermann,la Gorda,F,dec. 1950,2013,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
+mirta-paz,Mirta,Paz,la Rubia,F,dec. 1940,2026,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
+elsa-kaiser,Elsa,Kaiser,,F,1936 aprox,dec. 2020,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
+elsa-kaiser-2,Elsa,Kaiser,,F,1939,2002 aprox,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
+teresa-kaiser,Teresa,Kaiser,,F,,,secadero-grande,no,DATOS DE DEMOSTRACION - persona inventada
+antonio-kaiser,Antonio,Kaiser,el Ruso,M,dec. 1930,,salto-encantado,no,DATOS DE DEMOSTRACION - persona inventada
+hector-nicklas,Hector,Nicklas,,M,1933,2004 aprox,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
+blanca-muller,Blanca,Muller,,F,1937,2010,capilla-vieja,no,DATOS DE DEMOSTRACION - persona inventada
+miguel-muller,Miguel,Muller,el Turco; el Negro,M,1937,2019 aprox,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
+susana-ojeda-2,Susana,Ojeda,la Rubia,F,1932,,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
+teresa-lang,Teresa,Lang,,F,1947,2008 aprox,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
+coca-2,,,Coca,F,dec. 1940,2017,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
+susana-lang,Susana,Lang,,F,1951 aprox,2031,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
+tito-lang-2,Tito,Lang,Coco,M,1949,2037,capilla-vieja,no,DATOS DE DEMOSTRACION - persona inventada
+jose-kowalczuk,Jose,Kowalczuk,Cacho,M,1945,,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
+jose-ojeda,Jose,Ojeda,el Flaco,M,1941,dec. 2010,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
+celina-semeniuk,Celina,Semeniuk,la Gringa; la Rusa,F,1952,2022 aprox,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
+celina-roth,Celina,Roth,,F,,,capilla-vieja,si,DATOS DE DEMOSTRACION - persona inventada
+blanca-roth,Blanca,Roth,la Gorda,F,dec. 1950,,secadero-grande,si,DATOS DE DEMOSTRACION - persona inventada
+pedro-lang,Pedro,Lang,Lalo; el Tano,M,dec. 1950,,loteo-lizoski,si,DATOS DE DEMOSTRACION - persona inventada
+ramona-weber,Ramona,Weber,,F,1945,2019,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
+julio-weber,Julio,Weber,,M,dec. 1940,2033,salto-encantado,no,DATOS DE DEMOSTRACION - persona inventada
+amalia-weber,Amalia,Weber,,F,1939,2012,secadero-grande,no,DATOS DE DEMOSTRACION - persona inventada
+nelida-weber,Nelida,Weber,,F,,2007,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
+mirta-weber,Mirta,Weber,,F,1946 aprox,dec. 2010,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
+hector-nicklas-2,Hector,Nicklas,,M,1943,2022,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
+susana-kaiser,Susana,Kaiser,,F,1944,2025,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
+luis-melnyk,Luis,Melnyk,el Tano,M,,2030 aprox,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
+el-turco,,,el Turco,M,dec. 1940,dec. 2030,capilla-vieja,no,DATOS DE DEMOSTRACION - persona inventada
+gerardo-ojeda,Gerardo,Ojeda,el Flaco; el Negro,M,1945 aprox,2004,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
+la-rusa,,,la Rusa,F,1937,2004,salto-encantado,no,DATOS DE DEMOSTRACION - persona inventada
+oscar-nicklas,Oscar,Nicklas,,M,1943,2006,secadero-grande,no,DATOS DE DEMOSTRACION - persona inventada
+gerardo-jhansson,Gerardo,Jhansson,el Turco; el Gringo,M,1899 aprox,1962,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
+eva-machado,Eva,Machado,la Rubia,F,1930,1997,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
+ana-machado,Ana,Machado,Moni,F,1932 aprox,dec. 1990,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
+marta-machado,Marta,Machado,,F,dec. 1930,,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
+gerardo-prytuluk,Gerardo,Prytuluk,,M,1946 aprox,2014 aprox,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
+ramon-prytuluk,Ramon,Prytuluk,Lalo,M,1948,2037,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
+olga-prytuluk,Olga,Prytuluk,Chela,F,1945 aprox,dec. 2010,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
+clementina-prytuluk,Clementina,Prytuluk,,F,1948 aprox,2036 aprox,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
+teresa-pereira,Teresa,Pereira,Moni,F,1945 aprox,2034,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
+miguel-machado,Miguel,Machado,el Polaco,M,1951 aprox,2038,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
+oscar-lizoski,Oscar,Lizoski,Coco,M,1953 aprox,2023 aprox,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
+hilda-lizoski,Hilda,Lizoski,la Gringa,F,1945,dec. 2020,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
+tito,,,Tito,M,1947 aprox,2037 aprox,secadero-grande,no,DATOS DE DEMOSTRACION - persona inventada
+miguel-wagner,Miguel,Wagner,,M,1943 aprox,2012,salto-encantado,no,DATOS DE DEMOSTRACION - persona inventada
+tito-semeniuk,Tito,Semeniuk,el Gringo,M,1953 aprox,2029,salto-encantado,no,DATOS DE DEMOSTRACION - persona inventada
+amalia-semeniuk,Amalia,Semeniuk,,F,1947,2031 aprox,barrio-teforito,no,DATOS DE DEMOSTRACION - persona inventada
+rodolfo-semeniuk,Rodolfo,Semeniuk,,M,1955,2022,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
+eva-silveira,Eva,Silveira,Tita,F,1954,2045 aprox,secadero-grande,no,DATOS DE DEMOSTRACION - persona inventada
+elsa-machado,Elsa,Machado,,F,1956 aprox,2021 aprox,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
+marta-kowalczuk,Marta,Kowalczuk,Pochi,F,dec. 1950,dec. 2010,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
+dora-kowalczuk,Dora,Kowalczuk,,F,,2030,capilla-vieja,no,DATOS DE DEMOSTRACION - persona inventada
+luis-ramirez,Luis,Ramirez,,M,1955,,escuela-406,si,DATOS DE DEMOSTRACION - persona inventada
+oscar-melnyk,Oscar,Melnyk,Lalo,M,1944 aprox,2016,secadero-grande,no,DATOS DE DEMOSTRACION - persona inventada
+ida-silveira,Ida,Silveira,,F,2009,,paraje-cerro-moreno,si,DATOS DE DEMOSTRACION - persona inventada
+pedro-silveira,Pedro,Silveira,,M,2010,,arroyo-cunapiru,si,DATOS DE DEMOSTRACION - persona inventada
+celina-silveira,Celina,Silveira,Chela,F,2012 aprox,,ruta-14-km-1209,si,DATOS DE DEMOSTRACION - persona inventada
+rosa-melnyk,Rosa,Melnyk,,F,2014,,capilla-vieja,si,DATOS DE DEMOSTRACION - persona inventada
+rodolfo-kaiser-2,Rodolfo,Kaiser,Beto,M,2012 aprox,,capilla-vieja,si,DATOS DE DEMOSTRACION - persona inventada
+dora-silveira,Dora,Silveira,la Rubia; la Negra,F,dec. 2000,,barrio-teforito,si,DATOS DE DEMOSTRACION - persona inventada
+walter-silveira-2,Walter,Silveira,el Gringo,M,,,escuela-406,si,DATOS DE DEMOSTRACION - persona inventada
+julio-silveira-2,Julio,Silveira,,M,2007 aprox,,escuela-406,si,DATOS DE DEMOSTRACION - persona inventada
+lucia-silveira,Lucia,Silveira,,F,,,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
+ramon-kowalczuk,Ramon,Kowalczuk,Beto,M,2012,,escuela-406,si,DATOS DE DEMOSTRACION - persona inventada
+ramona-schmidt,Ramona,Schmidt,la Gorda,F,dec. 2010,,barrio-teforito,si,DATOS DE DEMOSTRACION - persona inventada
+ramona-machado,Ramona,Machado,Moni,F,2008,,plaza-libertad,si,DATOS DE DEMOSTRACION - persona inventada
+ramon-schmidt,Ramon,Schmidt,,M,2010 aprox,,paraje-cerro-moreno,si,DATOS DE DEMOSTRACION - persona inventada
+luis-nicklas,Luis,Nicklas,Pepe,M,2011,,capilla-vieja,si,DATOS DE DEMOSTRACION - persona inventada
+walter-nicklas,Walter,Nicklas,,M,2006 aprox,,paraje-cerro-moreno,si,DATOS DE DEMOSTRACION - persona inventada
+alberto-jhansson,Alberto,Jhansson,,M,1948,2024,ruta-14-km-1209,no,DATOS DE DEMOSTRACION - persona inventada
+irma-kaiser,Irma,Kaiser,,F,1979,,escuela-406,si,DATOS DE DEMOSTRACION - persona inventada
+chela,,,Chela,F,2012,,secadero-grande,si,DATOS DE DEMOSTRACION - persona inventada
+alberto-kaiser,Alberto,Kaiser,Coco,M,2009 aprox,2092,capilla-vieja,no,DATOS DE DEMOSTRACION - persona inventada
+ana-hermann,Ana,Hermann,,F,2011,,escuela-406,si,DATOS DE DEMOSTRACION - persona inventada
+pedro-muller-2,Pedro,Muller,,M,2009,,arroyo-cunapiru,si,DATOS DE DEMOSTRACION - persona inventada
+mirta-muller,Mirta,Muller,la Negra,F,2011 aprox,,loteo-lizoski,si,DATOS DE DEMOSTRACION - persona inventada
+ramona-schmidt-2,Ramona,Schmidt,la Rusa,F,2005,,ruta-14-km-1209,si,DATOS DE DEMOSTRACION - persona inventada
+raul-wagner,Raul,Wagner,el Polaco,M,2006 aprox,,ruta-14-km-1209,si,DATOS DE DEMOSTRACION - persona inventada
+mirta-weber-2,Mirta,Weber,,F,2012,2076,salto-encantado,no,DATOS DE DEMOSTRACION - persona inventada
+otto-roth,Otto,Roth,,M,,2020,arroyo-cunapiru,no,DATOS DE DEMOSTRACION - persona inventada
+dora-weber,Dora,Weber,,M,1937,1997 aprox,plaza-libertad,no,DATOS DE DEMOSTRACION - persona inventada
+ana-duarte,Ana,Duarte,Tito,M,1954,2013,escuela-406,no,DATOS DE DEMOSTRACION - persona inventada
+nelida-pereira-2,Nelida,Pereira,,F,1911,1988 aprox,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada
+susana-benitez,Susana,Benitez,Chela,F,1906,1988,paraje-cerro-moreno,no,DATOS DE DEMOSTRACION - persona inventada
+jose-roth,Jose,Roth,Tito; Pepe,M,1913 aprox,dec. 1970,salto-encantado,no,DATOS DE DEMOSTRACION - persona inventada
+hilda-ramirez,Hilda,Ramirez,Mecha,F,,1975,loteo-lizoski,no,DATOS DE DEMOSTRACION - persona inventada

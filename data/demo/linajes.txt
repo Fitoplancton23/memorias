@@ -1,57 +1,55 @@
 # DATOS DE DEMOSTRACION - generados por scripts/generar-demo.mjs
 # Las personas y los parentescos son inventados.
-Ramon Silveira y Dora Ferreyra. Hijos: Olga Silveira, Lucia Silveira
-Walter Hermann. Hijos: Amalia Hermann, Ida Hermann, Ramon Hermann, Susana Hermann, Ramon Hermann
-Lucia Duarte. Hijos: Oscar Kaiser, Miguel Kaiser, Ernesto Kaiser, Otto Kaiser, Raul Kaiser
-Pedro Muller y Susana Hermann. Hijos: Anibal Muller, Mirta Muller, Juan Muller, Teresa Muller
-Miguel Lang y Eva Wagner. Hijos: Roberto Lang, Celina Lang, Ida Lang, Ernesto Lang, Oscar Lang
-Irma Ojeda. Hijos: Juan Roth, Hilda Roth
-Walter Weber. Hijos: Dora Weber, Luis Weber
-Pedro Nicklas y Ana Schmidt. Hijos: Susana Nicklas, Pedro Nicklas
-Pedro Prytuluk. Hijos: Blanca Prytuluk, Oscar Prytuluk, Dora Prytuluk, Dora Prytuluk
-Anibal Lizoski y Susana Wagner. Hijos: Otto Lizoski, Juan Lizoski, Elsa Lizoski
-Antonio Semeniuk y Dora Kaiser. Hijos: Clementina Semeniuk, Jose Semeniuk, Nelida Semeniuk
-Roberto Kowalczuk y Celina Duarte. Hijos: Susana Kowalczuk, Ana Kowalczuk, Marta Kowalczuk, Raul Kowalczuk, Celina Kowalczuk
-Miguel Paz y Lucia Silveira. Hijos: Celina Paz, Alberto Paz, Celina Paz, Otto Paz
-Otto Pereira y Amalia Hermann. Hijos: Irma Pereira, Hector Pereira
-Miguel Lizoski y Ida Hermann
-Ramon Hermann y Nelida Jhansson
-Oscar Ramirez y Susana Hermann
-Tito Muller y Susana Hermann. Hijos: Ramon Hermann, Dora Hermann
-Ramon Hermann y Clementina Benitez
-Oscar Kaiser y Olga Silveira. Hijos: Amalia Kaiser
-Ernesto Kaiser y Hilda Nicklas
-Roberto Pereira y Hilda Nicklas. Hijos: Nelida Nicklas
-Raul Kaiser. Hijos: Alberto Kaiser, Ana Kaiser
-Anibal Muller y Amalia Lang
-Ramon Wagner y Mirta Muller
-Juan Muller y Nelida Jhansson
-Julio Duarte y Teresa Muller
-Roberto Lang y Marta Prytuluk
-Jose Wagner y Celina Lang
-Hector Ferreyra y Ida Lang
-Ernesto Lang y Mirta Kowalczuk
-Oscar Lang y Blanca Duarte
-Juan Roth. Hijos: Tito Roth
-Eduardo Paz y Hilda Roth. Hijos: Antonio Paz
-Walter Kowalczuk y Dora Weber
-Luis Weber y Hilda Paz
-Otto Kaiser y Susana Nicklas
-Juan Machado y Susana Nicklas. Hijos: Ana Nicklas
-Pedro Nicklas y Ramona Muller
-Oscar Prytuluk y Ana Pereira
-Walter Pereira y Dora Prytuluk
-Otto Lizoski y Irma Lang
-Juan Lizoski y Ana Prytuluk
-Hector Machado y Elsa Lizoski
-Jose Semeniuk y Berta Kowalczuk
-Hector Nicklas y Susana Kowalczuk
-Otto Silveira y Marta Kowalczuk
-Ernesto Semeniuk y Celina Kowalczuk
-Anibal Roth y Celina Paz
-Oscar Kaiser y Irma Pereira
-Hector Pereira y Rosa Lang
-Alberto Kaiser y Norma Weber
-Eduardo Prytuluk y Ana Kaiser
-Tito Roth y Teresa Machado
-Antonio Paz y Susana Jhansson
+Ramon Silveira y Amalia Ferreyra. Hijos: Berta Silveira, Julio Silveira, Walter Silveira, Alberto Silveira
+Eduardo Hermann y Blanca Wagner. Hijos: Gerardo Hermann, Elsa Hermann, Marta Hermann, Anibal Hermann, Lucia Hermann
+Rodolfo Kaiser y Mirta Silveira. Hijos: Elsa Kaiser, Elsa Kaiser, Teresa Kaiser, Antonio Kaiser
+Pedro Muller y Norma Nicklas. Hijos: Blanca Muller, Miguel Muller
+Tito Lang y Beba. Hijos: Teresa Lang, Coca, Susana Lang, Tito Lang
+Ramon Roth y Nelida Pereira. Hijos: Celina Roth, Blanca Roth
+Rosa Duarte. Hijos: Ramona Weber, Julio Weber, Amalia Weber, Nelida Weber, Mirta Weber
+Rosa Machado. Hijos: la Rusa, Oscar Nicklas
+Gerardo Jhansson y Rosa Machado. Hijos: Eva Machado, Ana Machado, Marta Machado
+Julio Prytuluk y Rosa Benitez. Hijos: Gerardo Prytuluk, Ramon Prytuluk, Olga Prytuluk, Clementina Prytuluk
+Gerardo Lizoski y Eva Kaiser. Hijos: Oscar Lizoski, Hilda Lizoski, Tito
+Luis Semeniuk y Coca. Hijos: Tito Semeniuk, Amalia Semeniuk, Rodolfo Semeniuk
+Roberto Kowalczuk y Clementina Paz. Hijos: Marta Kowalczuk, Dora Kowalczuk
+Walter Silveira y Susana Ojeda
+Gerardo Hermann y Berta Silveira
+Julio Silveira y Elsa Hermann. Hijos: Ida Silveira, Pedro Silveira, Celina Silveira
+Anibal Hermann y Mirta Paz
+Alberto Silveira y Elsa Kaiser. Hijos: Dora Silveira, Walter Silveira, Julio Silveira, Lucia Silveira
+Hector Nicklas y Teresa Kaiser. Hijos: Luis Nicklas, Walter Nicklas
+Alberto Jhansson y Teresa Kaiser. Hijos: Irma Kaiser
+Antonio Kaiser y Blanca Muller. Hijos: Alberto Kaiser
+Miguel Muller. Hijos: Pedro Muller, Mirta Muller
+Jose Kowalczuk y Teresa Lang
+Jose Ojeda y Coca
+Tito Lang y Celina Semeniuk
+Pedro Lang y Blanca Roth
+Hector Nicklas y Ramona Weber
+Julio Weber y Susana Kaiser. Hijos: Mirta Weber
+Luis Melnyk y Amalia Weber
+el Turco y Nelida Weber
+Gerardo Ojeda y Mirta Weber
+Gerardo Prytuluk y Susana Lang
+Ramon Prytuluk y Teresa Pereira
+Oscar Nicklas y Olga Prytuluk
+Miguel Machado y Clementina Prytuluk
+Oscar Lizoski y Marta Hermann
+Miguel Wagner y Hilda Lizoski
+Tito Semeniuk y Eva Silveira
+Tito y Amalia Semeniuk
+Rodolfo Semeniuk y Elsa Machado
+Luis Ramirez y Marta Kowalczuk
+Oscar Melnyk y Dora Kowalczuk
+Pedro Silveira y Rosa Melnyk
+Rodolfo Kaiser y Celina Silveira
+Ramon Kowalczuk y Dora Silveira
+Walter Silveira y Ramona Schmidt
+Julio Silveira y Ramona Machado
+Ramon Schmidt y Lucia Silveira
+Luis Nicklas y Chela
+Walter Nicklas y Ida Silveira
+Alberto Kaiser y Ana Hermann
+Pedro Muller y Ramona Schmidt
+Raul Wagner y Mirta Muller

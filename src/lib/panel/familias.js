@@ -16,7 +16,8 @@
    memoria. Son dos cosas distintas y el panel no las mezcla.                 */
 
 import * as api from './api.js';
-import { buscador, filtrar, nombreDe, sinTildes, unico } from './piezas.js';
+import { buscador, filtrar, nombreDe, sinTildes, unico, altaPersona } from './piezas.js';
+import { baseSlug, fila as filaPersona } from '../persona-nueva.js';
 
 const UNIONES = [
   ['matrimonio', 'Matrimonio'],
@@ -125,22 +126,31 @@ function elegirPersona(contenedor, { etiqueta, pista, excluir, datos, alElegir }
     async p => {
       campo.value = '';
       b.limpiar();
-      alElegir(p.nueva ? await crearPersona(p.texto, datos) : p);
+      if (!p.nueva) return alElegir(p);
+      /* Igual que en el asistente: se muestran los tres campos en vez de
+         partir el texto a ciegas, y alcanza con uno. El formulario se
+         construye una sola vez, en piezas.js, para que las dos pantallas no
+         se separen con el tiempo. */
+      sug.after(Object.assign(
+        altaPersona(p.texto,
+          async datosNuevos => {
+            cerrarAlta(contenedor);
+            alElegir(await crearPersona(datosNuevos, datos));
+          },
+          () => { cerrarAlta(contenedor); campo.focus(); }),
+        { className: 'alta-persona alta-aqui' }));
     });
   return campo;
 }
 
-async function crearPersona(texto, datos) {
-  const t = (texto || '').trim();
-  if (!t) return null;
-  const partes = t.split(/\s+/);
-  /* Partir por la última palabra acierta casi siempre, y queda editable en el
-     taller de personas. */
-  const apellido = partes.length > 1 ? partes.pop() : '';
-  const nombre = partes.join(' ');
+const cerrarAlta = donde => donde.querySelector('.alta-aqui')?.remove();
+
+async function crearPersona(datos_, datos) {
+  const f = filaPersona(datos_);
+  if (!f) return null;       /* la base lo rechaza igual: la regla vive en las dos */
   const fila = await api.insertar('personas', {
-    slug: unico(api.codigo(t), datos.personas()),
-    nombre, apellido: apellido || null, es_demo: false,
+    slug: unico(api.codigo(baseSlug(datos_)), datos.personas()),
+    ...f, es_demo: false,
     /* Acá sí entra aprobada, al revés que en el asistente de memorias. Allá la
        persona se crea de paso, mientras se transcribe un aporte que todavía
        nadie miró, y la compuerta existe para eso. Acá el gesto es deliberado:

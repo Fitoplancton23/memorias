@@ -15,6 +15,7 @@
 import * as api from './api.js';
 import { montarSelector, leerCoordenadas } from './selector-mapa.js';
 import { sinTildes } from './piezas.js';
+import { sirve } from '../persona-nueva.js';
 import { cargarNucleos, filasFamilias, formularioFamilia, resumenFamilia } from './familias.js';
 
 const $ = s => document.querySelector(s);
@@ -160,7 +161,7 @@ function resumen(li, o) {
   const chico = document.createElement('small');
 
   if (que === 'personas') {
-    b.textContent = [o.nombre, o.apellido].filter(Boolean).join(' ') || '(sin nombre)';
+    b.textContent = [o.nombre, o.apellido].filter(Boolean).join(' ') || o.apodo || '(sin nombre)';
     const otros = [o.apodo, ...(datos.alias()[o.id] || [])].filter(Boolean);
     chico.textContent = otros.length ? otros.join(' · ') : '';
   } else {
@@ -231,13 +232,13 @@ function formulario(li, o) {
     } catch (x) { fallar(x); }
   };
 
-  if (que === 'personas') formularioPersona(caja, o, guardar, listo);
+  if (que === 'personas') formularioPersona(caja, o, guardar, listo, err);
   else formularioLugar(caja, o, guardar, listo);
 
   caja.append(err, mandos, nota);
 }
 
-function formularioPersona(caja, o, guardar, listo) {
+function formularioPersona(caja, o, guardar, listo, err) {
   const par = document.createElement('div');
   par.className = 'par';
   const nombre = campo('Nombre', o.nombre);
@@ -288,10 +289,18 @@ function formularioPersona(caja, o, guardar, listo) {
   caja.append(par, apodo.l, lAlias, chips);
 
   guardar.addEventListener('click', () => {
-    if (!nombre.i.value.trim() && !apellido.i.value.trim()) {
+    /* La misma regla que para dar de alta: alcanza con uno de los tres, y el
+       apodo cuenta. Antes exigía nombre o apellido, así que a alguien cargado
+       sólo como "el Negro" no se lo podía guardar después de editarlo — se
+       podía crear y no se podía tocar. Y el foco va al primero vacío con un
+       aviso escrito: un botón que no hace nada y un cursor que salta no
+       explican qué falta. */
+    if (!sirve({ nombre: nombre.i.value, apellido: apellido.i.value, apodo: apodo.i.value })) {
+      if (err) { err.textContent = 'Falta el nombre, el apellido o el apodo. Con uno solo alcanza.'; ver(err, true); }
       nombre.i.focus();
       return;
     }
+    if (err) ver(err, false);
     const antes = datos.alias()[o.id] || [];
     /* Se suma el que se agregó y se saca el que se sacó. Reemplazar la lista
        entera sería más corto, pero dejaría un hueco: entre el borrado y la

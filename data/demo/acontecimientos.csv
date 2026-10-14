@@ -1,8 +1,8 @@
 slug,titulo,tipo,fecha,lugares,descripcion
-fundacion,Fundacion del pueblo,hito,1920,paraje-cerro-moreno,DATOS DE DEMOSTRACION
-primera-escuela,Primera escuela,hito,1935,secadero-grande,DATOS DE DEMOSTRACION
-llegada-luz,Llegada de la luz electrica,hito,1948,barrio-teforito,DATOS DE DEMOSTRACION
+fundacion,Fundacion del pueblo,hito,1920,loteo-lizoski,DATOS DE DEMOSTRACION
+primera-escuela,Primera escuela,hito,1935,barrio-teforito,DATOS DE DEMOSTRACION
+llegada-luz,Llegada de la luz electrica,hito,1948,plaza-libertad,DATOS DE DEMOSTRACION
 gran-creciente,Gran creciente del Cuñapirú,hito,1957,barrio-teforito,DATOS DE DEMOSTRACION
-inauguracion-hospital,Inauguracion del hospital,hito,1966,secadero-grande,DATOS DE DEMOSTRACION
-fiesta-inmigrante,Primera Fiesta del Inmigrante,hito,1972,capilla-vieja,DATOS DE DEMOSTRACION
-pavimentacion,Pavimentacion de la avenida,hito,1984,salto-encantado,DATOS DE DEMOSTRACION
+inauguracion-hospital,Inauguracion del hospital,hito,1966,paraje-cerro-moreno,DATOS DE DEMOSTRACION
+fiesta-inmigrante,Primera Fiesta del Inmigrante,hito,1972,paraje-cerro-moreno,DATOS DE DEMOSTRACION
+pavimentacion,Pavimentacion de la avenida,hito,1984,ruta-14-km-1209,DATOS DE DEMOSTRACION

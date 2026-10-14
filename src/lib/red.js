@@ -87,7 +87,7 @@ export function armarRed(personas, documentos, familias = [], lugares = [], acon
 
   const nodos = personas.map(p => ({
     id: p.slug, tipo: 'persona',
-    nombre: [p.nombre, p.apellido].filter(Boolean).join(' ') || p.slug,
+    nombre: [p.nombre, p.apellido].filter(Boolean).join(' ') || p.apodo || p.slug,
     apellido: p.apellido || '',
     /* El apodo y los alias viajan al buscador. Sin esto, alguien que escribe
        "el Negro" —que es como lo nombra el pueblo— no encuentra a nadie. */

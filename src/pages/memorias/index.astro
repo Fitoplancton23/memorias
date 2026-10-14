@@ -85,10 +85,16 @@ const listaLugares = lugares
 <Base titulo="Memorias" descripcion="El archivo de memorias de Aristóbulo del Valle, Salto Encantado y Cerro Moreno.">
   <header class="arch-cab">
     <h1>Memorias</h1>
+    {/* Una línea, no tres. La segunda frase —"una memoria incompleta sigue
+        siendo una memoria"— es una regla nuestra explicada al visitante, y
+        arriba del buscador es exactamente la información casi técnica que
+        hace que alguien de setenta y cinco se quede leyendo en vez de
+        escribir el apellido que vino a buscar. Donde esa regla hace falta ya
+        está dicha: en el encabezado de "Todavía sin fecha", al lado de las
+        memorias a las que se refiere. */}
     <p class="bajada">
       Todo lo que el pueblo recuperó hasta ahora: {memorias.length} memorias
-      {rango && <> entre {rango[0]} y {rango[1]}</>}. Una memoria incompleta sigue
-      siendo una memoria — las que no tienen fecha o lugar están acá igual.
+      {rango && <> entre {rango[0]} y {rango[1]}</>}.
     </p>
   </header>
 
@@ -162,6 +168,7 @@ const listaLugares = lugares
       <li class="hito" data-slug={m.slug} data-anio={m.anio} data-decada={Math.floor(m.anio / 10) * 10}
           data-apellidos={m.apellidos.join('|')}
           data-lugar={m.sitios[0]?.nombre || ''}
+          data-ubicada={m.ubicada ? '1' : ''}
           data-lugares={m.sitios.length ? m.sitios.map(s => s.slug).join('|') : 'sin'}>
         <a class="hito-c" href={`/memorias/${m.slug}/`}>
           <figure>
@@ -206,6 +213,7 @@ const listaLugares = lugares
           <li class="hito" data-slug={m.slug} data-anio="" data-decada="sin"
               data-apellidos={m.apellidos.join('|')}
               data-lugar={m.sitios[0]?.nombre || ''}
+              data-ubicada={m.ubicada ? '1' : ''}
               data-lugares={m.sitios.length ? m.sitios.map(s => s.slug).join('|') : 'sin'}>
             <a class="hito-c" href={`/memorias/${m.slug}/`}>
               <figure>
@@ -436,6 +444,16 @@ const listaLugares = lugares
       const anio = arriba.dataset.anio;
       dondeTexto.textContent = anio ? `década de ${Math.floor(+anio / 10) * 10}` : 'todavía sin fecha';
       donde.hidden = false;
+      /* Para que el conmutador se la lleve al mapa. `enElMapa` dice si allá se
+         puede mostrar: sin lugar UBICADO no hay dónde dibujarla, y mandar a
+         alguien a buscarla ahí sería mandarlo a una pantalla que no la tiene.
+
+         Tiene que salir de `ubicada` y no de `lugares`: una memoria puede
+         tener lugar —el Barrio Teforito— y que ese lugar no tenga coordenada
+         cargada todavía. Con `lugares` el enlace decía que sí y el mapa no la
+         encontraba, que es justo la mentira que esta regla vino a evitar. */
+      dispatchEvent(new CustomEvent('memorias:mirando', { detail: {
+        slug: arriba.dataset.slug, enElMapa: arriba.dataset.ubicada === '1' } }));
     }, { rootMargin: '-45% 0px -45% 0px' });
     for (const t of tarjetas) ojo.observe(t);
 
@@ -464,9 +482,33 @@ const listaLugares = lugares
     medirBarra();
     if (barra) new ResizeObserver(medirBarra).observe(barra);
 
-    /* Sin él, el primer hito queda apagado hasta que alguien se mueve: la
-       página abre con su propia portada en gris. */
-    tarjetas.find(t => !t.hidden)?.classList.add('mirando');
+    /* Llegar desde el mapa mirando una memoria: `?ver=<slug>`. La línea de
+       tiempo las tiene a todas, así que acá siempre se puede. Se la lleva al
+       medio de la pantalla y se la marca un momento — sin eso, alguien que
+       cambia de vista aterriza en un punto cualquiera de ciento cuarenta y
+       tiene que volver a buscar lo que ya estaba mirando. */
+    const verSlug = q.get('ver');
+    const buscada = verSlug && tarjetas.find(t => t.dataset.slug === verSlug);
+    if (buscada) {
+      /* Si un filtro o una búsqueda la dejaban escondida, manda la memoria:
+         la pidieron por su nombre. */
+      if (buscada.hidden) {
+        for (const k in estado) estado[k] = '';
+        for (const o of document.querySelectorAll('.chip')) o.classList.toggle('act', !o.dataset.v);
+        campo.value = '';
+        buscar();
+      }
+      buscada.classList.add('mirando', 'recien-llegada');
+      /* `instant` y no suave: con ciento cuarenta hitos el desplazamiento
+         animado tarda segundos y arranca mostrando el principio del archivo,
+         que es justo lo que la persona NO pidió ver. */
+      requestAnimationFrame(() => buscada.scrollIntoView({ block: 'center', behavior: 'instant' }));
+      setTimeout(() => buscada.classList.remove('recien-llegada'), 2200);
+    } else {
+      /* Sin él, el primer hito queda apagado hasta que alguien se mueve: la
+         página abre con su propia portada en gris. */
+      tarjetas.find(t => !t.hidden)?.classList.add('mirando');
+    }
   </script>
 
   <style>
@@ -484,6 +526,15 @@ const listaLugares = lugares
   /* Por dónde la encontró el buscador. Chico y arriba de todo en la tarjeta:
      tiene que poder leerse sin competir con el año ni con el título, que son
      lo que la persona vino a ver. Aparece sólo cuando hay algo que explicar. */
+  /* De dónde venís. Un halo que se apaga solo: marcar para siempre la memoria
+     con la que llegaste la dejaría distinta del resto sin que nada lo
+     explique dos minutos después. */
+  .hito.recien-llegada .hito-c { box-shadow: 0 0 0 2px var(--cursor);
+                                 border-radius: 6px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .hito.recien-llegada .hito-c { transition: box-shadow 1.2s ease 1s; }
+  }
+
   .hito-por { margin: 0 0 .35rem; font-size: .78rem; line-height: 1.35;
               color: var(--tinta-2); font-style: italic; }
 

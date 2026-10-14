@@ -205,10 +205,13 @@ const COORD = {
   'escuela-406':         [-27.0941, -54.9015],
   'capilla-vieja':       [-27.0969, -54.8962],
   'secadero-grande':     [-27.0998, -54.9042],
-  'barrio-teforito':     [-27.0902, -54.8931],
   'loteo-lizoski':       [-27.1024, -54.8907],
   'ruta-14-km-1209':     [-27.0873, -54.9178],
-  'arroyo-cunapiru':     [-27.1133, -54.8795],
+  /* Dos quedan sin coordenada a propósito. En el archivo de verdad va a haber
+     lugares que nadie ubicó todavía, y con los diez puestos la demo dejaba de
+     tener una sola memoria sin ubicar: el caso que hay que mirar —qué pasa
+     cuando algo no se puede mostrar en el mapa— desaparecía de la pantalla.
+     'arroyo-cunapiru' y 'barrio-teforito' son los que faltan. */
   'salto-encantado':     [-27.0631, -54.8098],
   'paraje-cerro-moreno': [-27.1382, -54.9401],
 };

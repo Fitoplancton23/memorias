@@ -352,6 +352,17 @@ const apellidosPortada = Object.entries(cuentaApellidos)
        Apagados quedan además sin clic, a propósito. Un marcador atenuado pero
        clicable abre un lugar cuyas memorias no son las que se buscaron, y ahí
        el mapa estaría diciendo una cosa y haciendo otra. */
+    /* Qué memoria está mirando la persona, para que el conmutador se la lleve
+       a la línea de tiempo. `enElMapa` siempre es cierto acá: si está abierta
+       sobre el mapa es porque el mapa la tiene.
+
+       Va arriba de todo y no al lado de `pintarMemoria`, que es donde se usa:
+       declarado con `const` más abajo, abrir una memoria durante el arranque
+       —que es lo que hace `?ver=`— lo encontraba todavía sin inicializar y
+       reventaba el guion entero del mapa. */
+    const avisar = slug => dispatchEvent(new CustomEvent('memorias:mirando', {
+      detail: { slug, enElMapa: true } }));
+
     const archivoBusca = JSON.parse(document.getElementById('indiceBusqueda').textContent);
     const campoQ = document.getElementById('q');
     const borrarQ = document.getElementById('qBorrar');
@@ -880,6 +891,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
 
     function pintarMemoria(haciaDonde) {
       const d = lista[indice];
+      avisar(d.slug);
       const cuando = d.texto || d.anio || 'sin fecha';
       const hay = lista.length > 1;
 
@@ -1268,6 +1280,9 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       if (velo.hidden) return;
       velo.hidden = true;
       document.body.classList.remove('con-memoria');
+      /* Al cerrar ya no se está mirando ninguna: si no se avisa, el
+         conmutador se seguiría llevando una memoria que la persona cerró. */
+      avisar(null);
       if (empujado) { empujado = false; history.back(); }
     }
 
@@ -1397,6 +1412,25 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       repartir(tActual);
       reubicarFicha();
     }).observe(svgEl);
+
+    /* Llegar desde la línea de tiempo mirando una memoria: `?ver=<slug>`.
+       Va al final del guion, después de que todo existe: abrir una memoria
+       durante el arranque toca media docena de funciones, y alcanzaba con que
+       una estuviera declarada más abajo para romper el mapa entero.
+
+       El conmutador sólo pone este parámetro cuando el mapa puede mostrarla,
+       así que si acá no está es que algo quedó desacompasado —un enlace viejo
+       compartido por WhatsApp, una memoria que perdió su lugar—. Ahí se abre
+       el mapa normal, que es lo que esa dirección puede cumplir. */
+    {
+      const ver = new URLSearchParams(location.search).get('ver');
+      if (ver && porMemoria[ver]) {
+        const lugar = porMemoria[ver].lugarSlug;
+        mostrar(lugar);
+        encuadrar([lugar]);
+        abrirMemoria(ver);
+      }
+    }
   </script>
 
   <style is:global>

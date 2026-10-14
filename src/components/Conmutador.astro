@@ -45,8 +45,32 @@ const { actual } = Astro.props;   /* 'mapa' | 'tiempo' */
      Y el efecto de borde es el que importa más: si el estado vive en la
      dirección, entonces mandar por WhatsApp lo que estás viendo es copiar la
      barra del navegador. */
+  const otras = () => document.querySelectorAll('.conmutador a:not(.puesto)');
+
   const q = location.search;
   if (q && q.length > 1)
-    for (const a of document.querySelectorAll('.conmutador a:not(.puesto)'))
+    for (const a of otras())
       a.setAttribute('href', a.getAttribute('href') + q);
+
+  /* Y también viaja la memoria que estás mirando.
+     -----------------------------------------------------------------------
+     Cada vista avisa cuál es con `memorias:mirando`: el mapa, la que tiene
+     abierta encima; la línea de tiempo, la que está en el medio de la
+     pantalla. El detalle que importa es el segundo dato del aviso: si esa
+     memoria se puede mostrar en la OTRA vista. Una memoria sin lugar ubicado
+     no se puede dibujar en el mapa, y mandar a alguien a un mapa que no la
+     tiene es peor que no llevarlo: llega, no la encuentra, y no hay nada que
+     le explique por qué. En ese caso el conmutador cambia de vista y nada
+     más, que es exactamente "cuando sea posible". */
+  const ponerVer = (slug, sirve) => {
+    for (const a of otras()) {
+      const u = new URL(a.getAttribute('href'), location.origin);
+      /* El de la línea de tiempo siempre sirve: ahí están todas, con fecha o
+         sin ella. El del mapa, sólo si la memoria tiene dónde caer. */
+      if (slug && (a.dataset.vista === 'tiempo' || sirve)) u.searchParams.set('ver', slug);
+      else u.searchParams.delete('ver');
+      a.setAttribute('href', u.pathname + u.search);
+    }
+  };
+  addEventListener('memorias:mirando', ev => ponerVer(ev.detail?.slug, ev.detail?.enElMapa));
 </script>

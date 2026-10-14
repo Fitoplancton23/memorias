@@ -6,7 +6,8 @@ import mapas from '../../../public/mapa/mapa.json';
 import Ondas from '../../components/Ondas.astro';
 import Buscador from '../../components/Buscador.astro';
 import Indicacion from '../../components/Indicacion.astro';
-import { memoriasBuscables } from '../../lib/datos.js';
+import { memoriasBuscables, P, L, A } from '../../lib/datos.js';
+import { relacionadas, porQue } from '../../lib/relacionadas.js';
 
 /* El ejido, no el casco: de los once lugares relevados, tres caen fuera del
    casco urbano —los dos kilómetros de la ruta y Salto Encantado—. El archivo
@@ -92,6 +93,26 @@ const puntos = lugares
     const d = Math.round(r * 2 + 14);
     return { ...p, r, rPunto, d, dPunto: Math.max(Math.round(rPunto * 2 + 12), 18) };
   });
+
+/* Con qué sigue cada memoria. Se calcula en el build porque no cambia nunca
+   entre una visita y otra, y porque la tarjeta se abre encima del mapa: si
+   tuviera que ir a buscarlo, "seguí por acá" sería una espera, y toda la
+   gracia de no salir del mapa es que no haya espera.
+
+   Cuatro y no ocho: la tarjeta es chica y abajo ya están la tira de años del
+   lugar y las dos salidas del pie. */
+const nombresDe = Object.fromEntries([
+  ...Object.values(P).map(x => [x.slug, [x.nombre, x.apellido].filter(Boolean).join(' ') || x.slug]),
+  ...Object.values(L).map(x => [x.slug, x.nombre]),
+  ...Object.values(A).map(x => [x.slug, x.titulo]),
+]);
+const porDoc = Object.fromEntries(documentos.map(x => [x.slug, x]));
+const RELACIONES = Object.fromEntries(documentos.map(x => [x.slug,
+  relacionadas(x, documentos, nombresDe, 4).map(r => ({
+    slug: r.slug, por: porQue(r),
+    titulo: porDoc[r.slug]?.titulo || '',
+    foto: porDoc[r.slug]?.archivo || null,
+  }))]).filter(([, v]) => v.length));
 
 const conMaterial = puntos.length;
 const totalDocs = puntos.reduce((a, p) => a + p.n, 0);
@@ -267,8 +288,8 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     )}
   </section>
 
-  <script define:vars={{ PUNTOS: puntos, ANCHO, ALTO, M_POR_UNIDAD }}>
-    window.__MAPA = { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD };
+  <script define:vars={{ PUNTOS: puntos, ANCHO, ALTO, M_POR_UNIDAD, RELACIONES }}>
+    window.__MAPA = { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD, RELACIONES };
   </script>
 
   <script>
@@ -279,7 +300,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     import { geometria, inicial, acercar, recorrer, LUPA } from '../../lib/lupa.js';
     import { buscarMemorias, comoSeEncontro } from '../../lib/buscar.js';
 
-    const { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD } = window.__MAPA;
+    const { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD, RELACIONES } = window.__MAPA;
     const svgEl = document.getElementById('mapa');
     const mundo = document.getElementById('mundo');
     const base = document.getElementById('base');
@@ -937,6 +958,20 @@ const apellidosPortada = Object.entries(cuentaApellidos)
                 (indice === lista.length - 1 ? ' disabled' : '') + '>›</button>' +
             '</nav>'
           : '') +
+        /* Con qué sigue. Cada una dice qué comparte con la que estás mirando:
+           una tira de "relacionadas" sin razón escrita es una afirmación del
+           archivo que nadie puede verificar, y además nadie hace clic. */
+        ((RELACIONES[d.slug] || []).length
+          ? '<div class="t-cerca"><p class="t-cerca-tit">Seguí por acá</p><ul>' +
+            RELACIONES[d.slug].map(x =>
+              '<li><a href="/memorias/' + encodeURIComponent(x.slug) + '/"' +
+                ' data-cerca="' + esc(x.slug) + '">' +
+                (x.foto ? '<img src="' + esc(x.foto) + '" alt="" loading="lazy" />'
+                        : '<span class="sinfoto"></span>') +
+                '<span><b>' + esc(x.titulo) + '</b><i>' + esc(x.por) + '</i></span>' +
+              '</a></li>').join('') +
+            '</ul></div>'
+          : '') +
         '<div class="t-pie">' +
           '<a href="/memorias/' + encodeURIComponent(d.slug) + '/">Ver la memoria completa →</a>' +
           /* El nombre del lugar ya está dos líneas más arriba, en el encabezado
@@ -946,6 +981,21 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         '</div>';
 
       tarjeta.querySelector('.t-cerrar').addEventListener('click', cerrarMemoria);
+
+      /* Si la memoria que sigue también está en el mapa, se abre acá mismo en
+         vez de mandar a otra página: salir del mapa para volver a entrar es
+         perder el hilo de la visita, que es justo lo que la tarjeta encima
+         del mapa vino a evitar. Si no está —porque su lugar no tiene
+         coordenada—, el enlace hace lo que dice y la lleva a su ficha. */
+      for (const a of tarjeta.querySelectorAll('[data-cerca]')) {
+        const destino = a.dataset.cerca;
+        if (!porMemoria[destino]) continue;
+        a.addEventListener('click', ev => {
+          ev.preventDefault();
+          abierta = porMemoria[destino].lugarSlug;
+          abrirMemoria(destino, 'sig');
+        });
+      }
 
       /* ---- las fotos de esta memoria ---- */
       if (limpiarLupa) { limpiarLupa(); limpiarLupa = null; }
@@ -1446,6 +1496,23 @@ const apellidosPortada = Object.entries(cuentaApellidos)
                           pointer-events: none; }
     .marca-mapa.hallado .lente { box-shadow: 0 0 0 2px var(--cursor),
                                  0 2px 10px rgba(0, 0, 0, .18); }
+
+    /* Con qué sigue la visita, dentro de la tarjeta. Dos columnas en
+       escritorio y una en el teléfono: con cuatro apiladas, el pie de la
+       tarjeta —donde están las dos salidas— se va fuera de la pantalla. */
+    .t-cerca { padding: .9rem 1.1rem 0; }
+    .t-cerca-tit { margin: 0 0 .5rem; font-family: var(--texto); font-size: .76rem;
+                   letter-spacing: .04em; text-transform: uppercase; color: var(--tinta-2); }
+    .t-cerca ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem;
+                  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }
+    .t-cerca a { display: flex; gap: .6rem; align-items: center; border: 0;
+                 padding: .35rem; border-radius: 4px; background: var(--panel); }
+    .t-cerca a:hover { background: var(--panel-2); }
+    .t-cerca img, .t-cerca .sinfoto { width: 48px; height: 38px; flex: none;
+                 object-fit: cover; border-radius: 2px; background: var(--panel-2); }
+    .t-cerca .sinfoto { border: 1px dashed var(--linea-viva); }
+    .t-cerca b { display: block; font-weight: 400; font-size: .8rem; line-height: 1.25; }
+    .t-cerca i { display: block; font-style: normal; font-size: .71rem; color: var(--tinta-2); }
 
     .marca-mapa { opacity: 0; transition: opacity .4s ease; }
     .capa-marcas.listo .marca-mapa { opacity: 1; transition-delay: calc(var(--orden, 0) * 55ms + .7s); }

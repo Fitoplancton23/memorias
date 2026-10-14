@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import Aportar from '../../components/Aportar.astro';
 import { P, L, A, D, nombre, fecha, documentos } from '../../lib/datos.js';
+import { relacionadas, porQue } from '../../lib/relacionadas.js';
 export async function getStaticPaths() {
   const { documentos } = await import('../../lib/datos.js');
   return documentos.map(d => ({ params: { slug: d.slug }, props: { d } }));
@@ -16,13 +17,19 @@ const gente = (d.personas || []).map(s => P[s]).filter(Boolean);
 
 /* El círculo de navegación: desde una memoria se sale hacia el lugar y hacia
    la gente, y las dos salidas tienen que llevar a MÁS memorias. Sin esto la
-   ficha es un callejón sin salida. */
-const mismoLugar = documentos.filter(o => o.slug !== d.slug
-  && (o.lugares || []).some(s => (d.lugares || []).includes(s)))
-  .sort((a, b) => (a.fecha?.ref ?? 9999) - (b.fecha?.ref ?? 9999));
-const mismaGente = documentos.filter(o => o.slug !== d.slug
-  && !mismoLugar.includes(o)
-  && (o.personas || []).some(s => (d.personas || []).includes(s)));
+   ficha es un callejón sin salida.
+
+   Antes eran dos listas sin tope —"del mismo lugar" y "con la misma gente"—
+   que no decían QUÉ compartían: en un pueblo donde todo pasó en la plaza,
+   "otras memorias del mismo lugar" podían ser ciento cuarenta y ninguna traía
+   escrito por qué estaba ahí. Ahora es una sola lista, acotada, y cada una
+   nombra lo que comparte. */
+const nombres = Object.fromEntries([
+  ...Object.values(P).map(x => [x.slug, nombre(x)]),
+  ...Object.values(L).map(x => [x.slug, x.nombre]),
+  ...Object.values(A).map(x => [x.slug, x.titulo]),
+]);
+const cerca = relacionadas(d, documentos, nombres).map(r => ({ ...r, m: D[r.slug] })).filter(x => x.m);
 
 const comoSeLee = f => {
   if (!f?.ref) return 'sin fecha';
@@ -87,26 +94,17 @@ const comoSeLee = f => {
       la foto y leyendo lo que falta, no después de recorrer dos listas más. */}
   <Aportar titulo={d.titulo} url={Astro.url.href} />
 
-  {mismoLugar.length > 0 && (<>
-    <h2>Lo mismo, en otro momento</h2>
-    <p class="bajada">Otras memorias del mismo lugar.</p>
+  {cerca.length > 0 && (<>
+    <h2>Seguí por acá</h2>
     <ul class="tiras">
-      {mismoLugar.map(o => (
-        <li><a href={`/memorias/${o.slug}/`}>
-          {o.archivo ? <img src={o.archivo} alt="" loading="lazy" /> : <span class="sinfoto"></span>}
-          <span><b>{o.titulo}</b><i>{comoSeLee(o.fecha)}</i></span>
-        </a></li>
-      ))}
-    </ul>
-  </>)}
-
-  {mismaGente.length > 0 && (<>
-    <h2>Con la misma gente</h2>
-    <ul class="tiras">
-      {mismaGente.map(o => (
-        <li><a href={`/memorias/${o.slug}/`}>
-          {o.archivo ? <img src={o.archivo} alt="" loading="lazy" /> : <span class="sinfoto"></span>}
-          <span><b>{o.titulo}</b><i>{comoSeLee(o.fecha)}</i></span>
+      {cerca.map(x => (
+        <li><a href={`/memorias/${x.slug}/`}>
+          {x.m.archivo ? <img src={x.m.archivo} alt="" loading="lazy" /> : <span class="sinfoto"></span>}
+          <span><b>{x.m.titulo}</b>
+            {/* La razón va antes que el año: es lo que decide si alguien hace
+                clic, y el año solo no decide nada. */}
+            <i class="tira-por">{porQue(x)}</i>
+            <i>{comoSeLee(x.m.fecha)}</i></span>
         </a></li>
       ))}
     </ul>
@@ -127,6 +125,7 @@ const comoSeLee = f => {
                border-radius: 2px; flex: none; background: var(--panel-2); }
     .tiras .sinfoto { border: 1px dashed var(--linea-viva); }
     .tiras b { display: block; font-weight: 400; font-size: .84rem; line-height: 1.3; }
-    .tiras i { font-style: normal; font-size: .72rem; color: var(--tinta-2); }
+    .tiras i { display: block; font-style: normal; font-size: .72rem; color: var(--tinta-2); }
+    .tiras .tira-por { color: var(--tinta); }
   </style>
 </Base>

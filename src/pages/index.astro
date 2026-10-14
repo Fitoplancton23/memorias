@@ -1,8 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import Isotipo from '../components/Isotipo.astro';
-import { documentos, lugares, personas } from '../lib/datos.js';
-import { sitio, parajes } from '../lib/sitio.js';
+import { parajes } from '../lib/sitio.js';
 
 /* La pantalla de inicio.
    -------------------------------------------------------------------------
@@ -19,24 +18,21 @@ import { sitio, parajes } from '../lib/sitio.js';
    lugares y las personas conservan su dirección— y lo que alguien haya
    compartido de una memoria sigue abriendo esa memoria. */
 
-const conFecha = documentos.map(d => d.fecha?.ref).filter(Boolean);
-const rango = conFecha.length ? [Math.min(...conFecha), Math.max(...conFecha)] : null;
-const ubicados = lugares.filter(l => l.lat != null && (l.documentos || []).length).length;
-const sinFecha = documentos.length - conFecha.length;
 ---
 <Base titulo={null}
       descripcion={`Archivo de memorias de ${parajes}. Recorrelo por el mapa o por la línea de tiempo.`}>
   <section class="inicio">
+    {/* Un saludo y una pregunta, y nada más. Acá hubo una cuenta del archivo
+        —cuántas memorias, entre qué años, cuántos lugares y personas— y los
+        parajes repetidos de la barra de arriba. Era información correcta y
+        estaba de más: alguien de setenta y cinco años llega a esta pantalla a
+        elegir por dónde entrar, y cuatro renglones de cifras lo ponen a leer
+        para entender qué se espera de él. Lo que tiene que hacer está en la
+        pregunta, y las dos respuestas están abajo. */}
     <header class="inicio-cab">
       <Isotipo clase="inicio-marca" />
-      <h1>{sitio.nombre}</h1>
-      <p class="inicio-bajada">{parajes}</p>
-      <p class="inicio-cuenta">
-        {documentos.length} memorias
-        {rango && <> entre {rango[0]} y {rango[1]}</>}
-        {ubicados > 0 && <> · {ubicados} lugares</>}
-        {personas.length > 0 && <> · {personas.length} personas</>}
-      </p>
+      <h1>¡Hola!</h1>
+      <p class="inicio-pregunta">¿Cómo te gustaría recorrer las memorias?</p>
     </header>
 
     {/* Las dos puertas. Mismo tamaño, mismo tratamiento, mismo orden de
@@ -73,13 +69,31 @@ const sinFecha = documentos.length - conFecha.length;
       </a>
     </div>
 
-    <p class="inicio-pie">
-      Las dos muestran el mismo archivo. Se puede cambiar de una a la otra en
-      cualquier momento, sin volver acá.
-      {sinFecha > 0 && <> Las {sinFecha} memorias sin fecha están igual: lo que falta se dice, no se esconde.</>}
-    </p>
+    {/* Sólo la primera vez, y es un empujoncito, no una explicación: dice qué
+        hacer, no cómo funciona el sitio. Quien ya entró una vez no necesita
+        que se lo recuerden, y quien recarga sí —durante el armado hace falta
+        poder volver a verlo—, igual que la pantalla de carga. */}
+    <p class="inicio-empuje" id="empuje" hidden>Seleccioná una opción</p>
   </section>
 </Base>
+
+<script>
+  /* Igual que la pantalla de carga: una vez elegido, no vuelve a aparecer;
+     recargar sí lo muestra, que es lo que hace falta mientras se lo ajusta. */
+  const empuje = document.getElementById('empuje');
+  if (empuje) {
+    let visto = false;
+    try {
+      const nav = performance.getEntriesByType('navigation')[0];
+      visto = !(nav && nav.type === 'reload') && !!localStorage.getItem('memorias:eligio');
+    } catch (e) {}
+    if (!visto) empuje.hidden = false;
+    for (const a of document.querySelectorAll('.puerta'))
+      a.addEventListener('click', () => {
+        try { localStorage.setItem('memorias:eligio', '1'); } catch (e) {}
+      });
+  }
+</script>
 
 <style>
   /* La entrada: cada cosa llega un momento después de la anterior, de arriba
@@ -92,9 +106,8 @@ const sinFecha = documentos.length - conFecha.length;
   .inicio-cab :global(.inicio-marca) { width: 4.6rem; height: 4.6rem;
                                        color: var(--marca); margin-bottom: .6rem; }
   .inicio-cab h1 { margin: 0; font-size: clamp(1.9rem, 5vw, 2.6rem); font-weight: 500; }
-  .inicio-bajada { margin: 0; font-size: .82rem; letter-spacing: .1em;
-                   text-transform: uppercase; color: var(--tinta-2); }
-  .inicio-cuenta { margin: .5rem 0 0; font-size: .9rem; color: var(--tinta-2); }
+  .inicio-pregunta { margin: .2rem 0 0; font-size: clamp(1rem, 2.6vw, 1.2rem);
+                     color: var(--tinta-2); line-height: 1.5; }
 
   .puertas { display: grid; gap: 1.1rem; grid-template-columns: repeat(2, 1fr); }
   /* `1fr` las dos y el mismo contenido mínimo: ninguna puede quedar más grande
@@ -117,24 +130,28 @@ const sinFecha = documentos.length - conFecha.length;
   .puerta-pregunta { font-size: .98rem; color: var(--tinta); }
   .puerta-detalle { font-size: .84rem; color: var(--tinta-2); line-height: 1.5; }
 
-  .inicio-pie { margin: 0; text-align: center; font-size: .84rem;
-                color: var(--tinta-2); line-height: 1.6; max-width: 34rem;
-                margin-inline: auto; }
+  /* Flotando debajo de las dos puertas y en el eje: señala a las dos por
+     igual. Respira despacio para que se note sin tironear. */
+  .inicio-empuje { margin: 0; text-align: center; font-size: .9rem;
+                   color: var(--tinta-2); animation: respira-empuje 2.6s ease-in-out infinite; }
+  @keyframes respira-empuje { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 
   @media (max-width: 40rem) {
     .puertas { grid-template-columns: 1fr; }
     .puerta { padding: 1.4rem 1.2rem 1.2rem; }
   }
 
-  .inicio-cab, .puerta, .inicio-pie { animation: llega .55s cubic-bezier(.22,.7,.3,1) backwards; }
+  .inicio-cab, .puerta, .inicio-empuje { animation: llega .55s cubic-bezier(.22,.7,.3,1) backwards; }
   .inicio-cab { animation-delay: .05s; }
   .puerta:nth-of-type(1) { animation-delay: .22s; }
   .puerta:nth-of-type(2) { animation-delay: .32s; }
-  .inicio-pie { animation-delay: .46s; }
+  .inicio-empuje { animation-delay: .46s,  .46s; animation-name: llega, respira-empuje;
+                   animation-duration: .55s, 2.6s; animation-iteration-count: 1, infinite;
+                   animation-fill-mode: backwards, none; }
   @keyframes llega { from { opacity: 0; transform: translateY(14px); } }
 
   @media (prefers-reduced-motion: reduce) {
-    .inicio-cab, .puerta, .inicio-pie { animation: none; }
+    .inicio-cab, .puerta, .inicio-empuje { animation: none; }
     .puerta:hover { transform: none; }
   }
 </style>

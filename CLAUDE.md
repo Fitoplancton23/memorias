@@ -150,6 +150,18 @@ no escribiendo— y mira el nombre, el apellido y todos los apodos y alias por
 igual. Cuando encuentra por un apodo, lo dice: un resultado que no se puede
 explicar es un resultado en el que no se puede confiar. Cubierto por tests.
 
+Una memoria se busca igual, y por cualquier hilo del que alguien se acuerde
+—el baile, la escuela, mi abuelo, 1948—: las palabras se reparten entre
+todos los campos, porque nadie recuerda el título que le puso quien la
+cargó. El mismo campo en las dos vistas, en el mismo lugar de la pantalla:
+dos buscadores distintos con la misma función obligan a aprender dos veces
+lo mismo. Lo que cambia es qué hace cada vista con lo que encuentra.
+
+Y siempre dice por dónde la encontró. Gana el hilo que explica **más** de lo
+que se escribió, no el primero que calza una palabra: en un pueblo el
+apellido se repite, así que quien escribe "María Ejemplo" no puede leer "por
+Juan Ejemplo".
+
 Un buscador que no encuentra falla en silencio: devuelve vacío, y vacío se
 lee como "esa persona no está en el archivo".
 

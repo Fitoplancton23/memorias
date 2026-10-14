@@ -14,6 +14,11 @@ const DIR = 'public/intro';
 const DURACION = 10;        /* lo que el sitio espera, en segundos */
 const TOLERANCIA = 0.15;    /* un cuadro y pico de margen */
 const PESO_AVISO = 1.5;     /* MB a partir de los cuales conviene mirar */
+/* Arriba de esto no es una opinión: Cloudflare Pages no sirve archivos de más
+   de 25 MB, y además un video así es bitrate de master. Diez segundos a 8 MB
+   ya son 6,4 Mbps, que es cinco veces lo que necesita un fondo detrás de un
+   logo. */
+const PESO_FRENO = 8;
 
 const probe = f => JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-print_format', 'json',
   '-show_format', '-show_streams', f], { encoding: 'utf8' }));
@@ -87,7 +92,11 @@ for (const [nombre, obligatorio] of esperados) {
   if (audio)
     ojo(`${nombre} trae pista de audio. El video arranca silenciado siempre, ` +
         `así que es peso que nadie va a escuchar: reexportar con -an.`);
-  if (mb > PESO_AVISO)
+  if (mb > PESO_FRENO)
+    mal(`${nombre} pesa ${mb.toFixed(1)} MB, o sea ${(mb * 8 / 10).toFixed(1)} Mbps. ` +
+        `Eso es bitrate de master, no de entrega — y arriba de 25 MB Cloudflare ` +
+        `directamente no lo sirve. Reexportar apuntando a 1,2 Mbps.`);
+  else if (mb > PESO_AVISO)
     ojo(`${nombre} pesa ${mb.toFixed(2)} MB. Entra, pero es mucho para una intro.`);
 
   /* El índice al principio. Sin esto el navegador se baja el archivo entero

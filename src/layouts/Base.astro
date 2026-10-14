@@ -6,6 +6,13 @@ import Isotipo from '../components/Isotipo.astro';
 import Ondas from '../components/Ondas.astro';
 import Conecta from '../components/Conecta.astro';
 import Fondo from '../components/Fondo.astro';
+import { existsSync } from 'node:fs';
+/* La intro existe sólo si el archivo está. Se mira en el build y no en el
+   navegador: así, sin video, el HTML ni siquiera menciona una etiqueta de
+   video, y la portada es exactamente la que fue siempre. Para sacarla, se
+   borran los archivos de public/intro/ y se vuelve a construir. */
+const hayIntro = existsSync('public/intro/intro.mp4') || existsSync('public/intro/intro.webm');
+
 const { titulo, descripcion, suelto = false } = Astro.props;
 const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
 ---
@@ -40,6 +47,24 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
   <Fondo intensidad={suelto ? 'tenue' : 'normal'} />
 
   <div class="cargando" id="cargando">
+    {hayIntro && (
+      <>
+        {/* `preload="none"`: la intro no puede competir por ancho de banda con
+            lo que hace falta para que el sitio exista. La carga la arranca el
+            script, y si no llega a tiempo no hay intro. */}
+        <video class="cargando-video" id="introVideo" muted playsinline
+               preload="none" poster="/intro/intro.webp" aria-hidden="true" tabindex="-1">
+          <source src="/intro/intro.webm" type="video/webm" />
+          <source src="/intro/intro.mp4" type="video/mp4" />
+        </video>
+        {/* La salida, visible desde el primer segundo. Una intro de diez
+            segundos sin forma de saltarla es una pared, y buena parte de quien
+            entra acá viene de un enlace de WhatsApp a buscar una foto, no a
+            mirar una presentación. Es un botón de verdad: se ve, se tabula y
+            Escape hace lo mismo. */}
+        <button type="button" class="cargando-saltar" id="saltarIntro" hidden>Saltar intro</button>
+      </>
+    )}
     <Isotipo clase="cargando-marca" dibujable />
     <span class="cargando-puntos" aria-hidden="true"><i></i><i></i><i></i></span>
     <span class="visualmente-oculto">Cargando {sitio.nombre}</span>
@@ -129,14 +154,71 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
          que termina en 1,75s— más un respiro. Con 1150 ms la pantalla se iba
          antes de que el isotipo terminara de dibujarse: entraba y salía sin
          que se llegara a ver. */
-      Promise.race([Promise.all([esperar(2050), listo]), esperar(3400)]).then(() => {
+      const irse = () => {
+        if (capa.classList.contains('se-va')) return;
         capa.classList.add('se-va');
         try { sessionStorage.setItem('memorias:visto', '1'); } catch (e) {}
         /* El aviso sale cuando la pantalla ya se fue, no cuando empieza a irse:
            si salen juntas, el isotipo y la capa se funden a la vez y en lugar
            de dos tiempos se percibe uno solo. */
         setTimeout(() => { capa.remove(); dispatchEvent(new Event("carga-se-va")); }, 750);
-      });
+      };
+
+      /* ---- la intro ----
+         Diez segundos es una puerta larga, así que tiene tres salidas: el botón
+         de saltar, Escape, y que el video no esté listo a tiempo. Ninguna de
+         las tres depende de que el video llegue bien. */
+      const video = document.getElementById('introVideo');
+      const saltar = document.getElementById('saltarIntro');
+
+      /* Cuándo NO hay intro. Las tres primeras son del visitante y no se
+         discuten; la cuarta es de la conexión. */
+      const sinIntro = !video
+        || matchMedia('(prefers-reduced-motion: reduce)').matches
+        || (navigator.connection && (navigator.connection.saveData
+            || /^[23]g$/.test(navigator.connection.effectiveType || '')));
+
+      if (sinIntro) {
+        Promise.race([Promise.all([esperar(2050), listo]), esperar(3400)]).then(irse);
+      } else {
+        const DURACION = 10000;   /* lo que dura la pieza */
+        const SALIDA = 600;       /* lo que tarda la cortina en abrirse */
+        const PACIENCIA = 1800;   /* lo que se espera a que el video arranque */
+
+        /* El presupuesto. Si en PACIENCIA el video no empezó a correr, no hay
+           intro y la portada se comporta como siempre: nadie se queda mirando
+           un rectángulo negro esperando algo que no va a llegar. */
+        const arranco = new Promise(r => {
+          video.addEventListener('playing', () => r(true), { once: true });
+          video.addEventListener('error', () => r(false), { once: true });
+          setTimeout(() => r(false), PACIENCIA);
+          video.load();
+          const p = video.play();
+          if (p && p.catch) p.catch(() => r(false));
+        });
+
+        arranco.then(anda => {
+          if (!anda) {
+            video.remove();
+            if (saltar) saltar.remove();
+            Promise.race([Promise.all([esperar(2050), listo]), esperar(3400)]).then(irse);
+            return;
+          }
+          /* Recién ahora la portada pasa a modo intro: el isotipo se dibuja
+             despacio y termina junto con el video, y el botón de saltar
+             aparece. Antes de esto no se muestra, porque si el video no
+             arranca no hay nada que saltar. */
+          capa.classList.add('con-intro');
+          if (saltar) { saltar.hidden = false; }
+
+          const cerrar = () => { video.pause(); irse(); };
+          saltar?.addEventListener('click', cerrar);
+          addEventListener('keydown', e => { if (e.key === 'Escape') cerrar(); });
+          /* El reloj manda, no el evento `ended`: si el video se traba a mitad
+             de camino, `ended` no llega nunca y la puerta queda cerrada. */
+          setTimeout(irse, DURACION - SALIDA);
+        });
+      }
     } else if (capa) {
       capa.remove();
     }

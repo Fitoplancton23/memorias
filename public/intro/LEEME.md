@@ -78,21 +78,28 @@ mostrar un cuadro— y cuánto pesa cada uno. Sale con 1 si hay algo que arregla
 
 ## Los tiempos
 
-La puerta entera dura 10 segundos y está repartida así:
+**No hay nada que configurar.** El sitio le pregunta al archivo cuánto dura y
+despeja todo lo demás de ahí: cuándo empieza a dibujarse el isotipo, cuándo
+cierra el relleno y cuándo se abre la cortina. Cambiar la pieza de diez
+segundos a tres no pide tocar una línea.
 
-| Momento | Qué pasa |
-|---|---|
-| 0,0 s | arranca el video, aparece «Saltar intro» |
-| 5,7 s | el isotipo empieza a dibujarse (trazo de 3,5 s) |
-| 8,9 s | empieza el relleno (0,5 s) |
-| 9,4 s | el isotipo está completo y la cortina empieza a abrirse |
-| 10,0 s | la portada ya no está |
+La regla es siempre la misma: **el isotipo queda completo justo cuando empieza
+a abrirse la cortina**, que tarda 0,6 s. Lo que cambia es cuánto antes arranca
+el trazo.
 
-Si la pieza cambia de largo, se tocan tres números y tienen que seguir cuadrando:
-`DURACION` en el script de `src/layouts/Base.astro`, y los dos retrasos de
-`.cargando.con-intro .cargando-marca` en `src/styles/tokens.css`. La cuenta es:
-el relleno tiene que terminar en `DURACION - 600 ms`, y el trazo empieza 3,7 s
-antes de eso.
+| Si la pieza dura | el trazo arranca en | el relleno cierra en | la puerta termina en |
+|---|---|---|---|
+| 3 s | 0,25 s | 2,4 s | 3,0 s |
+| 10 s | 5,6 s | 9,4 s | 10,0 s |
+
+**Las dos versiones tienen que durar lo mismo.** Si no, el isotipo cuadra en
+escritorio y no en teléfono: el navegador lee el largo del archivo que le tocó.
+
+**La salida visible aparece recién a partir de los 5 segundos.** En una pieza
+de tres, el botón aparece y se va antes de que nadie lo registre —es ruido
+encima de la animación— y lo que protegía, quedarse encerrado, ya no puede
+pasar porque el reloj la cierra igual. Escape funciona siempre, dure lo que
+dure.
 
 ## Lo que la intro no hace nunca
 

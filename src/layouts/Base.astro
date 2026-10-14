@@ -207,9 +207,30 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
       if (sinIntro) {
         Promise.race([Promise.all([esperar(2050), listo]), esperar(3400)]).then(irse);
       } else {
-        const DURACION = 10000;   /* lo que dura la pieza */
-        const SALIDA = 600;       /* lo que tarda la cortina en abrirse */
-        const PACIENCIA = 1800;   /* lo que se espera a que el video arranque */
+        const SALIDA = 600;        /* lo que tarda la cortina en abrirse */
+        const PACIENCIA = 1200;    /* lo que se espera a que el video arranque */
+        const CON_BOTON = 5000;    /* de acá para arriba, la intro lleva salida visible */
+
+        /* Los tiempos salen del archivo, no de un número escrito a mano. La
+           primera versión tenía el largo de la pieza clavado en el código y en
+           el CSS: cambiarla de diez segundos a tres obligaba a tocar tres
+           números en dos archivos y a que los tres cuadraran entre sí. Ahora
+           se le pregunta al video cuánto dura y todo lo demás se despeja de
+           ahí.
+
+           La cuenta: el isotipo tiene que estar completo cuando empieza a
+           abrirse la cortina, o sea `fin`. El relleno dura medio segundo y
+           cierra ahí; el trazo termina dos décimas después de que el relleno
+           arranca, como en la pantalla de carga de siempre; y el trazo dura lo
+           que entre, entre un segundo y tres y medio. */
+        const tiempos = dur => {
+          const fin = Math.max(1200, dur * 1000 - SALIDA);
+          const rellenoDel = fin - 500;
+          const trazoFin = rellenoDel + 200;
+          const trazo = Math.min(3500, Math.max(1000, trazoFin - 250));
+          return { fin, trazo, trazoDel: Math.max(150, trazoFin - trazo),
+                   relleno: 500, rellenoDel };
+        };
 
         /* El presupuesto. Si en PACIENCIA el video no empezó a correr, no hay
            intro y la portada se comporta como siempre: nadie se queda mirando
@@ -242,15 +263,45 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
              despacio y termina junto con el video, y el botón de saltar
              aparece. Antes de esto no se muestra, porque si el video no
              arranca no hay nada que saltar. */
+          /* `video.duration` puede no estar —un archivo raro, un error de
+             lectura—, y ahí se usan tres segundos, que es lo que dura la pieza
+             hoy. Nunca se queda sin número. */
+          const largo = Number.isFinite(video.duration) && video.duration > 0
+            ? video.duration : 3;
+          const t = tiempos(largo);
+          capa.style.setProperty('--trazo-dur', t.trazo + 'ms');
+          capa.style.setProperty('--trazo-del', t.trazoDel + 'ms');
+          capa.style.setProperty('--relleno-dur', t.relleno + 'ms');
+          capa.style.setProperty('--relleno-del', t.rellenoDel + 'ms');
+          /* Reiniciar las animaciones del isotipo antes de cambiarles los
+             tiempos. Venían corriendo desde que se pintó la página con los
+             valores de la portada normal, y cambiarle la duración y el retraso
+             a una animación que ya arrancó NO la vuelve a empezar: el
+             navegador aplica los números nuevos contra el arranque viejo. El
+             relleno cerraba 200 ms antes de tiempo —medido— y con una pieza de
+             tres segundos eso es casi un diez por ciento de la puerta. Apagar,
+             forzar el recálculo leyendo una medida, y volver a encender. */
+          const marca = capa.querySelector('.cargando-marca');
+          if (marca) { marca.style.animation = 'none'; void marca.offsetWidth; }
           capa.classList.add('con-intro');
-          if (saltar) { saltar.hidden = false; }
+          if (marca) marca.style.animation = '';
+
+          /* La salida visible es para una puerta larga. En una de tres
+             segundos el botón aparece y se va antes de que nadie lo registre:
+             es ruido encima de la pieza, y lo que protegía —quedarse
+             encerrado— ya no puede pasar, porque el reloj la cierra igual.
+             Escape sigue andando siempre, que no le cuesta nada a nadie. */
+          if (saltar) {
+            if (largo * 1000 >= CON_BOTON) saltar.hidden = false;
+            else saltar.remove();
+          }
 
           const cerrar = () => { video.pause(); irse(); };
           saltar?.addEventListener('click', cerrar);
           addEventListener('keydown', e => { if (e.key === 'Escape') cerrar(); });
           /* El reloj manda, no el evento `ended`: si el video se traba a mitad
              de camino, `ended` no llega nunca y la puerta queda cerrada. */
-          setTimeout(irse, DURACION - SALIDA);
+          setTimeout(irse, t.fin);
         });
       }
     } else if (capa) {

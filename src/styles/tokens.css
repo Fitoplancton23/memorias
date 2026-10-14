@@ -359,12 +359,11 @@ html.sin-carga .cargando { display: none; }
    (`con-intro` lo pone el script). Si no arranca, nada de esto existe y la
    pantalla de carga es la de siempre: dos segundos y el logo.
 
-   La cuenta de los tiempos, para que se pueda rehacer si cambia la pieza. La
-   puerta entera dura 10 s, que es lo que dura el video. La cortina tarda 0,6 s
-   en abrirse, así que empieza a las 9,4. El isotipo tiene que terminar de
-   dibujarse justo ahí: el trazo dura 3,5 s y el relleno cierra 3,7 s después
-   de empezar, entonces arranca a las 5,7. Si cambia el largo del video, se
-   mueve DURACION en el script y estos dos retrasos. */
+   Los tiempos no están acá: los calcula el script a partir de lo que dura el
+   video y los deja en estas cuatro variables. Cambiar la pieza de diez
+   segundos a tres no pide tocar ni una línea. Los valores de reserva son los
+   que corresponden a una pieza de 3 s, por si el script no llegara a
+   escribirlos. */
 .cargando-video { position: absolute; inset: 0; width: 100%; height: 100%;
                   object-fit: cover; display: none; }
 .cargando.con-intro .cargando-video { display: block; }
@@ -381,8 +380,10 @@ html.sin-carga .cargando { display: none; }
    papel. Es una línea si la pieza pide lo contrario. */
 .cargando.con-intro .cargando-marca { position: relative; z-index: 1;
   fill: var(--fondo); stroke: var(--fondo);
-  animation: trazo 3.5s cubic-bezier(.65, 0, .25, 1) 5.7s forwards,
-             relleno .5s ease-out 8.9s forwards; }
+  animation: trazo var(--trazo-dur, 1850ms) cubic-bezier(.65, 0, .25, 1)
+                   var(--trazo-del, 250ms) forwards,
+             relleno var(--relleno-dur, 500ms) ease-out
+                     var(--relleno-del, 1900ms) forwards; }
 
 /* Los puntos dicen "se está esperando algo", y durante la intro no se espera
    nada: se está mirando. El que quiere entrar ya tiene el botón. */

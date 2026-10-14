@@ -40,6 +40,15 @@ parientes.** Dice que existe una memoria que las relaciona. Son cosas
 diferentes y el sistema no las mezcla: el parentesco vive en
 `nucleos_familiares` y `nucleo_hijos`; lo histórico, en `memoria_personas`.
 
+**Y una memoria se relaciona con otra sólo por algo que se pueda nombrar.**
+La persona que vuelve a aparecer, el lugar, el acontecimiento, el año exacto.
+"Relacionadas" a secas es una afirmación del archivo que nadie puede
+verificar, y además nadie hace clic. No relacionan la década —con ciento
+cuarenta memorias en ochenta años casi todas la comparten, y una relación que
+alcanza a todos no relaciona a nadie— ni el parecido del título: dos "Acto
+escolar" de escuelas distintas no tienen nada que ver, y suponerlo sería
+inventar un dato. Cubierto por tests.
+
 **Un lugar es una entidad, no una coordenada.** Es un sitio con nombre —la
 Escuela Normal, la casa de Juan Potkova, la vieja terminal— y tiene una
 coordenada representativa que se fija una vez y sólo cambia si alguien la

@@ -1,0 +1,52 @@
+---
+/* El conmutador de vista.
+   -------------------------------------------------------------------------
+   Mapa y línea de tiempo son dos lecturas del mismo archivo, no dos secciones.
+   Si para pasar de una a otra hay que volver al inicio, dejan de ser dos
+   lecturas y pasan a ser dos lugares distintos — y la gente elige uno y no se
+   entera de que el otro existe.
+
+   Por eso el control está en las dos superficies, siempre visible y en el
+   mismo sitio, y marca cuál de las dos estás mirando. No es un botón que
+   "lleva a otro lado": es un interruptor de dos posiciones, que es lo que la
+   forma tiene que decir antes de leer las palabras.
+
+   Reemplaza al viejo "Volver al mapa", que suponía que el mapa era el centro y
+   todo lo demás una salida de ese centro. Ya no lo es. */
+const { actual } = Astro.props;   /* 'mapa' | 'tiempo' */
+---
+<nav class="conmutador" aria-label="Cómo recorrer el archivo">
+  <a href="/mapa/" data-vista="mapa" class={actual === 'mapa' ? 'puesto' : ''}
+     aria-current={actual === 'mapa' ? 'page' : undefined}>
+    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+         stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 4 3 6.5v13L9 17l6 3 6-2.5v-13L15 7 9 4Z" /><path d="M9 4v13" /><path d="M15 7v13" />
+    </svg>
+    <b>Mapa</b>
+  </a>
+  <a href="/memorias/" data-vista="tiempo" class={actual === 'tiempo' ? 'puesto' : ''}
+     aria-current={actual === 'tiempo' ? 'page' : undefined}>
+    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+         stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 12h16" /><circle cx="8" cy="12" r="1.9" /><circle cx="16" cy="12" r="1.9" />
+      <path d="M8 6.5v3.6" /><path d="M16 14v3.6" />
+    </svg>
+    <b>Línea de tiempo</b>
+  </a>
+</nav>
+
+<script>
+  /* Lo que estabas mirando viaja con vos. Se pasa la consulta entera y cada
+     vista toma lo que entiende: la línea de tiempo ya lee década, apellido y
+     lugar, y lo que no conoce lo ignora sin romperse. Un registro de
+     parámetros permitidos sería una lista más para mantener, y el día que
+     alguien agrega un filtro se olvida de anotarlo ahí.
+
+     Y el efecto de borde es el que importa más: si el estado vive en la
+     dirección, entonces mandar por WhatsApp lo que estás viendo es copiar la
+     barra del navegador. */
+  const q = location.search;
+  if (q && q.length > 1)
+    for (const a of document.querySelectorAll('.conmutador a:not(.puesto)'))
+      a.setAttribute('href', a.getAttribute('href') + q);
+</script>

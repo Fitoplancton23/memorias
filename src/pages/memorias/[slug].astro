@@ -57,7 +57,7 @@ const comoSeLee = f => {
     {sitios.length > 0 && (
       <div><div class="meta">Lugar</div>
         {sitios.map(l => <div><a href={`/lugares/${l.slug}/`}>{l.nombre}</a></div>)}
-        {ubicado && <div style="margin-top:.4rem"><a href="/">Ver en el mapa →</a></div>}
+        {ubicado && <div style="margin-top:.4rem"><a href="/mapa/">Ver en el mapa →</a></div>}
       </div>)}
     {!sitios.length && (
       <div><div class="meta">Lugar</div>

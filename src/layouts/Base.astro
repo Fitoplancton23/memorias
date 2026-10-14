@@ -6,6 +6,7 @@ import Isotipo from '../components/Isotipo.astro';
 import Ondas from '../components/Ondas.astro';
 import Conecta from '../components/Conecta.astro';
 import Fondo from '../components/Fondo.astro';
+import Conmutador from '../components/Conmutador.astro';
 import { existsSync } from 'node:fs';
 /* La intro existe sólo si el archivo está. Se mira en el build y no en el
    navegador: así, sin video, el HTML ni siquiera menciona una etiqueta de
@@ -37,6 +38,11 @@ const posterWeb = introWeb.poster ? '/intro/intro-web.webp' : '';
 const posterMob = introMob.poster ? '/intro/intro-mob.webp' : posterWeb;
 
 const { titulo, descripcion, suelto = false } = Astro.props;
+/* En qué superficie estamos, para marcar el conmutador. El inicio no es una
+   superficie de exploración: ahí se elige, y el conmutador no tiene sentido. */
+const ruta = Astro.url.pathname;
+const vista = ruta === '/mapa/' || ruta === '/mapa' ? 'mapa'
+            : ruta === '/memorias/' || ruta === '/memorias' ? 'tiempo' : null;
 const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
 ---
 <!doctype html>
@@ -128,14 +134,15 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
           funcionando, y cambiar la URL para que coincida con el rótulo del
           menú los rompería a todos. */}
       <nav>
-        <a href="/">Mapa</a>
+        <a href="/mapa/">Mapa</a>
         <a href="/memorias/">Línea de tiempo</a>
         <a href="/personas/">Personas y familias</a>
       </nav>
     </div>
   </header>
-  {Astro.url.pathname !== "/" && (
-    <a class="volver-mapa" href="/">
+  {vista && <Conmutador actual={vista} />}
+  {!vista && ruta !== "/" && (
+    <a class="volver-mapa" href="/mapa/">
       <span aria-hidden="true">←</span>
       <b>Volver al mapa</b>
     </a>

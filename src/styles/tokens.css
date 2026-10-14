@@ -465,3 +465,42 @@ html.sin-carga .cargando { display: none; }
 .volver-mapa span { font-size: 1.05em; }
 .volver-mapa:hover { background: var(--cursor); color: var(--placa); }
 .volver-mapa:focus-visible { outline: 2px solid var(--cursor); outline-offset: 3px; }
+
+/* ---- el conmutador de vista ----
+   Dos posiciones de un mismo interruptor, no dos botones: por eso comparten
+   cápsula, el puesto va en tinta llena y el otro queda hueco. La forma dice
+   "estás en una de dos" antes de que nadie lea las palabras.
+
+   Flotante abajo y centrado. Arriba está la barra, a la derecha del mapa está
+   la ficha del lugar y abajo a la derecha los controles de acercamiento: el
+   centro del borde de abajo es lo único que queda libre en las dos
+   superficies, y además es donde llega el pulgar. */
+.conmutador { position: fixed; z-index: 70; left: 50%; bottom: 1.1rem;
+              transform: translateX(-50%);
+              display: flex; align-items: stretch; gap: .2rem; padding: .25rem;
+              border-radius: 999px; border: 1px solid var(--linea);
+              background: var(--panel); box-shadow: 0 14px 34px -14px rgba(24,30,27,.5); }
+.conmutador a { display: inline-flex; align-items: center; gap: .45rem;
+                padding: .55rem 1rem; border: 0; border-radius: 999px;
+                color: var(--tinta-2); font-size: .86rem; line-height: 1;
+                text-decoration: none; white-space: nowrap;
+                transition: background .18s ease, color .18s ease; }
+.conmutador a svg { width: 1.05rem; height: 1.05rem; flex: none; }
+.conmutador a b { font-weight: 500; }
+.conmutador a:hover { color: var(--tinta); }
+.conmutador a.puesto { background: var(--tinta); color: var(--placa); }
+.conmutador a.puesto:hover { color: var(--placa); }
+.conmutador a:focus-visible { outline: 2px solid var(--cursor); outline-offset: 2px; }
+
+/* En pantalla angosta el rótulo largo no entra con el otro al lado: queda el
+   icono y la palabra corta. No se esconde ninguna de las dos posiciones —el
+   conmutador deja de serlo si una no se ve—. */
+@media (max-width: 30rem) {
+  .conmutador a { padding: .55rem .8rem; font-size: .8rem; }
+  .conmutador a[data-vista="tiempo"] b { font-size: 0; }
+  .conmutador a[data-vista="tiempo"] b::after { content: "Tiempo"; font-size: .8rem; }
+}
+
+/* Con una memoria abierta encima del mapa, el conmutador queda debajo del velo
+   y no se puede tocar: estorba más de lo que sirve. */
+body.con-memoria .conmutador { opacity: 0; pointer-events: none; }

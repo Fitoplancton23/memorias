@@ -8,7 +8,7 @@
    Necesita ffprobe. Correr: node scripts/revisar-intro.mjs               */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, statSync, readdirSync } from 'node:fs';
 
 const DIR = 'public/intro';
 const DURACION = 10;        /* lo que el sitio espera, en segundos */
@@ -31,14 +31,32 @@ const esperados = [
   ['intro-mob.webp', false],
 ];
 
+/* Lo que está en la carpeta y el sitio no mira. Casi siempre es el master sin
+   transcodificar —un .mov salido de After Effects— puesto con el nombre
+   correcto pero con la extensión equivocada. Es el error más fácil de cometer
+   y el más difícil de notar, porque no rompe nada: la intro simplemente no se
+   enciende, y no hay ningún mensaje que lo diga. */
+const conocidos = new Set([...esperados.map(([n]) => n), 'LEEME.md']);
+const colados = existsSync(DIR)
+  ? readdirSync(DIR).filter(f => !conocidos.has(f)) : [];
+for (const f of colados) {
+  const mb = (statSync(`${DIR}/${f}`).size / 1048576).toFixed(1);
+  const base = f.replace(/\.[^.]+$/, '');
+  const sugerencia = /^intro-(web|mob)$/.test(base)
+    ? ` Parece el master de ${base}: hay que transcodificarlo a ${base}.mp4 ` +
+      `(ver los comandos en ${DIR}/LEEME.md). El sitio sólo mira .mp4, .webm y .webp.`
+    : ' El sitio no lo mira.';
+  mal(`${f} (${mb} MB) está en la carpeta y no se usa.${sugerencia}`);
+}
+
 /* Ninguna intro no es un error: es el estado normal del sitio. El archivo
    obligatorio sólo se exige cuando ya hay algo puesto, porque ahí sí alguien
    quiso una intro y le falta la pieza que la enciende. */
 const hayAlguno = esperados.some(([n]) => existsSync(`${DIR}/${n}`));
 if (!hayAlguno) {
-  console.log('No hay ningún archivo en ' + DIR + ': la intro está apagada y la '
-    + 'portada es la de siempre.');
-  process.exit(0);
+  console.log('No hay ningún archivo que el sitio mire en ' + DIR + ': la intro '
+    + 'está apagada y la portada es la de siempre.');
+  process.exit(fallan ? 1 : 0);
 }
 
 console.log('Archivos en ' + DIR + '\n');

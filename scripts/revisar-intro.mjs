@@ -152,6 +152,19 @@ if (dw && dm && Math.abs(dw - dm) > TOLERANCIA)
   mal(`La de escritorio dura ${dw.toFixed(2)} s y la de teléfono ${dm.toFixed(2)}. ` +
       `Tienen que durar lo mismo.`);
 
+/* ¿Falta en el disco algo que el repo sí tiene? Pasó: una limpieza de
+   archivos de prueba borró los videos de verdad, porque estaban en la misma
+   carpeta y con el mismo nombre, y el commit se llevó puesto el borrado sin
+   que nadie lo notara hasta dos días después. Esto lo habría dicho en el acto. */
+try {
+  const enRepo = execFileSync('git', ['ls-files', DIR], { encoding: 'utf8' })
+    .split('\n').map(x => x.trim()).filter(Boolean);
+  const borrados = enRepo.filter(f => !existsSync(f));
+  for (const f of borrados)
+    mal(`${f} está en el repositorio y no en el disco. Si no fue a propósito, ` +
+        `vuelve con: git checkout -- ${f}`);
+} catch {}
+
 console.log('');
 if (!hayProbe)
   ojo('No hay ffprobe en esta máquina, así que no se pudo mirar adentro de los '

@@ -191,9 +191,32 @@ const NOM = { 'plaza-libertad':['Plaza Libertad','plaza'], 'escuela-406':['Escue
   'salto-encantado':['Salto Encantado','paraje'], 'paraje-cerro-moreno':['Paraje Cerro Moreno','paraje'],
   'barrio-teforito':['Barrio Teforito','barrio'], 'loteo-lizoski':['Loteo Lizoski','barrio'],
   'ruta-14-km-1209':['Ruta 14, km viejo 1209','ruta'], 'arroyo-cunapiru':['Arroyo Cuñapirú','curso de agua'] };
+/* Coordenadas inventadas, pero dentro del ejido de verdad y en lugares
+   plausibles: el casco apretado alrededor de la plaza, y los parajes lejos.
+   Sin esto el generador no le daba coordenada a ningún lugar, y entonces el
+   mapa de `dev:demo` salía vacío — once lugares de prueba y ni un marcador—,
+   así que cualquier cambio del mapa se tenía que revisar a ciegas contra el
+   único punto de los datos de ejemplo. Un mapa que no se puede mirar es
+   exactamente lo que este proyecto no puede permitirse.
+   Son fijas y no sorteadas: un marcador que se muda cada vez que se regenera
+   la demo hace imposible comparar dos capturas. */
+const COORD = {
+  'plaza-libertad':      [-27.0956, -54.8988],
+  'escuela-406':         [-27.0941, -54.9015],
+  'capilla-vieja':       [-27.0969, -54.8962],
+  'secadero-grande':     [-27.0998, -54.9042],
+  'barrio-teforito':     [-27.0902, -54.8931],
+  'loteo-lizoski':       [-27.1024, -54.8907],
+  'ruta-14-km-1209':     [-27.0873, -54.9178],
+  'arroyo-cunapiru':     [-27.1133, -54.8795],
+  'salto-encantado':     [-27.0631, -54.8098],
+  'paraje-cerro-moreno': [-27.1382, -54.9401],
+};
 const filasL = ['slug,nombre,tipo,x,y,lat,lng,vigencia,alias,notas'];
-for (const [s, [n, t]] of Object.entries(NOM))
-  filasL.push([s, n, t, '', '', '', '', '', '', 'DATOS DE DEMOSTRACION'].map(esc).join(','));
+for (const [s, [n, t]] of Object.entries(NOM)) {
+  const c = COORD[s] || ['', ''];
+  filasL.push([s, n, t, '', '', c[0], c[1], '', '', 'DATOS DE DEMOSTRACION'].map(esc).join(','));
+}
 writeFileSync(join(SAL, 'lugares.csv'), filasL.join('\n') + '\n');
 
 const ACT = [['fundacion','Fundacion del pueblo',1920],['primera-escuela','Primera escuela',1935],

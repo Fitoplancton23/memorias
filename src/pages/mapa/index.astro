@@ -4,6 +4,8 @@ import { lugares, documentos, personas as personasTodas } from '../../lib/datos.
 import { aNormalizado } from '../../lib/proyeccion.js';
 import mapas from '../../../public/mapa/mapa.json';
 import Ondas from '../../components/Ondas.astro';
+import Buscador from '../../components/Buscador.astro';
+import { memoriasBuscables } from '../../lib/datos.js';
 
 /* El ejido, no el casco: de los once lugares relevados, tres caen fuera del
    casco urbano —los dos kilómetros de la ruta y Salto Encantado—. El archivo
@@ -149,6 +151,17 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       ))}
     </div>
 
+    {/* El buscador va flotando sobre el mapa y no en una barra aparte: el mapa
+        ocupa la pantalla entera, y un campo que obligue a salir de él para
+        buscar rompe lo único que el mapa tiene de bueno —que no se sale—.
+        Arriba a la izquierda, debajo de la barra, que es donde se busca en
+        todo lo demás que esta gente usa. */}
+    <div class="buscar-mapa vidrio">
+      <Buscador ejemplo="Un apellido, un apodo, un lugar…" />
+    </div>
+
+    <script type="application/json" id="indiceBusqueda" set:html={JSON.stringify(memoriasBuscables)}></script>
+
     <div class="cifras-mapa vidrio">
       <b>{conMaterial}</b> lugares con memorias · <b>{totalDocs}</b> memorias
       {rango && <span> · {rango[0]}–{rango[1]}</span>}
@@ -258,6 +271,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     import { separar, AIRE, GUIA_DESDE } from '../../lib/separar.js';
     import { dobleToque } from '../../lib/doble-toque.js';
     import { geometria, inicial, acercar, recorrer, LUPA } from '../../lib/lupa.js';
+    import { buscarMemorias, comoSeEncontro } from '../../lib/buscar.js';
 
     const { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD } = window.__MAPA;
     const svgEl = document.getElementById('mapa');
@@ -304,6 +318,21 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         capa.classList.add('listo');
         dispatchEvent(new Event('mapa-listo'));
       });
+
+    /* ---- buscar sobre el mapa ----
+       El mapa muestra lugares, así que buscar acá no es filtrar una lista: es
+       decir qué lugares tienen algo de lo que se escribió y apagar el resto.
+       Apagados quedan además sin clic, a propósito. Un marcador atenuado pero
+       clicable abre un lugar cuyas memorias no son las que se buscaron, y ahí
+       el mapa estaría diciendo una cosa y haciendo otra. */
+    const archivoBusca = JSON.parse(document.getElementById('indiceBusqueda').textContent);
+    const campoQ = document.getElementById('q');
+    const borrarQ = document.getElementById('qBorrar');
+    const dichoQ = document.getElementById('qDicho');
+    /* slug de memoria -> por dónde se encontró. null = no se buscó nada. */
+    let hallazgos = null;
+    /* slugs de lugar con al menos una memoria encontrada. */
+    let lugaresHallados = null;
 
     /* ---- marcadores ---- */
     const marcas = [...capa.querySelectorAll('.marca-mapa')].map(el => ({
@@ -664,17 +693,20 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       ficha.innerHTML =
         '<div class="f-cab">' +
           '<div><strong>' + esc(p.nombre) + '</strong>' +
-          '<em>' + p.n + ' ' + (p.n === 1 ? 'memoria' : 'memorias') +
+          '<em>' + (hallazgos ? p.docs.filter(d => hallazgos.has(d.slug)).length + ' de ' + p.n : String(p.n))
+          + ' ' + (p.n === 1 ? 'memoria' : 'memorias') +
           (lapso ? ' · ' + lapso : '') + '</em></div>' +
           '<button class="f-cerrar" aria-label="Cerrar">×</button>' +
         '</div>' +
         (p.notas ? '<p class="f-nota">' + esc(p.notas) + '</p>' : '') +
-        '<ul class="f-memorias">' + (p.docs.map(d =>
+        '<ul class="f-memorias">' + ((hallazgos ? p.docs.filter(d => hallazgos.has(d.slug)) : p.docs).map(d =>
           '<li><a href="/memorias/' + encodeURIComponent(d.slug) + '/" data-mem="' + esc(d.slug) + '">' +
           (d.foto ? '<img src="' + esc(d.foto) + '" alt="" loading="lazy" />' : '<span class="sinfoto"></span>') +
           '<span><b>' + esc(d.titulo) + '</b><i>' + esc(d.texto || d.anio || 'sin fecha') + '</i></span>' +
           '</a></li>').join('') ||
-          '<li class="f-vacio">Todavía no hay memorias en este lugar.</li>') + '</ul>';
+          '<li class="f-vacio">' + (hallazgos
+            ? 'Ninguna de las memorias de este lugar dice eso.'
+            : 'Todavía no hay memorias en este lugar.') + '</li>') + '</ul>';
       ficha.querySelector('.f-cerrar').addEventListener('click', cerrarFicha);
       abierta = slug;
       lienzo.classList.add('con-ficha');
@@ -686,10 +718,89 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     for (const m of marcas) {
       m.el.addEventListener('click', ev => {
         ev.stopPropagation();
+        if (m.el.classList.contains('apagado')) return;
         mostrar(m.p.slug);
         encuadrar([m.p.slug]);
       });
     }
+
+    function buscarEnMapa() {
+      const texto = (campoQ.value || '').trim();
+      borrarQ.hidden = !texto;
+
+      /* El recuento general dice "10 lugares · 140 memorias", y con una
+         búsqueda puesta queda pegado debajo de "12 memorias en 6 lugares":
+         dos números distintos uno arriba del otro, sin nada que explique por
+         qué no coinciden. Mientras se busca, manda el de la búsqueda. */
+      const cifras = document.querySelector('.cifras-mapa');
+      if (cifras) cifras.hidden = !!texto;
+
+      if (!texto) {
+        hallazgos = null; lugaresHallados = null;
+        dichoQ.hidden = true;
+        for (const m of marcas) m.el.classList.remove('apagado', 'hallado');
+        if (abierta) mostrar(abierta);     /* la ficha vuelve a mostrarlas todas */
+        return;
+      }
+
+      hallazgos = new Map();
+      lugaresHallados = new Set();
+      let sinLugar = 0;
+      for (const m of buscarMemorias(texto, archivoBusca)) {
+        hallazgos.set(m.slug, comoSeEncontro(m));
+        if (m.sitios && m.sitios.length) for (const l of m.sitios) lugaresHallados.add(l);
+        else sinLugar++;
+      }
+
+      for (const m of marcas) {
+        const hay = lugaresHallados.has(m.p.slug);
+        m.el.classList.toggle('hallado', hay);
+        m.el.classList.toggle('apagado', !hay);
+      }
+
+      /* Si el lugar abierto dejó de tener algo, se cierra: una ficha que
+         sobrevive a su propia búsqueda muestra memorias que no se buscaron. */
+      if (abierta && !lugaresHallados.has(abierta)) cerrarFicha();
+      else if (abierta) mostrar(abierta);
+
+      const n = hallazgos.size, enMapa = lugaresHallados.size;
+      const limpio = texto.replace(/[<&]/g, '');
+      dichoQ.hidden = false;
+      if (!n) {
+        dichoQ.innerHTML = '<span class="b-nada">Ninguna memoria dice <b>' + limpio + '</b>.</span> '
+          + 'Probá con menos palabras, o con un apellido solo.';
+      } else {
+        /* Las que calzan pero no tienen lugar ubicado no se pueden dibujar, y
+           callarlas sería esconder memorias: el mapa dice cuántas son y abre
+           la puerta a verlas donde sí entran, que es la línea de tiempo. */
+        dichoQ.innerHTML = '<b>' + n + '</b> ' + (n === 1 ? 'memoria' : 'memorias')
+          + ' con <b>' + limpio + '</b>'
+          + (enMapa ? ' en <b>' + enMapa + '</b> ' + (enMapa === 1 ? 'lugar' : 'lugares') : '')
+          + (sinLugar
+              ? ' · <a href="/memorias/?q=' + encodeURIComponent(texto) + '">'
+                + sinLugar + ' sin ubicación, en la línea de tiempo</a>'
+              : '');
+      }
+    }
+
+    /* El recuento vive debajo del buscador, y el buscador cambia de alto
+       cuando dice lo que encontró. Se mide, no se adivina. */
+    const cajaBusca = document.querySelector('.buscar-mapa');
+    const medirBusca = () => document.documentElement.style
+      .setProperty('--alto-buscador', (cajaBusca?.offsetHeight || 58) + 'px');
+    medirBusca();
+    if (cajaBusca) new ResizeObserver(medirBusca).observe(cajaBusca);
+
+    campoQ.addEventListener('input', buscarEnMapa);
+    borrarQ.addEventListener('click', () => { campoQ.value = ''; campoQ.focus(); buscarEnMapa(); });
+    campoQ.addEventListener('keydown', ev => { if (ev.key === 'Enter') campoQ.blur(); });
+    /* Llegar buscando desde la línea de tiempo: el conmutador trae el `?q=`
+       para que cambiar de vista no haga escribir dos veces lo mismo. */
+    {
+      const qs = new URLSearchParams(location.search).get('q');
+      if (qs) { campoQ.value = qs; }
+    }
+    buscarEnMapa();
 
     /* ---- la memoria, encima del mapa ---- */
     let empujado = false, lista = [], indice = 0;
@@ -708,7 +819,13 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       const desde = (abierta && porSlug[abierta] && porSlug[abierta].docs.some(x => x.slug === slug))
         ? abierta : d.lugarSlug;
       const lugar = porSlug[desde];
-      return lugar ? lugar.docs.map(x => porMemoria[x.slug]).filter(Boolean) : [d];
+      if (!lugar) return [d];
+      /* Con una búsqueda puesta, las flechas recorren lo encontrado y no todo
+         el lugar: pasar de una memoria buscada a una que no se buscó es la
+         misma mentira que dejar clicable un marcador apagado. */
+      const docs = hallazgos ? lugar.docs.filter(x => hallazgos.has(x.slug)) : lugar.docs;
+      const r = docs.map(x => porMemoria[x.slug]).filter(Boolean);
+      return r.length ? r : [d];
     }
 
     function abrirMemoria(slug, haciaDonde) {
@@ -1307,6 +1424,23 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     .guias circle { fill: var(--tinta-2); opacity: .5; }
     /* Entran cuando el mapa ya está, de a uno y empezando por el lugar con más
        memorias: la foto crece desde el punto, que es de donde viene. */
+    /* El buscador sobre el mapa. Ancho fijo en escritorio para que no se coma
+       el mapa, y de borde a borde en el teléfono, donde no hay lugar para
+       andar con medias tintas. */
+    .buscar-mapa { position: absolute; z-index: 5; left: 1rem; top: 1rem;
+                   width: min(26rem, calc(100% - 2rem));
+                   padding: .45rem; border-radius: 1.6rem; }
+    .buscar-mapa .b-campo { background: color-mix(in srgb, var(--panel) 72%, transparent); }
+    .buscar-mapa .b-dicho { padding: .15rem .6rem .25rem; }
+
+    /* Lo que la búsqueda no alcanzó. No se esconde: un lugar que desaparece
+       deja un mapa distinto cada vez que se escribe una letra, y el ojo pierde
+       el pueblo. Se apaga, que dice "está, pero no es esto". */
+    .marca-mapa.apagado { opacity: .22 !important; filter: grayscale(1);
+                          pointer-events: none; }
+    .marca-mapa.hallado .lente { box-shadow: 0 0 0 2px var(--cursor),
+                                 0 2px 10px rgba(0, 0, 0, .18); }
+
     .marca-mapa { opacity: 0; transition: opacity .4s ease; }
     .capa-marcas.listo .marca-mapa { opacity: 1; transition-delay: calc(var(--orden, 0) * 55ms + .7s); }
     .marca-mapa .lente { transform: scale(.55); }
@@ -1436,7 +1570,13 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     }
 
     /* --- chrome --- */
-    .cifras-mapa { position: absolute; left: 1.9rem; top: 1.6rem; font-size: .78rem;
+    /* El recuento baja a ponerse debajo del buscador. El alto no se puede
+       escribir a mano: el buscador crece cuando aparece la línea de lo que
+       encontró, y en el teléfono esa línea ocupa dos renglones. Lo mide el
+       guion y lo deja en una variable, como el alto de la barra. */
+    .cifras-mapa { position: absolute; left: 1.9rem;
+                   top: calc(1rem + var(--alto-buscador, 3.6rem) + .55rem);
+                   font-size: .78rem;
                    color: var(--tinta-2); border-radius: 10px; padding: .5rem .8rem; }
     .cifras-mapa b { font-weight: 500; color: var(--tinta); }
     /* Es un cartel, no un control: no puede quedarse con el clic de un

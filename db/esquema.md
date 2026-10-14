@@ -64,6 +64,23 @@ ninguno.
 
 ## Lo que cambió después del volcado
 
+`db/22_apodo_alcanza.sql` cambió la restricción de `personas`. El `11` había
+dejado que faltara el nombre o que faltara el apellido, pero no los dos; el
+tercer caso —que acá es el más común— no entraba: gente a la que nadie nombró
+nunca de otra manera que por el apodo. El panel le inventaba un nombre para
+que la fila fuera aceptada, que es lo único que este archivo no puede hacer.
+Ahora los tres son opcionales y alcanza con uno:
+
+```sql
+check (coalesce(nullif(btrim(nombre),''), nullif(btrim(apellido),''),
+                nullif(btrim(apodo),'')) is not null)
+```
+
+La cadena vacía cuenta como vacío a propósito: `''` afirma que el apellido ES
+la cadena vacía, y el formulario de un navegador manda `''` sin preguntar. Los
+tres vacíos siguen sin poder pasar — eso no es una persona incompleta, es una
+fila que no se puede nombrar, ni buscar, ni mostrar.
+
 `db/19_alias.sql` abrió el borrado de `persona_alias`, y `db/20_familias.sql` el
 de `nucleos_familiares` y `nucleo_hijos` — sin eso el taller podía armar una
 familia y no podía deshacerla, y un parentesco equivocado quedaba puesto para

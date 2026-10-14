@@ -49,6 +49,14 @@ alcanza a todos no relaciona a nadie— ni el parecido del título: dos "Acto
 escolar" de escuelas distintas no tienen nada que ver, y suponerlo sería
 inventar un dato. Cubierto por tests.
 
+**Una persona se carga con nombre, apellido y apodo, los tres opcionales, y
+alcanza con uno.** En el pueblo hay gente a la que nadie nombró nunca de otra
+manera que por el apodo, y hay gente de la que sólo sobrevivió el apellido.
+Inventarle un nombre a alguien para que la fila entre es inventar un dato.
+Los tres vacíos sí se rechazan, y no por prolijidad: una fila así no se puede
+nombrar, ni buscar, ni mostrar. La regla vive en el panel y en la base —la
+clave secreta escribe sin pasar por el panel—. Cubierto por tests.
+
 **Un lugar es una entidad, no una coordenada.** Es un sitio con nombre —la
 Escuela Normal, la casa de Juan Potkova, la vieja terminal— y tiene una
 coordenada representativa que se fija una vez y sólo cambia si alguien la

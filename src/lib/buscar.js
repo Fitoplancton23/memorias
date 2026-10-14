@@ -116,11 +116,22 @@ export function calzaMemoria(consulta, m) {
   const faltan = partes.filter(w => !delTitulo.includes(w));
   if (!faltan.length) return { por: null, que: 'titulo' };
 
-  for (const que of orden) {
-    const h = hs.find(x => x.que === que && faltan.some(w => plano(x.texto).includes(w)));
-    if (h) return { por: h.nombre, que };
+  /* Gana el hilo que explica MÁS de lo que se escribió, y el orden de arriba
+     sólo desempata. Alcanzar con una palabra daba explicaciones falsas con
+     datos de verdad: quien escribía "María Ejemplo" leía "por Juan Ejemplo",
+     porque ese nombre también contiene "Ejemplo" y venía primero. Un pueblo
+     comparte apellidos — ese empate es la regla, no la excepción. */
+  let mejor = null;
+  for (const h of hs) {
+    const rango = orden.indexOf(h.que);
+    if (rango < 0) continue;                 /* el título no se explica a sí mismo */
+    const texto = plano(h.texto);
+    const cubre = faltan.filter(w => texto.includes(w)).length;
+    if (!cubre) continue;
+    if (!mejor || cubre > mejor.cubre || (cubre === mejor.cubre && rango < mejor.rango))
+      mejor = { h, cubre, rango };
   }
-  return { por: null, que: 'titulo' };
+  return mejor ? { por: mejor.h.nombre, que: mejor.h.que } : { por: null, que: 'titulo' };
 }
 
 /* La lista, en el orden en que entró. Ordenar por "relevancia" pediría una
@@ -133,4 +144,24 @@ export function buscarMemorias(consulta, memorias) {
     if (c) r.push({ ...m, ...c });
   }
   return r;
+}
+
+/* Cómo se le dice a alguien por dónde se encontró la memoria.
+   -------------------------------------------------------------------------
+   Vive acá y no en cada vista porque es una sola frase para todo el sitio: si
+   el mapa dice "apodo: el Negro" y la línea de tiempo dice "coincide con el
+   alias", hay que aprender dos veces lo mismo. Y se escribe como lo diría una
+   persona —"por el apodo el Negro"—, no con el nombre del campo.
+
+   Devuelve '' cuando no hay nada que explicar: el título ya contenía todo lo
+   que se escribió, y agregar "por el título" sería ruido debajo del título. */
+export function comoSeEncontro(c) {
+  if (!c || !c.por) return '';
+  switch (c.que) {
+    case 'apodo':  return `por el apodo ${c.por}`;
+    case 'lugar':  return `por el lugar ${c.por}`;
+    case 'anio':   return `por el año ${c.por}`;
+    case 'relato': return 'por algo que dice el relato';
+    default:       return `por ${c.por}`;   /* la persona y el acontecimiento se nombran solos */
+  }
 }

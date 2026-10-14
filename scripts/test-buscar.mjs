@@ -1,6 +1,6 @@
 /* El buscador falla en silencio: cuando no encuentra, devuelve vacío, y vacío
    se lee como "esa persona no está en el archivo". Por eso va cubierto. */
-import { calza, plano, otrosNombres, calzaMemoria, buscarMemorias } from '../src/lib/buscar.js';
+import { calza, plano, otrosNombres, calzaMemoria, buscarMemorias, comoSeEncontro } from '../src/lib/buscar.js';
 
 let fallan = 0;
 const caso = (nombre, consulta, persona, esperado) => {
@@ -69,7 +69,8 @@ if (otrosNombres(nelida).length !== 0) {
 /* ---------------------------------------------------------------------- */
 const baile = { slug: 'baile', titulo: 'Baile del club', texto: 'La orquesta vino de Oberá.',
   gente: [{ nombre: 'Roberto Silveira', otros: ['el Negro'] },
-          { nombre: 'Nélida Müller', otros: [] }],
+          { nombre: 'Nélida Müller', otros: [] },
+          { nombre: 'Rosa Silveira', otros: [] }],
   lugares: ['Club Social'], hechos: ['Carnaval'], anio: 1958 };
 const acto = { slug: 'acto', titulo: 'Acto escolar', texto: '',
   gente: [{ nombre: 'Juan Potkova', otros: [] }],
@@ -97,6 +98,12 @@ mem('por el acontecimiento', 'carnaval', baile, 'Carnaval');
 mem('por el año', '1948', acto, '1948');
 mem('por el relato, plegando la tilde de Oberá', 'obera', baile, 'el relato');
 mem('por el relato', 'orquesta', baile, 'el relato');
+/* En un pueblo el apellido se repite, así que la explicación tiene que ser la
+   del hilo que cubre más de lo escrito y no la del primero que calza una
+   palabra: "rosa silveira" es Rosa, aunque Roberto venga antes y también sea
+   un Silveira. Esto apareció con los datos de verdad, no en los de prueba. */
+mem('el apellido compartido no roba la explicación', 'rosa silveira', baile, 'Rosa Silveira');
+mem('y al revés también', 'roberto silveira', baile, 'Roberto Silveira');
 mem('las palabras se reparten entre campos', 'escuela 1948', acto, 'Escuela 425');
 mem('título y lugar juntos', 'acto escuela', acto, 'Escuela 425');
 mem('una palabra que no está no encuentra nada', 'panadería', baile, null);
@@ -151,5 +158,24 @@ if (buscarMemorias('a', archivo).length === 0) {
   fallan++; console.error('  ✗ una letra sola tiene que encontrar algo en este archivo');
 }
 
+/* La frase que se le muestra a quien buscó. Una sola para todo el sitio. */
+const dicho = (nombre, consulta, m, esperado) => {
+  const dio = comoSeEncontro(calzaMemoria(consulta, m));
+  if (dio !== esperado) {
+    fallan++;
+    console.error(`  ✗ ${nombre}: esperaba ${JSON.stringify(esperado)}, dio ${JSON.stringify(dio)}`);
+  }
+};
+dicho('el apodo se nombra como apodo', 'negro', baile, 'por el apodo Roberto Silveira (el Negro)');
+dicho('la persona se nombra sola', 'potkova', acto, 'por Juan Potkova');
+dicho('el lugar se nombra como lugar', 'club social', baile, 'por el lugar Club Social');
+dicho('el año se nombra como año', '1948', acto, 'por el año 1948');
+dicho('el acontecimiento se nombra solo', 'carnaval', baile, 'por Carnaval');
+dicho('el relato no se cita, se señala', 'orquesta', baile, 'por algo que dice el relato');
+/* Cuando el título ya tenía todo, no hay nada que explicar: una línea que
+   dijera "por el título" debajo del título es ruido. */
+dicho('el título no se explica a sí mismo', 'baile', baile, '');
+dicho('lo que no calza no dice nada', 'panaderia', baile, '');
+
 if (fallan) { console.error(`${fallan} caso(s) de búsqueda fallan`); process.exit(1); }
-console.log('50 casos de búsqueda: todos pasan');
+console.log('60 casos de búsqueda: todos pasan');

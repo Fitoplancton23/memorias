@@ -2,7 +2,8 @@
 import Base from '../../layouts/Base.astro';
 import Aportar from '../../components/Aportar.astro';
 import LineaDeTiempo from '../../components/LineaDeTiempo.astro';
-import { documentos, personas, lugares, acontecimientos } from '../../lib/datos.js';
+import Buscador from '../../components/Buscador.astro';
+import { documentos, personas, lugares, acontecimientos, memoriasBuscables } from '../../lib/datos.js';
 
 /* El archivo, leído como recorrido. Es una de las dos vistas del sitio —la
    otra es el mapa— y es la misma pregunta de siempre, "¿qué sabemos?", con el
@@ -90,7 +91,24 @@ const listaLugares = lugares
     </p>
   </header>
 
+  {/* Antes que los filtros, a propósito: de las tres quejas contra el grupo
+      de Facebook, la que no se arregla con filtros es ésta. Alguien que viene
+      a buscar a su abuelo escribe el apellido, no elige una década. */}
+  <Buscador />
+
   <div class="filtros" id="filtros">
+    {/* Los filtros empiezan cerrados, y no por prolijidad: abiertos ocupan tres
+        bloques de chips, y en el teléfono eso son tres pantallas entre lo que
+        alguien escribió y la primera memoria que encontró. Quien busca a su
+        abuelo tiene que ver el resultado, no el aparato para encontrarlo.
+        Se abren solos si se llega con un filtro puesto desde otra página. */}
+    <button class="f-abrir" id="filtrosAbrir" aria-expanded="false" aria-controls="filtrosCuerpo">
+      <span>Filtrar por década, familia o lugar</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+
+    <div class="f-cuerpo" id="filtrosCuerpo" hidden>
     <div class="f-grupo">
       <span class="f-tit">Década</span>
       <div class="f-chips">
@@ -117,7 +135,9 @@ const listaLugares = lugares
       </div>
     </div>
 
-    <p class="f-cuenta"><b id="cuenta">{memorias.length}</b> <span id="cuenta-pal">memorias</span>
+    </div>
+
+    <p class="f-cuenta" id="fCuenta"><b id="cuenta">{memorias.length}</b> <span id="cuenta-pal">memorias</span>
       <button class="f-limpiar" id="limpiar" hidden>Quitar filtros</button></p>
   </div>
 
@@ -138,7 +158,7 @@ const listaLugares = lugares
       archivo. Lo que no está activo baja de intensidad y se mantiene legible. */}
   <ol class="tl" id="rejilla">
     {conFecha.map(m => (
-      <li class="hito" data-anio={m.anio} data-decada={Math.floor(m.anio / 10) * 10}
+      <li class="hito" data-slug={m.slug} data-anio={m.anio} data-decada={Math.floor(m.anio / 10) * 10}
           data-apellidos={m.apellidos.join('|')}
           data-lugar={m.sitios[0]?.nombre || ''}
           data-lugares={m.sitios.length ? m.sitios.map(s => s.slug).join('|') : 'sin'}>
@@ -149,6 +169,11 @@ const listaLugares = lugares
               : <span class="sinfoto" aria-hidden="true"></span>}
             {m.nFotos > 1 && <figcaption>{m.nFotos} fotos</figcaption>}
           </figure>
+          {/* Por dónde la encontró el buscador. Vacía hasta que alguien
+              busque: un resultado que no se puede explicar es un resultado en
+              el que no se puede confiar —si escribís "el Negro" y te aparece
+              "Baile del club", sin esta línea no sabés si te entendió—. */}
+          <p class="hito-por" hidden></p>
           <time class={`hito-anio ${m.precision}`} datetime={String(m.anio)}>{comoSeLee(m)}</time>
           <h2>{m.titulo}</h2>
           {m.descripcion && <p class="hito-desc">{m.descripcion}</p>}
@@ -177,7 +202,7 @@ const listaLugares = lugares
       </p>
       <ol class="tl tl-corta">
         {sinFechaLista.map(m => (
-          <li class="hito" data-anio="" data-decada="sin"
+          <li class="hito" data-slug={m.slug} data-anio="" data-decada="sin"
               data-apellidos={m.apellidos.join('|')}
               data-lugar={m.sitios[0]?.nombre || ''}
               data-lugares={m.sitios.length ? m.sitios.map(s => s.slug).join('|') : 'sin'}>
@@ -188,6 +213,7 @@ const listaLugares = lugares
                   : <span class="sinfoto" aria-hidden="true"></span>}
                 {m.nFotos > 1 && <figcaption>{m.nFotos} fotos</figcaption>}
               </figure>
+              <p class="hito-por" hidden></p>
               <span class="hito-anio falta"><i>dato pendiente</i></span>
               <h2>{m.titulo}</h2>
               {m.descripcion && <p class="hito-desc">{m.descripcion}</p>}
@@ -205,6 +231,11 @@ const listaLugares = lugares
 
   <p class="nada" id="nada" hidden>Ninguna memoria cumple esos filtros.</p>
 
+  {/* Lo que se puede buscar de cada memoria, resuelto en el build. Va como
+      datos y no como atributos en cada tarjeta porque incluye los apodos y el
+      relato, y eso en un `data-` por tarjeta se vuelve ilegible. */}
+  <script type="application/json" id="indiceBusqueda" set:html={JSON.stringify(memoriasBuscables)}></script>
+
   {/* La versión general, sin memoria: quien llegó al archivo entero y tiene
       algo para dar no debería tener que entrar a una memoria para ofrecerlo. */}
   <Aportar />
@@ -218,6 +249,8 @@ const listaLugares = lugares
   </section>
 
   <script>
+    import { buscarMemorias, comoSeEncontro } from '../../lib/buscar.js';
+
     /* Los filtros trabajan sobre el HTML ya impreso: el archivo entero está en
        la página, así que funciona sin JavaScript y Google lo indexa completo.
        El script sólo esconde, muestra y marca dónde estás. */
@@ -227,10 +260,39 @@ const listaLugares = lugares
     const cuentaPal = document.getElementById('cuenta-pal');
     const nada = document.getElementById('nada');
     const limpiar = document.getElementById('limpiar');
+    const fCuenta = document.getElementById('fCuenta');
+    const abrir = document.getElementById('filtrosAbrir');
+    const cuerpo = document.getElementById('filtrosCuerpo');
     const sinFechaSec = document.getElementById('sinFecha');
     const donde = document.getElementById('donde');
     const dondeTexto = document.getElementById('dondeTexto');
     const estado = { decada: '', apellido: '', lugar: '' };
+
+    /* ---- el buscador ----
+       El texto no es un cuarto filtro aunque se combine con los tres: los
+       chips preguntan "de qué década", y el campo pregunta "cómo se llamaba".
+       Por eso vive aparte del estado de los chips y por eso "Quitar filtros"
+       no lo borra: alguien que buscó "Muller" y tocó una década quiere seguir
+       viendo Muller. */
+    const archivo = JSON.parse(document.getElementById('indiceBusqueda').textContent);
+    const campo = document.getElementById('q');
+    const borrar = document.getElementById('qBorrar');
+    const dicho = document.getElementById('qDicho');
+    /* slug -> por dónde se encontró. null cuando no se buscó nada: es
+       distinto de "se buscó y no encontró ninguna", que es lo que la gente
+       lee como "esa persona no está en el archivo" y hay que decir en voz
+       alta. */
+    let hallazgos = null;
+
+    function buscar() {
+      const texto = (campo.value || '').trim();
+      borrar.hidden = !texto;
+      if (!texto) { hallazgos = null; dicho.hidden = true; aplicar(); return; }
+      hallazgos = new Map();
+      for (const m of buscarMemorias(texto, archivo))
+        hallazgos.set(m.slug, comoSeEncontro(m));
+      aplicar();
+    }
 
     /* De qué lado cae cada hito. No se puede dejar en `:nth-child(even)`: al
        filtrar quedan huecos y la alternancia se rompe —dos seguidos del mismo
@@ -250,6 +312,7 @@ const listaLugares = lugares
       let n = 0;
       for (const t of tarjetas) {
         const ok =
+          (!hallazgos || hallazgos.has(t.dataset.slug)) &&
           (!estado.decada || t.dataset.decada === estado.decada) &&
           (!estado.apellido || (t.dataset.apellidos || '').split('|').includes(estado.apellido)) &&
           (!estado.lugar || (estado.lugar === 'sin'
@@ -258,9 +321,37 @@ const listaLugares = lugares
         t.hidden = !ok;
         if (ok) n++;
       }
+      /* Por dónde se encontró cada una. Se escribe sólo en las visibles: una
+         tarjeta escondida con la explicación puesta la deja mentida para la
+         próxima búsqueda. */
+      for (const t of tarjetas) {
+        const por = t.hidden || !hallazgos ? '' : (hallazgos.get(t.dataset.slug) || '');
+        const ranura = t.querySelector('.hito-por');
+        if (!ranura) continue;
+        ranura.textContent = por;
+        ranura.hidden = !por;
+      }
+
       cuenta.textContent = n;
       cuentaPal.textContent = n === 1 ? 'memoria' : 'memorias';
-      nada.hidden = n > 0;
+      /* Con una búsqueda puesta, el buscador ya dice cuántas son arriba de
+         todo. Decirlo otra vez acá abajo es la misma cuenta dos veces, y la de
+         abajo aparece después de los filtros: se lee como si fueran dos
+         números distintos. */
+      fCuenta.hidden = !!hallazgos && !Object.values(estado).some(Boolean);
+      /* Lo que pasó con lo que se escribió. Nunca en silencio. */
+      if (hallazgos) {
+        const q = campo.value.trim();
+        dicho.hidden = false;
+        dicho.innerHTML = n === 0
+          ? '<span class="b-nada">Ninguna memoria dice <b>' + q.replace(/[<&]/g, '') + '</b>.</span> '
+            + 'Probá con menos palabras, o con un apellido solo — y si falta, '
+            + '<a href="#aportar">contanos lo que sabés</a>.'
+          : '<b>' + n + '</b> ' + (n === 1 ? 'memoria' : 'memorias') + ' con <b>'
+            + q.replace(/[<&]/g, '') + '</b>'
+            + (n < hallazgos.size ? ' (' + (hallazgos.size - n) + ' más quedan fuera de los filtros)' : '');
+      }
+      nada.hidden = n > 0 || !!hallazgos;   /* si se buscó, lo explica el buscador */
       limpiar.hidden = !Object.values(estado).some(Boolean);
       /* El encabezado de "todavía sin fecha" se va con sus memorias: un título
          solo, sin nada debajo, se lee como que algo se rompió. */
@@ -268,6 +359,20 @@ const listaLugares = lugares
         sinFechaSec.hidden = !tarjetas.some(t => t.dataset.decada === 'sin' && !t.hidden);
       alternar();
     }
+
+    /* Abrir y cerrar los filtros */
+    const plegar = (abierto) => {
+      cuerpo.hidden = !abierto;
+      abrir.setAttribute('aria-expanded', String(abierto));
+      abrir.classList.toggle('abierto', abierto);
+    };
+    abrir.addEventListener('click', () => plegar(cuerpo.hidden));
+
+    campo.addEventListener('input', buscar);
+    borrar.addEventListener('click', () => { campo.value = ''; campo.focus(); buscar(); });
+    /* Enter no manda nada —no hay servidor— pero en el teléfono cierra el
+       teclado, y eso deja ver los resultados que ya están abajo. */
+    campo.addEventListener('keydown', ev => { if (ev.key === 'Enter') campo.blur(); });
 
     for (const b of document.querySelectorAll('.chip')) {
       b.addEventListener('click', () => {
@@ -287,6 +392,9 @@ const listaLugares = lugares
 
     /* Entrar filtrado desde otra página: /memorias/?apellido=Muller */
     const q = new URLSearchParams(location.search);
+    /* Entrar buscando desde el mapa: el conmutador se trae el `?q=` para que
+       cambiar de vista no haga escribir dos veces lo mismo. */
+    if (q.get('q')) campo.value = q.get('q');
     for (const k of ['decada', 'apellido', 'lugar']) {
       const v = q.get(k);
       if (!v) continue;
@@ -294,7 +402,10 @@ const listaLugares = lugares
       for (const o of document.querySelectorAll(`.chip[data-f="${k}"]`))
         o.classList.toggle('act', (o.dataset.v || '') === v);
     }
-    aplicar();
+    /* Llegar con un filtro puesto y no verlo sería un archivo recortado sin
+       que nada lo diga: ahí los filtros se muestran abiertos. */
+    if (Object.values(estado).some(Boolean)) plegar(true);
+    buscar();   /* llama a aplicar(), con o sin texto */
 
     /* ---- cuál es el hito que se está mirando ----
        Con un `scroll` que pregunta la posición de cada hito —que es como lo
@@ -353,6 +464,23 @@ const listaLugares = lugares
   </script>
 
   <style>
+  .f-abrir { display: flex; align-items: center; justify-content: space-between;
+             gap: .6rem; width: 100%; min-height: 2.9rem; padding: .5rem .9rem;
+             background: none; border: 1px solid var(--linea); border-radius: 2rem;
+             cursor: pointer; font-family: var(--texto); font-size: .95rem;
+             color: var(--tinta-2); text-align: left; }
+  .f-abrir:hover { border-color: var(--linea-viva); color: var(--tinta); }
+  .f-abrir svg { width: 1.1rem; height: 1.1rem; flex: none;
+                 transition: transform .2s ease; }
+  .f-abrir.abierto svg { transform: rotate(180deg); }
+  .f-cuerpo { display: grid; gap: 1rem; margin-top: 1rem; }
+
+  /* Por dónde la encontró el buscador. Chico y arriba de todo en la tarjeta:
+     tiene que poder leerse sin competir con el año ni con el título, que son
+     lo que la persona vino a ver. Aparece sólo cuando hay algo que explicar. */
+  .hito-por { margin: 0 0 .35rem; font-size: .78rem; line-height: 1.35;
+              color: var(--tinta-2); font-style: italic; }
+
     .arch-cab { margin-bottom: 2rem; }
     .arch-cab h1 { margin-bottom: .75rem; }
 

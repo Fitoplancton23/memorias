@@ -32,6 +32,20 @@ const VARON = ['Luis','Gerardo','Oscar','Roberto','Antonio','Juan','Pedro','Otto
 const MUJER = ['Clementina','Celina','Susana','Ana','Marta','Eva','Rosa','Ida','Norma','Berta',
   'Hilda','Mirta','Ramona','Elsa','Lucia','Olga','Nelida','Irma','Dora','Teresa','Blanca','Amalia'];
 
+/* Los apodos, que es como se busca de verdad en el pueblo.
+   -------------------------------------------------------------------------
+   Sin esto los datos de demostración no tenían un solo apodo, y entonces la
+   función que más importa del buscador —que escribir "el Negro" encuentre a
+   Roberto Silveira— no se podía ver en pantalla ni equivocarse a la vista. Un
+   dato de prueba que no ejercita lo difícil deja el error para producción.
+
+   Algunos llevan dos, separados por punto y coma, que es como los guarda la
+   base: el que le puso la familia y el que le puso el pueblo. */
+const APODOS_V = ['el Negro','el Tano','el Gringo','Pepe','el Polaco','Tito','el Rubio',
+  'Cacho','el Ruso','el Flaco','Beto','el Turco','Lalo','el Chango','Coco'];
+const APODOS_M = ['la Tana','la Negra','la Gringa','Mecha','la Polaca','Coca','la Rubia',
+  'Beba','la Nena','Pochi','la Gorda','Tita','Chela','la Rusa','Moni'];
+
 const personas = new Map();   // slug -> ficha
 const grupos = [];            // { padre, madre, hijos: [] }
 const emparejados = new Set();
@@ -42,8 +56,18 @@ function alta(nombre, apellido, sexo, anioNac, lugar) {
   while (personas.has(s) && personas.get(s).nac !== anioNac) s = slug(completo) + '-' + n++;
   if (!personas.has(s)) {
     const vive = anioNac >= 1955 && rnd() < .75;
+    /* Dos de cada cinco: en el pueblo no todos tienen apodo, pero bastantes
+       sí, y uno de cada diez tiene dos. */
+    const bolsa = sexo === 'F' ? APODOS_M : APODOS_V;
+    const r = rnd();
+    const uno = elegir(bolsa);
+    /* El segundo sale de la bolsa sin el primero: "Pepe; Pepe" no es un dato
+       de prueba, es un dato roto, y en pantalla se lee como un error nuestro. */
+    const apodo = r < .4
+      ? (r < .1 ? `${uno}; ${elegir(bolsa.filter(x => x !== uno))}` : uno)
+      : '';
     personas.set(s, {
-      slug: s, nombre, apellido, sexo, nac: anioNac,
+      slug: s, nombre, apellido, sexo, nac: anioNac, apodo,
       def: vive ? null : anioNac + entre(58, 92), vive, lugar, completo
     });
   }
@@ -143,7 +167,7 @@ const fechaTexto = a => {
 
 const filasP = ['slug,nombre,apellido,apodo,sexo,nacimiento,defuncion,lugar_origen,vive,notas'];
 for (const p of personas.values())
-  filasP.push([p.slug, p.nombre, p.apellido, '', p.sexo, fechaTexto(p.nac),
+  filasP.push([p.slug, p.nombre, p.apellido, p.apodo || '', p.sexo, fechaTexto(p.nac),
     p.def ? fechaTexto(p.def) : '', p.lugar, p.vive ? 'si' : 'no',
     'DATOS DE DEMOSTRACION - persona inventada'].map(esc).join(','));
 writeFileSync(join(SAL, 'personas.csv'), filasP.join('\n') + '\n');

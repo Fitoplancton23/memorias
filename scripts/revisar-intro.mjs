@@ -8,7 +8,7 @@
    Necesita ffprobe. Correr: node scripts/revisar-intro.mjs               */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, statSync, readdirSync } from 'node:fs';
+import { existsSync, statSync, readdirSync, openSync, readSync, closeSync } from 'node:fs';
 
 const DIR = 'public/intro';
 const DURACION = 10;        /* lo que el sitio espera, en segundos */
@@ -20,8 +20,39 @@ const PESO_AVISO = 1.5;     /* MB a partir de los cuales conviene mirar */
    logo. */
 const PESO_FRENO = 8;
 
+/* ffprobe contesta lo que hay adentro del archivo —duración, medidas, si trae
+   audio—, y no está en todas las máquinas. Se pregunta una sola vez: sin él se
+   corre igual lo que no lo necesita, en vez de acusar a los archivos de estar
+   rotos, que es lo que hacía esta misma herramienta y era mentira. */
+let hayProbe = true;
+try { execFileSync('ffprobe', ['-version'], { stdio: 'ignore' }); } catch { hayProbe = false; }
+
 const probe = f => JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-print_format', 'json',
   '-show_format', '-show_streams', f], { encoding: 'utf8' }));
+
+/* ¿El índice está antes de los datos? En un MP4 los contenedores de primer
+   nivel van en fila, cada uno con su largo y su nombre: alcanza con recorrer
+   esa fila y ver quién llega primero, `moov` —el índice— o `mdat` —el video—.
+   Se lee en Node y no con herramientas de consola, para que ande igual en
+   Windows. */
+function indiceAlPrincipio(f) {
+  const fd = openSync(f, 'r');
+  try {
+    const cab = Buffer.alloc(16);
+    for (let pos = 0, vueltas = 0; vueltas < 64; vueltas++) {
+      if (readSync(fd, cab, 0, 16, pos) < 8) return null;
+      let largo = cab.readUInt32BE(0);
+      const tipo = cab.toString('latin1', 4, 8);
+      if (tipo === 'moov') return true;
+      if (tipo === 'mdat') return false;
+      if (largo === 1) largo = Number(cab.readBigUInt64BE(8));   /* largo de 64 bits */
+      if (largo === 0) return null;                              /* hasta el final */
+      if (largo < 8) return null;                                /* ilegible */
+      pos += largo;
+    }
+    return null;
+  } catch { return null; } finally { closeSync(fd); }
+}
 
 let fallan = 0, avisos = 0;
 const mal = m => { fallan++; console.error('  ✗ ' + m); };
@@ -74,22 +105,24 @@ for (const [nombre, obligatorio] of esperados) {
     continue;
   }
   const mb = statSync(f).size / 1048576;
-  let d;
-  try { d = probe(f); } catch { mal(`${nombre} no se pudo leer: ¿está entero?`); continue; }
-  const v = d.streams.find(s => s.codec_type === 'video');
-  const audio = d.streams.some(s => s.codec_type === 'audio');
-  const dur = +(d.format.duration || v?.duration || 0);
+  let d = null;
+  if (hayProbe) {
+    try { d = probe(f); } catch { mal(`${nombre} no se pudo leer: ¿está entero?`); continue; }
+  }
+  const v = d && d.streams.find(s => s.codec_type === 'video');
+  const audio = d && d.streams.some(s => s.codec_type === 'audio');
+  const dur = d ? +(d.format.duration || v?.duration || 0) : null;
 
-  console.log(`  ${nombre.padEnd(16)} ${mb.toFixed(2).padStart(6)} MB  ` +
-    `${v ? v.width + 'x' + v.height : '?'}  ${v?.codec_name || '?'}` +
-    (nombre.endsWith('.webp') ? '' : `  ${dur.toFixed(2)} s`));
+  console.log(`  ${nombre.padEnd(16)} ${mb.toFixed(2).padStart(6)} MB` +
+    (v ? `  ${v.width}x${v.height}  ${v.codec_name}` : '') +
+    (dur != null && !nombre.endsWith('.webp') ? `  ${dur.toFixed(2)} s` : ''));
 
   if (nombre.endsWith('.webp')) continue;
 
-  if (Math.abs(dur - DURACION) > TOLERANCIA)
+  if (dur != null && Math.abs(dur - DURACION) > TOLERANCIA)
     mal(`${nombre} dura ${dur.toFixed(2)} s y el sitio está armado para ${DURACION}. ` +
         `O se reexporta, o se mueven DURACION en Base.astro y los dos retrasos del isotipo.`);
-  if (audio)
+  if (audio === true)
     ojo(`${nombre} trae pista de audio. El video arranca silenciado siempre, ` +
         `así que es peso que nadie va a escuchar: reexportar con -an.`);
   if (mb > PESO_FRENO)
@@ -102,18 +135,17 @@ for (const [nombre, obligatorio] of esperados) {
   /* El índice al principio. Sin esto el navegador se baja el archivo entero
      antes de mostrar un cuadro, que en una conexión lenta es justo el caso que
      el presupuesto de 1,8 s descarta. Sólo aplica a MP4. */
-  if (nombre.endsWith('.mp4')) {
-    const cab = execFileSync('sh', ['-c',
-      `head -c 64 ${JSON.stringify(f)} | tr -c '[:alnum:]' ' '`], { encoding: 'utf8' });
-    if (!/moov/.test(cab))
-      mal(`${nombre} no tiene el índice al principio. En Media Encoder es la casilla ` +
-          `de inicio rápido; con ffmpeg, -movflags +faststart.`);
-  }
+  if (nombre.endsWith('.mp4') && indiceAlPrincipio(f) === false)
+    mal(`${nombre} no tiene el índice al principio. En Media Encoder es la casilla ` +
+        `de inicio rápido; con ffmpeg, -movflags +faststart.`);
 }
 
 /* Las dos versiones tienen que durar lo mismo, o el isotipo cuadra en una y
    no en la otra. */
-const dur = n => existsSync(`${DIR}/${n}`) ? +probe(`${DIR}/${n}`).format.duration : null;
+const dur = n => {
+  if (!hayProbe || !existsSync(`${DIR}/${n}`)) return null;
+  try { return +probe(`${DIR}/${n}`).format.duration; } catch { return null; }
+};
 const dw = dur('intro-web.mp4') ?? dur('intro-web.webm');
 const dm = dur('intro-mob.mp4') ?? dur('intro-mob.webm');
 if (dw && dm && Math.abs(dw - dm) > TOLERANCIA)
@@ -121,5 +153,10 @@ if (dw && dm && Math.abs(dw - dm) > TOLERANCIA)
       `Tienen que durar lo mismo.`);
 
 console.log('');
+if (!hayProbe)
+  ojo('No hay ffprobe en esta máquina, así que no se pudo mirar adentro de los '
+    + 'archivos: duración, medidas y pista de audio quedaron sin revisar. Lo que '
+    + 'sí se revisó: los nombres, el peso y el índice al principio.');
+
 if (fallan) { console.error(`${fallan} problema(s) que hay que arreglar antes de publicar.`); process.exit(1); }
 console.log(avisos ? `Listo, con ${avisos} aviso(s).` : 'Listo: los archivos están como tienen que estar.');

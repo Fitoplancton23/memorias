@@ -1,6 +1,6 @@
 /* El vuelo de entrada: si la cuenta está mal, el mapa sale de cuadro y vuelve
    a mitad de camino, y eso se lee como un error y no como un movimiento. */
-import { centro, entre, suave } from '../src/lib/vuelo.js';
+import { centro, entre, suave, encuadreDeCaja } from '../src/lib/vuelo.js';
 
 let fallan = 0;
 const mal = m => { fallan++; console.error('  ✗ ' + m); };
@@ -75,5 +75,100 @@ if (casi(suave(.25), .25, .02)) mal('la curva es una recta: no arranca ni frena 
 if (!(suave(.25) < .25)) mal('tiene que arrancar despacio');
 if (!(suave(.75) > .75)) mal('tiene que frenar despacio');
 
+/* ---------------------------------------------------------------------- */
+/* El encuadre de entrada                                                  */
+/* ---------------------------------------------------------------------- */
+/* Lo que importa: el centro que se pide queda en el centro de la pantalla, y
+   la caja entra entera. Nada de esto depende de los datos — ésa fue
+   exactamente la falla: encuadrar "los lugares del casco" con un solo lugar
+   cargado abría el mapa zambullido en ese marcador. */
+const vista = { ancho: 2000, alto: 1686 };
+
+{
+  const caja = { cx: 900, cy: 800, ancho: 400, alto: 300 };
+  const t = encuadreDeCaja(caja, vista, 0);
+  const c = centro(t, vista.ancho, vista.alto);
+  if (!casi(c[0], caja.cx, 1e-9) || !casi(c[1], caja.cy, 1e-9))
+    mal(`el centro pedido tiene que quedar en el medio: dio ${c}`);
+  /* Entra entera: los cuatro bordes caen dentro de lo que se ve. */
+  for (const [px, py] of [[caja.cx - caja.ancho / 2, caja.cy - caja.alto / 2],
+                          [caja.cx + caja.ancho / 2, caja.cy + caja.alto / 2]]) {
+    const sx = px * t.k + t.x, sy = py * t.k + t.y;
+    if (sx < -1e-6 || sx > vista.ancho + 1e-6 || sy < -1e-6 || sy > vista.alto + 1e-6)
+      mal(`un borde de la caja queda afuera: ${sx.toFixed(1)},${sy.toFixed(1)}`);
+  }
+}
+
+/* El margen aleja, nunca acerca. */
+{
+  const caja = { cx: 1000, cy: 843, ancho: 400, alto: 300 };
+  const sinM = encuadreDeCaja(caja, vista, 0).k;
+  const conM = encuadreDeCaja(caja, vista, 120).k;
+  if (!(conM < sinM)) mal('con margen tiene que alejarse, no acercarse');
+  if (!casi(centro(encuadreDeCaja(caja, vista, 120), vista.ancho, vista.alto)[0], caja.cx, 1e-9))
+    mal('el margen no puede mover el centro');
+}
+
+/* Manda el lado que no entra: una caja ancha y baja se ajusta por el ancho. */
+{
+  const anchaYBaja = encuadreDeCaja({ cx: 1000, cy: 843, ancho: 1800, alto: 10 }, vista, 0);
+  if (!casi(anchaYBaja.k, 2000 / 1800, 1e-9)) mal('una caja ancha tiene que ajustarse por el ancho');
+  const altaYFina = encuadreDeCaja({ cx: 1000, cy: 843, ancho: 10, alto: 1600 }, vista, 0);
+  if (!casi(altaYFina.k, 1686 / 1600, 1e-9)) mal('una caja alta tiene que ajustarse por el alto');
+}
+
+/* Una caja de tamaño cero no puede dar escala infinita y dejar el mapa en
+   blanco sin forma de volver. Los dos lados por separado: con `Math.min` de
+   por medio, alcanza con que UN lado esté sin proteger para que el otro tape
+   el agujero y el test dé verde. Eso pasó: la rotura a propósito no falló. */
+for (const caja of [{ cx: 500, cy: 500, ancho: 0, alto: 0 },
+                    { cx: 500, cy: 500, ancho: 0, alto: 400 },
+                    { cx: 500, cy: 500, ancho: 400, alto: 0 }]) {
+  const t = encuadreDeCaja(caja, vista, 0);
+  if (!isFinite(t.k) || !isFinite(t.x) || !isFinite(t.y))
+    mal(`caja ${caja.ancho}x${caja.alto}: no puede dar infinito`);
+  /* Y tampoco una escala absurda: el tope del mapa es 40, y una entrada a
+     mil aumentos deja al visitante adentro de un píxel. */
+  if (t.k > 40 + 1e-9) mal(`caja ${caja.ancho}x${caja.alto}: escala disparada (${t.k})`);
+}
+
+/* El foco: dónde cae el centro de la caja. Cuando la pantalla y el dibujo no
+   tienen la misma forma, el medio de lo que se ve y el medio del dibujo son
+   dos puntos distintos — confundirlos corrió el centro 1276 m en el teléfono. */
+{
+  const vistaAlta = { ancho: 2000, alto: 4328 };   /* un teléfono */
+  const caja = { cx: 980, cy: 820, ancho: 440, alto: 380 };
+  const conFoco = encuadreDeCaja(caja, vistaAlta, 120, [1000, 843]);
+  /* el centro de la caja tiene que caer exactamente en el foco pedido */
+  if (!casi(caja.cx * conFoco.k + conFoco.x, 1000, 1e-9) ||
+      !casi(caja.cy * conFoco.k + conFoco.y, 843, 1e-9))
+    mal('con foco, el centro de la caja tiene que caer en el foco');
+  /* y sin foco cae en el medio de la vista, que acá NO es el mismo punto */
+  const sinFoco = encuadreDeCaja(caja, vistaAlta, 120);
+  if (casi(sinFoco.y, conFoco.y, 1))
+    mal('el foco tiene que cambiar algo cuando la vista no es el dibujo');
+  /* la escala no la toca el foco */
+  if (!casi(sinFoco.k, conFoco.k, 1e-12)) mal('el foco no puede cambiar la escala');
+}
+
+/* La escala sale de la vista de verdad, no del viewBox: con la misma caja,
+   una pantalla más alta tiene que permitir MÁS acercamiento, no menos. */
+{
+  const caja = { cx: 1000, cy: 843, ancho: 440, alto: 380 };
+  const comoViewBox = encuadreDeCaja(caja, { ancho: 2000, alto: 1686 }, 120).k;
+  const comoTelefono = encuadreDeCaja(caja, { ancho: 2000, alto: 4328 }, 120).k;
+  if (!(comoTelefono >= comoViewBox))
+    mal(`una vista más alta no puede dar menos escala (${comoTelefono} < ${comoViewBox})`);
+}
+
+/* Y el que de verdad importa: el encuadre NO cambia si cambian los datos.
+   La misma caja da la misma transformación, siempre. */
+{
+  const caja = { cx: 1234, cy: 567, ancho: 300, alto: 200 };
+  const a1 = JSON.stringify(encuadreDeCaja(caja, vista, 60));
+  const a2 = JSON.stringify(encuadreDeCaja({ ...caja }, { ...vista }, 60));
+  if (a1 !== a2) mal('el mismo encuadre tiene que dar siempre lo mismo');
+}
+
 if (fallan) { console.error(`${fallan} caso(s) de vuelo fallan`); process.exit(1); }
-console.log('19 casos de vuelo de entrada: todos pasan');
+console.log('36 casos de vuelo de entrada: todos pasan');

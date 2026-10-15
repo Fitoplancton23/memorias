@@ -117,25 +117,42 @@ const RELACIONES = Object.fromEntries(documentos.map(x => [x.slug,
 /* Con qué encuadre abre el mapa la primera vez.
    -------------------------------------------------------------------------
    Abría mostrando TODOS los lugares con material, y entre ellos están Salto
-   Encantado y el Paraje Cerro Moreno, que quedan a kilómetros del pueblo. El
-   encuadre que los incluye a todos deja el casco del tamaño de una moneda:
-   no se lee una sola calle y los marcadores del centro se amontonan en un
-   borrón. Alguien que entra por primera vez tiene que reconocer su pueblo.
+   Encantado y los parajes, a kilómetros del pueblo. El encuadre que los
+   incluye a todos deja el casco del tamaño de una moneda: no se lee una sola
+   calle y los marcadores del centro se amontonan en un borrón. Alguien que
+   entra por primera vez tiene que reconocer su pueblo.
 
-   Así que abre en el casco —el recuadro del mapa chico, que ya está medido en
-   `mapa.json`— y lo de afuera sigue estando: alejando un poco aparece, el
-   botón de ver todo lo encuadra entero, y el mapa nunca escondió nada.
+   El primer arreglo encuadraba "los lugares que caen dentro del casco", y eso
+   seguía siendo de los datos. Con el archivo de verdad hay UN solo lugar con
+   coordenada, así que el mapa abría zambullido en la Plaza Libertad: no
+   apuntaba al pueblo, apuntaba a un marcador. Y mañana, con tres lugares más,
+   habría abierto en otro lado sin que nadie cambiara nada.
 
-   Si ningún lugar cae dentro del casco —puede pasar con pocos datos reales—
-   se encuadra lo que haya, que es mejor que abrir en un recuadro vacío. */
+   **El encuadre de entrada es geografía, no datos.** El casco es un
+   rectángulo medido una vez y escrito en `mapa.json`, y el centro es un punto
+   fijo del pueblo. Nada de eso se mueve cuando entra una foto, que es
+   exactamente lo que se le pide a la puerta de entrada de un archivo que va a
+   crecer. */
 const cascoMapa = mapas.mapas.find(m => m.nombre === 'casco');
-const enElCasco = (() => {
-  if (!cascoMapa) return [];
-  const [minlat, minlon, maxlat, maxlon] = cascoMapa.bounds;
-  return lugares
-    .filter(l => l.lat != null && l.lng != null && (l.documentos || []).length > 0)
-    .filter(l => l.lat >= minlat && l.lat <= maxlat && l.lng >= minlon && l.lng <= maxlon)
-    .map(l => l.slug);
+
+/* El centro del pueblo, a mano. No es el centro del rectángulo del casco
+   —queda a unos doscientos metros— sino el punto que alguien que vive ahí
+   señalaría como el medio. */
+const CENTRO = { lat: -27.097738850664342, lng: -54.894517831429496 };
+
+const CASCO = (() => {
+  const c = aNormalizado(CENTRO.lat, CENTRO.lng, mapa);
+  const caja = { cx: +(c.x * ANCHO).toFixed(1), cy: +(c.y * ALTO).toFixed(1),
+                 ancho: ANCHO, alto: ALTO };
+  if (cascoMapa) {
+    const [minlat, minlon, maxlat, maxlon] = cascoMapa.bounds;
+    /* Las dos esquinas del casco, proyectadas al dibujo del ejido. */
+    const a = aNormalizado(maxlat, minlon, mapa);   /* arriba izquierda */
+    const b = aNormalizado(minlat, maxlon, mapa);   /* abajo derecha */
+    caja.ancho = Math.abs(b.x - a.x) * ANCHO;
+    caja.alto = Math.abs(b.y - a.y) * ALTO;
+  }
+  return caja;
 })();
 
 const conMaterial = puntos.length;
@@ -312,8 +329,8 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     )}
   </section>
 
-  <script define:vars={{ PUNTOS: puntos, ANCHO, ALTO, M_POR_UNIDAD, RELACIONES, EN_EL_CASCO: enElCasco }}>
-    window.__MAPA = { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD, RELACIONES, EN_EL_CASCO };
+  <script define:vars={{ PUNTOS: puntos, ANCHO, ALTO, M_POR_UNIDAD, RELACIONES, CASCO }}>
+    window.__MAPA = { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD, RELACIONES, CASCO };
   </script>
 
   <script>
@@ -323,9 +340,9 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     import { dobleToque, enElLienzo } from '../../lib/doble-toque.js';
     import { geometria, inicial, acercar, recorrer, LUPA } from '../../lib/lupa.js';
     import { buscarMemorias, comoSeEncontro } from '../../lib/buscar.js';
-    import { entre as entreEncuadres, suave } from '../../lib/vuelo.js';
+    import { entre as entreEncuadres, suave, encuadreDeCaja } from '../../lib/vuelo.js';
 
-    const { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD, RELACIONES, EN_EL_CASCO } = window.__MAPA;
+    const { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD, RELACIONES, CASCO } = window.__MAPA;
     const svgEl = document.getElementById('mapa');
     const mundo = document.getElementById('mundo');
     const base = document.getElementById('base');
@@ -1436,15 +1453,35 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     } else {
       /* El casco, no el ejido entero: ver el pueblo entero chiquito no es ver
          el pueblo. Lo de afuera aparece alejando, y el botón ⌖ lo encuadra
-         todo — que es para lo que está. */
-      const conM = PUNTOS.filter(p => p.n > 0).map(p => p.slug);
-      const casco = conM.filter(s => EN_EL_CASCO.includes(s));
-      /* Margen más chico que el de un encuadre cualquiera: al abrir, lo que
-         importa es que se lean las calles y los rótulos, no que sobre aire
-         alrededor. En el teléfono, donde el ancho manda, esos cincuenta de
-         margen a cada lado son la diferencia entre reconocer el pueblo y ver
-         una maraña gris. */
-      const alCasco = () => encuadrar(casco.length ? casco : conM, casco.length ? 40 : null);
+         todo — que es para lo que está.
+
+         Y sale del rectángulo del casco, no de dónde caigan las memorias: con
+         un solo lugar cargado, encuadrar "los lugares del casco" abría el
+         mapa zambullido en ese marcador. */
+      /* Lo que se ve de verdad, en unidades del dibujo. No es el viewBox: en
+         un teléfono la pantalla es mucho más alta, y calcular la escala
+         contra el viewBox daba una escala sin margen para centrar — el mapa
+         quedaba pegado a su borde y el punto pedido se corría 1276 metros.
+         El foco, en cambio, sí es el medio del DIBUJO: ahí centra
+         `preserveAspectRatio` el contenido. */
+      const vistaReal = () => {
+        const c = svgEl.getBoundingClientRect();
+        return { ancho: (c.width || ANCHO) / razon, alto: (c.height || ALTO) / razon };
+      };
+      const FOCO = [ANCHO / 2, ALTO / 2];
+      const poner = e => {
+        const t = acotar(zoomIdentity.translate(e.x, e.y).scale(e.k));
+        zm.transform(sel, t);
+        return t;
+      };
+      /* Un margen chico: al abrir importa que se lean las calles, no que
+         sobre aire alrededor. Con 120 a cada lado —casi un tercio de la caja—
+         el pueblo entraba, sí, y entraba lejos: se veía el casco rodeado de
+         campo en vez de verse el casco. */
+      const alCasco = () => poner(encuadreDeCaja(CASCO, vistaReal(), 40, FOCO));
+      /* De dónde sale el vuelo: el dibujo entero. También fijo. */
+      const alTerritorio = () => poner(encuadreDeCaja(
+        { cx: ANCHO / 2, cy: ALTO / 2, ancho: ANCHO, alto: ALTO }, vistaReal(), 0, FOCO));
 
       /* Y la primera vez se llega volando: el mapa abre mostrando el
          territorio y se acerca solo hasta el casco.
@@ -1458,10 +1495,10 @@ const apellidosPortada = Object.entries(cuentaApellidos)
          el mapa, y repetir el vuelo cada vez sería hacerle esperar lo mismo
          todos los días. Y nunca con `prefers-reduced-motion`. */
       const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (quieto || !casco.length) alCasco();
+      if (quieto) alCasco();
       else {
-        const hasta = alCasco();              /* a dónde va */
-        const desde = encuadrar(conM, 150);   /* y de dónde sale: el territorio */
+        const hasta = alCasco();          /* a dónde va */
+        const desde = alTerritorio();     /* y de dónde sale */
 
         /* No arranca hasta que no quede ninguna cortina encima. Esto ya pasó
            con la indicación del primer acceso: apareció detrás del telón de

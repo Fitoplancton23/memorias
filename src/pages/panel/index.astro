@@ -78,6 +78,12 @@ import { tituloSitio } from '../../lib/sitio.js';
   <!-- Bandeja                                                           -->
   <!-- ---------------------------------------------------------------- -->
   <main id="bandeja" class="ancho" hidden>
+    {/* Quién está adentro. No es cortesía: el panel lo usan dos personas con
+        permisos distintos y las notas van firmadas, así que saber con qué
+        cuenta entraste evita dejar un recado a nombre del otro. Y si alguien
+        se olvidó la sesión abierta en una computadora compartida, acá se ve. */}
+    <p class="hola" id="hola" hidden></p>
+
     <div class="bandeja-cabeza">
       <h1>Memorias</h1>
       <span class="cabeza-mandos">
@@ -659,8 +665,16 @@ import { tituloSitio } from '../../lib/sitio.js';
     .filtro.activo { color: var(--tinta); border-bottom-color: var(--marca); }
 
     .lista { list-style: none; margin: 0; padding: 0; }
-    .lista li { display: flex; align-items: center; gap: .9rem; padding: .8rem 0;
-                border-bottom: 1px solid var(--linea); }
+    /* `> li` y no `li`: las notas traen su propia lista anidada, y con el
+       selector suelto heredaban el borde de abajo, el relleno y —peor— la
+       grilla de tres columnas de una fila de memoria. Lo encontró la maqueta:
+       `.lista li` contaba seis filas donde hay tres. */
+    .lista > li { display: flex; align-items: center; gap: .9rem; padding: .8rem 0;
+                border-bottom: 1px solid var(--linea);
+                /* Para que las notas, cuando se abren en el teléfono, bajen a
+                   un renglón propio. Sin esto entraban como una columna más
+                   del flex y aplastaban el título a una palabra por línea. */
+                flex-wrap: wrap; }
     .lista img { width: 3.2rem; height: 3.2rem; object-fit: cover; border-radius: .3rem;
                  flex: none; background: var(--panel-2); }
     .lista .sinfoto { width: 3.2rem; height: 3.2rem; border-radius: .3rem; flex: none;
@@ -676,6 +690,18 @@ import { tituloSitio } from '../../lib/sitio.js';
     .botones { display: flex; align-items: center; gap: .7rem;
                flex-wrap: wrap; justify-content: flex-end; }
     .acciones .falta { color: var(--tipo-evento); }
+
+    /* En el teléfono los botones bajan a un renglón propio. Esto ya estaba
+       roto antes de las notas y se vio al medir la fila entera: con 390 px de
+       ancho, `.acciones` se quedaba con 217 y al título le sobraban 65 —
+       "Casamiento de Pedro y Patricia" salía a una palabra por línea y en seis
+       renglones—. El título es lo que se lee para decidir qué memoria es; los
+       botones se buscan después. */
+    @media (max-width: 40rem) {
+      .lista > li > .crece { flex-basis: calc(100% - 4.1rem); }
+      .acciones { max-width: 100%; flex-basis: 100%; align-items: flex-start; }
+      .botones, .falta-permiso { justify-content: flex-start; }
+    }
     /* Renglón propio y completo, para que los botones de la fila queden todos
        juntos abajo en vez de repartirse por los huecos que deja el aviso. */
     .falta-permiso { display: flex; align-items: center;
@@ -751,6 +777,44 @@ import { tituloSitio } from '../../lib/sitio.js';
     .sugerencias li:last-child { border-bottom: 1px solid var(--linea); }
     .sugerencias li:hover, .sugerencias li[aria-selected=true] { background: var(--panel-2); }
     .sugerencias small { color: var(--tinta-2); margin-left: .4rem; }
+
+    .hola { margin: 0 0 .2rem; font-size: .9rem; color: var(--tinta-2); }
+    .hola b { font-weight: 500; color: var(--tinta); }
+
+    /* ---- notas entre administradores ----
+       En el teléfono viven plegadas detrás de un botón; en pantalla ancha, al
+       lado de cada memoria y siempre a la vista. Es la misma zona: lo que
+       cambia es el CSS. */
+    .notas { display: none; width: 100%; }
+    .notas.abierta { display: block; margin-top: .6rem; flex-basis: 100%; }
+    .notas-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; }
+    .notas-lista li { display: grid; gap: .1rem; font-size: .85rem; line-height: 1.4; }
+    .notas-lista i { font-style: normal; font-size: .74rem; color: var(--tinta-2); }
+    .notas-lista .enlace { justify-self: start; font-size: .74rem; }
+    .notas-vacio { margin: 0; font-size: .82rem; color: var(--tinta-2); }
+    .notas-nueva { display: flex; gap: .4rem; margin-top: .5rem; }
+    .notas-nueva input { margin-top: 0; flex: 1; min-width: 0;
+                         font-size: .85rem; padding: .4rem .55rem; }
+    .notas-nueva button { flex: none; font-size: .82rem; padding: .4rem .7rem;
+                          background: var(--panel-2); border: 1px solid var(--linea-viva);
+                          border-radius: .3rem; cursor: pointer; font-family: var(--texto); }
+    .notas-aviso { margin: .35rem 0 0; font-size: .8rem; color: var(--tipo-evento); }
+    /* El botón dice cuántas hay sin abrirlas, y se nota cuando hay alguna. */
+    .notas-boton.con-notas { color: var(--marca); font-weight: 500; }
+
+    /* En pantalla ancha el panel se ensancha y la memoria se parte en tres
+       columnas: la foto y el título, las acciones, y las notas. El ancho de
+       más no es capricho — las notas al lado son el punto, y apretadas en
+       44rem obligarían a elegir entre leerlas y ver los botones. */
+    @media (min-width: 64rem) {
+      #bandeja.ancho { max-width: 72rem; }
+      .lista > li { display: grid; align-items: start;
+                  grid-template-columns: 3.2rem minmax(12rem, 1fr) auto 22rem;
+                  column-gap: 1rem; }
+      .lista > li > img, .lista > li > .sinfoto { grid-row: 1; }
+      .notas { display: block; border-left: 1px solid var(--linea); padding-left: 1rem; }
+      .notas-boton { display: none; }
+    }
 
     /* El alta de una persona: tres campos y nada más. Aparece debajo del
        buscador y no en una ventana aparte — tapar el formulario de la memoria

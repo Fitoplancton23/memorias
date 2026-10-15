@@ -16,6 +16,7 @@ import { montarSelector, leerCoordenadas } from './selector-mapa.js';
 import { cablearFichero, abrirFichero } from './fichero.js';
 import { buscador, filtrar, sinTildes, unico, altaPersona } from './piezas.js';
 import { comoSeLlama, baseSlug, fila as filaPersona } from '../persona-nueva.js';
+import { encabezado, rotuloBoton } from '../notas.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -204,6 +205,7 @@ async function entrarAlPanel() {
   }
   ver($('#zonaPublicar'), !!admin.puede_publicar);
   ver($('#bandeja'), true);
+  saludar(admin);
 
   /* Antes de la bandeja, porque la bandeja la usa para decidir qué ofrece. */
   hayPermiso = await api.traer('memorias', 'select=permiso_publicacion&limit=1')
@@ -211,6 +213,31 @@ async function entrarAlPanel() {
   ver($('#sinPermiso'), !hayPermiso);
 
   await Promise.all([precargar(), cargarBandeja('pendiente')]);
+}
+
+/* Cómo se llama quien entró. `administradores.nombre` puede estar vacío —se
+   da de alta a mano y nadie lo completa siempre—, así que cae al correo, y de
+   ahí a lo que haya antes de la arroba: "matias" es mejor saludo que
+   "matias.gonzalez@gmail.com" y mucho mejor que nada. */
+export function comoSeLlamaElAdmin(admin, correo) {
+  const n = (admin?.nombre || '').trim();
+  if (n) return n;
+  const c = (correo || '').trim();
+  if (!c) return '';
+  return c.split('@')[0] || c;
+}
+
+function saludar(admin) {
+  const caja = $('#hola');
+  if (!caja) return;
+  const nombre = comoSeLlamaElAdmin(admin, api.correo());
+  if (!nombre) { ver(caja, false); return; }
+  caja.innerHTML = '';
+  caja.append('Hola, ');
+  const b = document.createElement('b');
+  b.textContent = nombre;
+  caja.append(b, '.');
+  ver(caja, true);
 }
 
 /* Las tablas de referencia se bajan una vez y se buscan en memoria. Son pocos
@@ -248,6 +275,21 @@ async function cargarBandeja(estado) {
     const base = `select=${columnas}&estado=eq.${estado}&limit=200`;
     const filas = await api.traer('memorias', base + '&order=creada_en.desc')
       .catch(() => api.traer('memorias', base));
+
+    /* Las notas de todas las memorias de la lista, en UNA consulta. Una por
+       fila serían doscientas desde la conexión del pueblo. Y si la tabla
+       todavía no existe —db/23_notas.sql sin correr— la bandeja sale igual,
+       sin notas: una bandeja sin notas es un inconveniente, una bandeja que no
+       carga es una pared. */
+    let notas = {};
+    if (estado === 'pendiente' && filas.length) {
+      const ids = filas.map(f => f.id).join(',');
+      const traidas = await api.traer('memoria_notas',
+        `select=id,memoria_id,texto,autor,creada_por,creada_en&memoria_id=in.(${ids})` +
+        '&order=creada_en.asc').catch(() => null);
+      if (traidas) { notas = {}; for (const n of traidas) (notas[n.memoria_id] ||= []).push(n); }
+      else notas = null;   /* null = la tabla no está; distinto de "no hay notas" */
+    } else notas = null;
     ver($('#vacio'), filas.length === 0);
     $('#vacio').textContent = estado === 'pendiente'
       ? 'No hay memorias esperando revisión.'
@@ -282,12 +324,126 @@ async function cargarBandeja(estado) {
          creyendo que hizo algo mal, cuando lo que pasa es que ese trabajo no
          es suyo. */
       acciones(li, m, err);
+      if (notas) li.append(zonaNotas(m, notas[m.id] || [], li));
 
       lista.append(li);
     }
   } catch (x) {
     err.textContent = x.message; ver(err, true);
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Las notas de una memoria                                            */
+/* ------------------------------------------------------------------ */
+/* En pantalla ancha van AL LADO de cada memoria y se leen sin tocar nada: el
+   panel tiene espacio de sobra y lo que importa de una nota es que el otro la
+   vea sin buscarla. En el teléfono no hay ancho que repartir, así que se
+   pliegan detrás de un botón — y el botón dice cuántas hay, porque si dijera
+   sólo "Notas" habría que abrir memoria por memoria para saber si alguien
+   dejó algo.
+
+   Es la misma zona en los dos casos, no dos interfaces: lo que cambia es el
+   CSS. Dos pantallas distintas para lo mismo se separan con el tiempo. */
+function zonaNotas(m, lista, li) {
+  const zona = document.createElement('div');
+  zona.className = 'notas';
+
+  const ul = document.createElement('ul');
+  ul.className = 'notas-lista';
+  zona.append(ul);
+
+  const vacio = document.createElement('p');
+  vacio.className = 'notas-vacio';
+  vacio.textContent = 'Sin notas.';
+  zona.append(vacio);
+
+  /* El botón del teléfono vive en las acciones, no acá: tiene que verse con
+     la memoria plegada, que es justo cuando hace falta. */
+  const boton = document.createElement('button');
+  boton.type = 'button';
+  boton.className = 'enlace notas-boton';
+  boton.addEventListener('click', () => {
+    const abierta = zona.classList.toggle('abierta');
+    boton.setAttribute('aria-expanded', String(abierta));
+    if (abierta) campo.focus();
+  });
+  li.querySelector('.botones')?.append(boton) ?? li.querySelector('.acciones')?.append(boton);
+
+  const pintar = () => {
+    ul.innerHTML = '';
+    for (const n of lista) {
+      const el = document.createElement('li');
+      const quien = document.createElement('i');
+      quien.textContent = encabezado(n);
+      const txt = document.createElement('span');
+      txt.textContent = n.texto;
+      el.append(quien, txt);
+      /* Cada uno borra las suyas. Borrar la nota de otro es borrarle un recado
+         que todavía no leyó, y la base tampoco lo deja. */
+      if (n.creada_por && n.creada_por === api.quien()) {
+        const x = document.createElement('button');
+        x.type = 'button'; x.className = 'enlace'; x.textContent = 'borrar';
+        x.addEventListener('click', async () => {
+          x.disabled = true;
+          try {
+            await api.borrar('memoria_notas', `id=eq.${encodeURIComponent(n.id)}`);
+            lista.splice(lista.indexOf(n), 1);
+            pintar();
+          } catch (e) { x.disabled = false; aviso.textContent = e.message; }
+        });
+        el.append(x);
+      }
+      ul.append(el);
+    }
+    ver(vacio, lista.length === 0);
+    boton.textContent = rotuloBoton(lista.length);
+    boton.classList.toggle('con-notas', lista.length > 0);
+  };
+
+  const form = document.createElement('div');
+  form.className = 'notas-nueva';
+  const campo = document.createElement('input');
+  campo.type = 'text';
+  campo.placeholder = 'Faltan las fotos, buscar en el grupo…';
+  campo.autocomplete = 'off';
+  const dejar = document.createElement('button');
+  dejar.type = 'button';
+  dejar.textContent = 'Dejar nota';
+  form.append(campo, dejar);
+
+  const aviso = document.createElement('p');
+  aviso.className = 'notas-aviso';
+  zona.append(form, aviso);
+
+  const guardar = async () => {
+    const texto = campo.value.trim();
+    if (!texto) return;
+    dejar.disabled = true; aviso.textContent = '';
+    try {
+      const fila = await api.insertar('memoria_notas', {
+        memoria_id: m.id, texto,
+        /* El nombre viaja copiado: cada administrador sólo puede ver su propia
+           fila de `administradores`, así que el otro no podría resolverlo y la
+           nota diría "alguien". */
+        autor: comoSeLlamaElAdmin(quienSoy, api.correo()) || null,
+        creada_por: api.quien(),
+      });
+      lista.push(fila);
+      campo.value = '';
+      pintar();
+    } catch (e) {
+      aviso.textContent = e.message;
+    } finally {
+      dejar.disabled = false;
+      campo.focus();
+    }
+  };
+  dejar.addEventListener('click', guardar);
+  campo.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); guardar(); } });
+
+  pintar();
+  return zona;
 }
 
 /* Las acciones de una fila de la bandeja. Está aparte y se vuelve a pintar

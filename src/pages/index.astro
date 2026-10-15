@@ -36,7 +36,14 @@ import { parajes } from '../lib/sitio.js';
     </header>
 
     {/* Las dos puertas. Mismo tamaño, mismo tratamiento, mismo orden de
-        lectura: la única diferencia es la pregunta que contesta cada una. */}
+        lectura: la única diferencia es la pregunta que contesta cada una.
+
+        Cada una tenía debajo una línea explicando qué hay del otro lado —"los
+        lugares del pueblo, y lo que pasó en cada uno"—. Se fueron por lo
+        mismo que se fue el texto del encabezado: el dibujo, el nombre y la
+        pregunta ya lo dicen, y una explicación que repite lo que está arriba
+        hace que alguien de setenta y cinco se quede leyendo en vez de
+        apretar. Acá no hay nada que entender antes de elegir. */}
     <div class="puertas">
       <a class="puerta" href="/mapa/">
         <span class="puerta-dibujo" aria-hidden="true">
@@ -50,7 +57,6 @@ import { parajes } from '../lib/sitio.js';
         </span>
         <b>Mapa de memorias</b>
         <span class="puerta-pregunta">¿Dónde ocurrió?</span>
-        <span class="puerta-detalle">Los lugares del pueblo, y lo que pasó en cada uno.</span>
       </a>
 
       <a class="puerta" href="/memorias/">
@@ -65,7 +71,6 @@ import { parajes } from '../lib/sitio.js';
         </span>
         <b>Línea de tiempo</b>
         <span class="puerta-pregunta">¿Cuándo? ¿Qué pasó?</span>
-        <span class="puerta-detalle">El pueblo en orden, de lo más viejo a lo más nuevo.</span>
       </a>
     </div>
 
@@ -128,7 +133,6 @@ import { parajes } from '../lib/sitio.js';
      interacción —foco, hover, selección— y acá no hay nada que interactuar,
      es el rótulo de la puerta. La jerarquía la da el tamaño. */
   .puerta-pregunta { font-size: .98rem; color: var(--tinta); }
-  .puerta-detalle { font-size: .84rem; color: var(--tinta-2); line-height: 1.5; }
 
   /* Flotando debajo de las dos puertas y en el eje: señala a las dos por
      igual. Respira despacio para que se note sin tironear. */

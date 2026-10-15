@@ -64,6 +64,36 @@ ninguno.
 
 ## Lo que cambió después del volcado
 
+`db/23_notas.sql` agregó `memoria_notas`: los recados que los administradores
+se dejan en una memoria sin revisar. No sale al sitio nunca — el build baja
+memorias aprobadas y esta tabla no entra en ninguna consulta pública. El
+nombre del autor va copiado en la fila a propósito: la política de
+`administradores` deja que cada uno vea sólo la suya, así que el otro no
+podría resolverlo y la nota diría "alguien".
+
+**Y `db/24_notas_sin_anon.sql` destapó algo que vale para todo el esquema.**
+La verificación del 23 preguntaba si la clave pública puede leer la tabla y
+esperaba `false`. Dio `true`, y no por un descuido de ese archivo: la última
+línea de `db/12_permisos.sql` deja puesto
+
+```sql
+alter default privileges in schema public grant select on tables to anon, authenticated;
+```
+
+Se escribió para que las tablas públicas que vinieran después no se olvidaran
+de su grant, y el efecto de borde es que **toda** tabla nueva de `public` nace
+legible por la clave pública, incluidas las que no son del público. Las notas
+no estuvieron expuestas en ningún momento —la RLS las frenaba y sin política
+para anon devuelve cero filas; `has_table_privilege` responde por el permiso
+de la tabla, no por lo que se puede leer de ella—, pero la primera de las dos
+compuertas estaba abierta sin que nadie la abriera.
+
+El 24 saca ese permiso de `memoria_notas` y además revierte la línea para
+anon. Desde ahí, una tabla nueva no nace legible y el grant hay que
+escribirlo. Es más trabajo y es el correcto: olvidarse de abrir una tabla
+pública se nota enseguida porque el build se queda sin datos, y olvidarse de
+cerrar una privada no se nota nunca.
+
 `db/22_apodo_alcanza.sql` cambió la restricción de `personas`. El `11` había
 dejado que faltara el nombre o que faltara el apellido, pero no los dos; el
 tercer caso —que acá es el más común— no entraba: gente a la que nadie nombró

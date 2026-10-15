@@ -68,6 +68,12 @@ select policyname as politica, cmd as sobre
 select count(*) as notas from memoria_notas;
 
 -- Y que la tabla NO sea alcanzable sin sesión: lo que la cocina guarda no
--- puede salir al salón. Con la clave pública (rol anon) esto tiene que dar
--- cero filas y no un error de permisos.
-select has_table_privilege('anon', 'memoria_notas', 'SELECT') as "anon puede leer (tiene que ser false)";
+-- puede salir al salón.
+--
+-- OJO: con sólo este archivo esto da TRUE, y está bien que lo diga. No
+-- porque las notas se vean —la RLS está encendida y sin política para anon
+-- devuelve cero filas—, sino porque `db/12_permisos.sql` deja puesto un
+-- `alter default privileges` que le da SELECT a anon sobre toda tabla nueva
+-- de `public`. Lo saca `db/24_notas_sin_anon.sql`, que además corta la raíz.
+-- Correr los dos; después de eso, esto da false.
+select has_table_privilege('anon', 'memoria_notas', 'SELECT') as "anon puede leer (false recién con el 24)";

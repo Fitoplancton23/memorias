@@ -366,7 +366,11 @@ function zonaNotas(m, lista, li) {
   boton.addEventListener('click', () => {
     const abierta = zona.classList.toggle('abierta');
     boton.setAttribute('aria-expanded', String(abierta));
-    if (abierta) campo.focus();
+    /* Si no hay ninguna nota, el botón decía "Dejar una nota": abrir la zona
+       para mostrar "Sin notas." y otro enlace que repite lo mismo sería
+       hacer dos toques para una sola intención. */
+    if (abierta && !lista.length) abrirForm();
+    else if (abierta) campo.focus();
   });
   li.querySelector('.botones')?.append(boton) ?? li.querySelector('.acciones')?.append(boton);
 
@@ -401,20 +405,56 @@ function zonaNotas(m, lista, li) {
     boton.classList.toggle('con-notas', lista.length > 0);
   };
 
+  /* El campo aparece recién cuando alguien decide escribir.
+     -------------------------------------------------------------------
+     Antes estaba siempre abierto, y con la bandeja llena eso son veinte
+     campos vacíos pidiendo que los llenes: ruido que tapa lo único que
+     hay que leer ahí, que son las notas que ya dejaron.
+
+     Y va SIN ejemplo adentro. Decía «Faltan las fotos, buscar en el
+     grupo…» en gris, que es exactamente lo que diría una nota de verdad
+     —y encima lo mismo que decía la nota de arriba—: de un vistazo se lee
+     como una nota escrita, no como un campo vacío. Un ejemplo que se
+     confunde con un dato es peor que ningún ejemplo, y acá el que se
+     confunde es el profe mirando memorias ajenas. */
+  const dejarEnlace = document.createElement('button');
+  dejarEnlace.type = 'button';
+  dejarEnlace.className = 'enlace notas-dejar';
+  dejarEnlace.textContent = 'Dejar una nota';
+
   const form = document.createElement('div');
   form.className = 'notas-nueva';
+  form.hidden = true;
   const campo = document.createElement('input');
   campo.type = 'text';
-  campo.placeholder = 'Faltan las fotos, buscar en el grupo…';
   campo.autocomplete = 'off';
+  campo.setAttribute('aria-label', 'Escribir una nota para esta memoria');
   const dejar = document.createElement('button');
   dejar.type = 'button';
-  dejar.textContent = 'Dejar nota';
-  form.append(campo, dejar);
+  dejar.textContent = 'Guardar';
+  const cancelar = document.createElement('button');
+  cancelar.type = 'button';
+  cancelar.className = 'enlace';
+  cancelar.textContent = 'cancelar';
+  form.append(campo, dejar, cancelar);
 
   const aviso = document.createElement('p');
   aviso.className = 'notas-aviso';
-  zona.append(form, aviso);
+  zona.append(dejarEnlace, form, aviso);
+
+  function abrirForm() {
+    form.hidden = false;
+    dejarEnlace.hidden = true;
+    campo.focus();
+  }
+  function cerrarForm() {
+    form.hidden = true;
+    dejarEnlace.hidden = false;
+    campo.value = '';
+    aviso.textContent = '';
+  }
+  dejarEnlace.addEventListener('click', abrirForm);
+  cancelar.addEventListener('click', cerrarForm);
 
   const guardar = async () => {
     const texto = campo.value.trim();
@@ -430,17 +470,22 @@ function zonaNotas(m, lista, li) {
         creada_por: api.quien(),
       });
       lista.push(fila);
-      campo.value = '';
+      /* Guardada, el campo se cierra solo: dejar una nota es un gesto que
+         termina, y un campo abierto después de guardar invita a escribir otra
+         que nadie estaba por escribir. */
+      cerrarForm();
       pintar();
     } catch (e) {
       aviso.textContent = e.message;
     } finally {
       dejar.disabled = false;
-      campo.focus();
     }
   };
   dejar.addEventListener('click', guardar);
-  campo.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); guardar(); } });
+  campo.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') { ev.preventDefault(); guardar(); }
+    if (ev.key === 'Escape') { ev.preventDefault(); cerrarForm(); }
+  });
 
   pintar();
   return zona;

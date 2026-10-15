@@ -184,7 +184,7 @@ print(f"Casco real (extension de las manzanas): {(casco[3]-casco[1])*99.2:.1f} k
 print(f"Territorio completo: {(ejido[3]-ejido[1])*99.2:.1f} km × {(ejido[2]-ejido[0])*110.9:.1f} km")
 print(f"El casco ocupa el {(casco[3]-casco[1])/(ejido[3]-ejido[1])*100:.1f}% del ancho del territorio\n")
 
-mapas=[construir('ejido',ejido,2000,'Territorio: Aristobulo del Valle, Salto Encantado y Cerro Moreno'),
+mapas=[construir('ejido',ejido,2000,'Territorio: Aristobulo del Valle y Salto Encantado'),
        construir('casco',casco,2000,'Casco urbano de Aristobulo del Valle')]
 json.dump({'mapas':mapas,'fuente':'OpenStreetMap contributors, ODbL'},
           open(f'{SALIDA}/mapa.json','w',encoding='utf-8'), ensure_ascii=False, indent=2)

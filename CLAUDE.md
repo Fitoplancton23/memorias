@@ -1,6 +1,6 @@
 # Memorias de mi pueblo — reglas del proyecto
 
-Archivo histórico de **Aristóbulo del Valle, Salto Encantado y Cerro Moreno**
+Archivo histórico de **Aristóbulo del Valle y Salto Encantado**
 (Misiones). Astro estático, datos en Supabase, build que baja a `snapshot.json`.
 
 ---

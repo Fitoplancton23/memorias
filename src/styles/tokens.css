@@ -203,9 +203,12 @@ footer.sitio p { margin: 0; }
 
 @media (max-width: 30rem) {
   .pie-credito { flex-direction: column; align-items: flex-start; gap: .6rem; }
-  /* Los tres parajes no entran en un celular y salían cortados con puntos
+  /* Los parajes no entran en un celular y salían cortados con puntos
      suspensivos. Un nombre a medias es peor que un nombre ausente: el de la
-     barra es "Memorias", y los parajes están en el pie. */
+     barra es "Memorias", y los parajes están en el pie.
+     Medido otra vez al pasar de tres a dos: "Aristóbulo del Valle · Salto
+     Encantado" pide 256 px y sigue chocando con el menú hasta en 430 px de
+     ancho, así que la regla se queda. */
   header.sitio .marca em { display: none; }
 }
 

@@ -82,7 +82,7 @@ const listaLugares = lugares
   .map(l => ({ slug: l.slug, nombre: l.nombre, n: (l.documentos || []).length }))
   .filter(l => l.n).sort((a, b) => b.n - a.n);
 ---
-<Base titulo="Memorias" descripcion="El archivo de memorias de Aristóbulo del Valle, Salto Encantado y Cerro Moreno.">
+<Base titulo="Memorias" descripcion="El archivo de memorias de Aristóbulo del Valle y Salto Encantado.">
   <header class="arch-cab">
     <h1>Memorias</h1>
     {/* Una línea, no tres. La segunda frase —"una memoria incompleta sigue

@@ -56,7 +56,7 @@ En `public/mapa/` hay dos bases hechas desde los `.osm`, con la geografía real:
 
 | Archivo | Qué cubre | Tamaño real | viewBox |
 |---|---|---|---|
-| `ejido.svg` | Aristóbulo + Salto Encantado + Cerro Moreno y los parajes | 20,1 × 16,8 km | 2000 × 1686 |
+| `ejido.svg` | Aristóbulo + Salto Encantado y sus parajes | 20,1 × 16,8 km | 2000 × 1686 |
 | `casco.svg` | sólo el casco urbano de Aristóbulo | 4,4 × 4,5 km | 2000 × 2035 |
 
 Vienen con las capas ya nombradas: `#verde`, `#agua`, `#cursos`, `#manzanas`,
@@ -90,7 +90,9 @@ distingue ninguna. Por eso cada lugar declara en qué mapa está, y hay una colu
 
 ## Hallazgo sobre tus archivos
 
-**El `mapa_general.osm` no contiene Cerro Moreno.** Corta en la latitud -27,0422
+**El `mapa_general.osm` no contiene el Paraje Cerro Moreno** —que es un paraje
+de Salto Encantado, no un territorio aparte: lo que sigue habla del lugar, no
+del alcance del archivo—. Corta en la latitud -27,0422
 y el Paraje Cerro Moreno está en -27,0128: quedan afuera 4,6 km por el norte,
 incluido el paraje entero. Si hubiéramos usado sólo ese archivo, Cerro Moreno no
 existía. Las bases están hechas fusionando los cuatro extractos, así que el

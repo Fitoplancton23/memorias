@@ -3,8 +3,14 @@
 export const sitio = {
   nombre: 'Memorias',
   lugar: 'Aristóbulo del Valle',
-  /* Los parajes que el archivo abarca, en el orden en que se nombran. */
-  parajes: ['Aristóbulo del Valle', 'Salto Encantado', 'Cerro Moreno'],
+  /* Los parajes que el archivo abarca, en el orden en que se nombran.
+     Cerro Moreno estaba acá por error: es un paraje DENTRO de Salto
+     Encantado, no un tercer municipio al lado. Nombrarlo aparte repartía en
+     tres lo que son dos, y a quien vive ahí le decía que su paraje es otra
+     cosa que Salto Encantado. Sigue existiendo como lugar del archivo —el
+     Paraje Cerro Moreno tiene memorias y marcador propio—, que es donde
+     corresponde: un lugar, no un territorio. */
+  parajes: ['Aristóbulo del Valle', 'Salto Encantado'],
   provincia: 'Misiones',
 };
 

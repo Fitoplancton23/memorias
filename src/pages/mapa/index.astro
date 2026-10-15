@@ -162,7 +162,7 @@ for (const d of documentos)
 const apellidosPortada = Object.entries(cuentaApellidos)
   .map(([a, n]) => ({ a, n })).sort((x, y) => y.n - x.n || x.a.localeCompare(y.a));
 ---
-<Base descripcion="Archivo histórico de Aristóbulo del Valle, Salto Encantado y Cerro Moreno: memorias, personas, familias y lugares.">
+<Base descripcion="Archivo histórico de Aristóbulo del Valle y Salto Encantado: memorias, personas, familias y lugares.">
   <div class="mapa-lienzo">
     <svg id="mapa" viewBox={`0 0 ${ANCHO} ${ALTO}`} role="application"
          aria-label="Mapa de Aristóbulo del Valle con las memorias ubicadas.">
@@ -281,7 +281,7 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     <h1>Aristóbulo es una historia que se cuenta todo el tiempo</h1>
     <p class="bajada">
       Un archivo hecho con las fotografías y los relatos de los vecinos de
-      Aristóbulo del Valle, Salto Encantado y Cerro Moreno. Cada memoria se
+      Aristóbulo del Valle y Salto Encantado. Cada memoria se
       puede encontrar por el lugar donde ocurrió o por cuándo ocurrió.
     </p>
 

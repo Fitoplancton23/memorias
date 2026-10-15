@@ -24,6 +24,23 @@ export function esDoble(anterior, ahora, { ventana = VENTANA, radio = RADIO } = 
   return Math.hypot(ahora.x - anterior.x, ahora.y - anterior.y) <= radio;
 }
 
+/* De dónde tocó el dedo, en las unidades del dibujo.
+   -------------------------------------------------------------------------
+   El toque llega en píxeles de pantalla y d3-zoom trabaja en las unidades del
+   `viewBox`. Pasarle los píxeles sin convertir es el error que hacía que en
+   el teléfono el doble toque NO acercara hacia donde se tocó: con un viewBox
+   de 2000 metido en una pantalla de 390, un toque a 200 px se leía como la
+   unidad 200 en vez de la 1025, y el mapa se iba hacia el ángulo superior
+   izquierdo. En el escritorio no se veía porque ahí el doble clic lo maneja
+   d3, que convierte por su cuenta.
+
+   `padX`/`padY` son las bandas que deja `preserveAspectRatio` al centrar el
+   dibujo: el contenido no empieza en el borde de la caja. */
+export function enElLienzo(punto, caja, { razon = 1, padX = 0, padY = 0 } = {}) {
+  const r = razon || 1;
+  return [(punto.x - caja.left - padX) / r, (punto.y - caja.top - padY) / r];
+}
+
 /* Llama a `alAcercar(x, y)` con la posición del segundo toque, en píxeles de
    pantalla. Devuelve una función que desengancha. */
 export function dobleToque(el, alAcercar, opciones = {}) {

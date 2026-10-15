@@ -320,9 +320,10 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     import { select } from 'd3-selection';
     import { zoom, zoomIdentity } from 'd3-zoom';
     import { separar, AIRE, GUIA_DESDE } from '../../lib/separar.js';
-    import { dobleToque } from '../../lib/doble-toque.js';
+    import { dobleToque, enElLienzo } from '../../lib/doble-toque.js';
     import { geometria, inicial, acercar, recorrer, LUPA } from '../../lib/lupa.js';
     import { buscarMemorias, comoSeEncontro } from '../../lib/buscar.js';
+    import { entre as entreEncuadres, suave } from '../../lib/vuelo.js';
 
     const { PUNTOS, ANCHO, ALTO, M_POR_UNIDAD, RELACIONES, EN_EL_CASCO } = window.__MAPA;
     const svgEl = document.getElementById('mapa');
@@ -675,8 +676,16 @@ const apellidosPortada = Object.entries(cuentaApellidos)
        mismo error, escondido en una pantalla y visible en la otra. El doble
        CLIC del escritorio no pasa por acá y sigue siendo de d3. */
     dobleToque(svgEl, (x, y) => {
-      const c = svgEl.getBoundingClientRect();
-      zm.scaleBy(sel, 2, [x - c.left, y - c.top]);
+      /* El punto fijo va en unidades del dibujo, no en píxeles de pantalla.
+         Pasarle los píxeles era el error por el que en el teléfono el doble
+         toque no acercaba hacia donde se tocaba: con 2000 unidades metidas en
+         390 px, un toque a 200 px se leía como la unidad 200 en vez de la
+         1025 y el mapa se iba al ángulo superior izquierdo. En el escritorio
+         no se notaba porque ahí el doble clic es de d3, que convierte solo.
+         La cuenta vive en doble-toque.js con el invariante que importa:
+         lo que estaba bajo el dedo sigue bajo el dedo. */
+      zm.scaleBy(sel, 2, enElLienzo({ x, y }, svgEl.getBoundingClientRect(),
+                                    { razon, padX, padY }));
     });
 
     /* zoom.transform() de d3 NO pasa por scaleExtent ni translateExtent: esos
@@ -711,9 +720,11 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       const m = margen != null ? margen : (ps.length === 1 ? 70 : 90);
       const bw = Math.max(x1 - x0, 1) + m * 2, bh = Math.max(y1 - y0, 1) + m * 2;
       const k = Math.min(40, Math.max(kMin, Math.min(ANCHO / bw, ALTO / bh)));
-      zm.transform(sel, acotar(zoomIdentity
+      const t = acotar(zoomIdentity
         .translate(ANCHO / 2 - k * (x0 + x1) / 2, ALTO / 2 - k * (y0 + y1) / 2)
-        .scale(k)));
+        .scale(k));
+      zm.transform(sel, t);
+      return t;   /* devuelto para poder volar hacia él en vez de saltar */
     }
 
     /* ---- ficha del lugar ---- */
@@ -1433,7 +1444,63 @@ const apellidosPortada = Object.entries(cuentaApellidos)
          alrededor. En el teléfono, donde el ancho manda, esos cincuenta de
          margen a cada lado son la diferencia entre reconocer el pueblo y ver
          una maraña gris. */
-      encuadrar(casco.length ? casco : conM, casco.length ? 40 : null);
+      const alCasco = () => encuadrar(casco.length ? casco : conM, casco.length ? 40 : null);
+
+      /* Y la primera vez se llega volando: el mapa abre mostrando el
+         territorio y se acerca solo hasta el casco.
+
+         No es un adorno. Es la única manera de decir, sin una palabra, que el
+         mapa se mueve. Quien entra y ve una pantalla quieta no tiene por qué
+         saber que puede arrastrarla y pellizcarla, y si no lo sabe el archivo
+         entero queda detrás de un gesto que nadie hizo.
+
+         Sólo la primera vez de la visita: quien ya estuvo vuelve a donde dejó
+         el mapa, y repetir el vuelo cada vez sería hacerle esperar lo mismo
+         todos los días. Y nunca con `prefers-reduced-motion`. */
+      const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (quieto || !casco.length) alCasco();
+      else {
+        const hasta = alCasco();              /* a dónde va */
+        const desde = encuadrar(conM, 150);   /* y de dónde sale: el territorio */
+
+        /* No arranca hasta que no quede ninguna cortina encima. Esto ya pasó
+           con la indicación del primer acceso: apareció detrás del telón de
+           ondas, gastó su única vez sin que nadie la viera, y la medición
+           decía "visible" mientras la captura estaba vacía. Un vuelo detrás de
+           una cortina es peor: termina, y deja el mapa quieto en el casco —
+           exactamente lo que había antes de hacerlo. */
+        const tapado = () => [...document.querySelectorAll('#cargando, .transicion')]
+          .some(e => e.isConnected && !e.hidden && parseFloat(getComputedStyle(e).opacity) > .05);
+
+        const DURA = 1600;
+        let volando = false;
+        const volar = () => {
+          volando = true;
+          const t0 = performance.now();
+          const paso = ahora => {
+            const u = Math.min(1, (ahora - t0) / DURA);
+            const t = entreEncuadres(desde, hasta, suave(u), ANCHO, ALTO);
+            zm.transform(sel, zoomIdentity.translate(t.x, t.y).scale(t.k));
+            if (u < 1) requestAnimationFrame(paso); else volando = false;
+          };
+          requestAnimationFrame(paso);
+        };
+
+        /* Si la persona toca el mapa antes de que el vuelo arranque, manda
+           ella: el movimiento es respuesta al lector, nunca ambiente. */
+        let tocado = false;
+        const alTocar = () => { tocado = true; };
+        svgEl.addEventListener('pointerdown', alTocar, { once: true, capture: true });
+        svgEl.addEventListener('wheel', alTocar, { once: true, capture: true, passive: true });
+
+        const desde0 = Date.now();
+        const esperar = () => {
+          if (tocado) return;
+          if (tapado() && Date.now() - desde0 < 12000) return setTimeout(esperar, 150);
+          setTimeout(() => { if (!tocado) volar(); }, 250);
+        };
+        esperar();
+      }
     }
 
     /* Redimensionar no vuelve a encuadrar: la ventana que cambia de tamaño no

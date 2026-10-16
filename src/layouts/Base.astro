@@ -176,11 +176,31 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
     </div>
   </header>
   {vista && <Conmutador actual={vista} />}
-  {!vista && ruta !== "/" && (
-    <a class="volver-mapa" id="volver" href={vuelta.href}>
-      <span aria-hidden="true">←</span>
-      <b>{vuelta.rotulo}</b>
-    </a>
+  {/* El rastro: dos botones que no hacen lo mismo.
+      -------------------------------------------------------------------
+      «Atrás» da un paso, el de recién. «Volver a la línea de tiempo»
+      devuelve a donde se estaba leyendo, de una. Hacen falta los dos: el
+      recorrido que este archivo propone —lugar, memoria, persona, familia,
+      memoria— a los cuatro pasos deja a alguien lejos de donde empezó, y
+      deshacer cuatro clics de a uno no es volver, es rehacer el camino en
+      reversa.
+
+      En las dos vistas los dos empiezan ocultos y los muestra el guion
+      recién cuando hay a dónde: en la línea de tiempo, un enlace que diga
+      «Todas las memorias» y lleve a la página donde ya estás es un botón
+      que no hace nada. En una memoria, el primero es un enlace de verdad
+      desde el HTML, así que sin JavaScript sigue habiendo salida. */}
+  {ruta !== "/" && (
+    <div class="rastro">
+      <a class="volver-mapa" id="volver" href={vuelta.href} hidden={!!vista}>
+        <span aria-hidden="true">←</span>
+        <b>{vuelta.rotulo}</b>
+      </a>
+      <a class="volver-mapa tenue" id="retomar" href="/memorias/" hidden>
+        <span aria-hidden="true">↩</span>
+        <b>Volver a la línea de tiempo</b>
+      </a>
+    </div>
   )}
   <main class={suelto ? "suelto" : "envoltorio"}><slot /></main>
   {!suelto && (
@@ -228,7 +248,8 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
       try { propio = !!document.referrer &&
         new URL(document.referrer).origin === location.origin; } catch (e) {}
       if (!propio || history.length <= 1) return;   /* el enlace queda como está */
-      b.querySelector('b').textContent = 'Volver';
+      b.hidden = false;                 /* en las vistas empieza oculto */
+      b.querySelector('b').textContent = 'Atrás';
       b.addEventListener('click', ev => { ev.preventDefault(); history.back(); });
     })();
   </script>
@@ -388,5 +409,93 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
       capa.remove();
     }
   </script>
+  {/* Guardar la lectura y ofrecer volver a ella.
+      -------------------------------------------------------------------
+      Éste no corre `is:inline` como los de arriba: necesita las reglas de
+      `src/lib/retomar.js`, que tienen tests. Que llegue un instante más
+      tarde no se nota, porque el botón empieza oculto: no hay nada que
+      parpadee de mal a bien. */}
+  <script>
+    import { esLectura, destino, conviene } from '../lib/retomar.js';
+
+    const LLAVE = 'memorias:lectura';
+    const enLaLinea = /^\/memorias\/?$/.test(location.pathname);
+
+    const leer = () => {
+      try { return JSON.parse(sessionStorage.getItem(LLAVE) || 'null'); }
+      catch (e) { return null; }
+    };
+
+    /* Lo que está viendo ahora mismo la línea de tiempo: los chips que están
+       puestos y lo que haya escrito en el buscador. Se lee del DOM a
+       propósito, en vez de pedirle a la página que exporte su estado: el
+       estado de la página ES lo que está pintado, y así esto no se
+       desincroniza si mañana aparece otro filtro. */
+    const mirandoAhora = () => {
+      const filtros = {};
+      for (const k of ['decada', 'apellido', 'lugar'])
+        filtros[k] = document.querySelector(`.chip[data-f="${k}"].act`)?.dataset.v || '';
+      return { enLaLinea, filtros, q: document.getElementById('q')?.value.trim() || '' };
+    };
+
+    /* ---- ofrecer la vuelta ---- */
+    const guardado = leer();
+    const boton = document.getElementById('retomar');
+    if (boton && conviene(guardado, enLaLinea ? mirandoAhora() : null)) {
+      boton.href = destino(guardado);
+      boton.hidden = false;
+      /* La memoria que se estaba leyendo no está en la dirección —no hace
+         falta que esté: no es un enlace para compartir, es volver sobre los
+         propios pasos—, así que viaja por la bandera y la consume la línea
+         de tiempo al llegar. */
+      boton.addEventListener('click', () => {
+        try { sessionStorage.setItem('memorias:retomando', '1'); } catch (e) {}
+      });
+    }
+
+    /* ---- guardar la lectura ---- */
+    if (enLaLinea && esLectura(location.search)) {
+      /* Cuál memoria se está mirando. Se guarda el slug y no la posición en
+         píxeles: las fotos entran midiéndose y la página crece abajo de uno
+         mientras lee, así que el píxel de hace tres pantallas ya no apunta a
+         la misma memoria. El slug sí. */
+      let mirando = null;
+      addEventListener('memorias:mirando', e => { mirando = e.detail?.slug || null; });
+
+      const guardar = () => {
+        const v = mirandoAhora();
+        try { sessionStorage.setItem(LLAVE, JSON.stringify({ ...v, slug: mirando })); }
+        catch (e) {}
+      };
+      /* `pagehide` y no `beforeunload`: en el teléfono el segundo no se
+         dispara cuando se cambia de app o se cierra la pestaña. */
+      addEventListener('pagehide', guardar);
+      addEventListener('visibilitychange', () => { if (document.hidden) guardar(); });
+    }
+
+    /* ---- al volver, retomar donde quedó ---- */
+    if (enLaLinea) {
+      let bandera = null;
+      try {
+        bandera = sessionStorage.getItem('memorias:retomando');
+        if (bandera) sessionStorage.removeItem('memorias:retomando');
+      } catch (e) {}
+      const slug = bandera && guardado?.slug;
+      if (slug) {
+        /* Después de `load` y de dos cuadros: la línea de tiempo aplica sus
+           filtros al arrancar, y saltar antes sería saltar a la lista de
+           antes de filtrar. */
+        const ir = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+          const t = document.querySelector(`[data-slug="${CSS.escape(slug)}"]`);
+          /* `auto` y no `smooth`: volver tiene que ser instantáneo. Ver pasar
+             ochenta memorias en vuelo no es volver, es un viaje. */
+          t?.scrollIntoView({ block: 'center', behavior: 'auto' });
+        }));
+        if (document.readyState === 'complete') ir();
+        else addEventListener('load', ir);
+      }
+    }
+  </script>
+
 </body>
 </html>

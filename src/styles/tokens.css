@@ -121,6 +121,7 @@ main.suelto { flex: 1; min-height: 0; position: relative; isolation: isolate; }
 /* En una pantalla de lienzo completo la pastilla "Volver al mapa" duplica el
    MAPA de la barra y le roba alto al dibujo. La barra ya es el camino de vuelta. */
 body:has(main.suelto) > .volver-mapa { display: none; }
+body:has(main.suelto) .rastro { display: none; }
 header.sitio, footer.sitio { flex: none; }
 
 /* La barra es un elemento propio y el mismo en todo el sitio: ocupa su altura,
@@ -456,7 +457,7 @@ html.sin-carga .cargando { display: none; }
    contenido, que es donde se la busca al llegar. */
 .volver-mapa {
   position: static; z-index: 60;
-  width: fit-content; margin: .9rem 0 .2rem 1.2rem;
+  width: fit-content; margin: 0;
   display: inline-flex; align-items: center; gap: .5rem;
   padding: .7rem 1.2rem; border: 0; border-radius: 999px;
   background: var(--tinta); color: var(--placa);
@@ -468,6 +469,26 @@ html.sin-carga .cargando { display: none; }
 .volver-mapa span { font-size: 1.05em; }
 .volver-mapa:hover { background: var(--cursor); color: var(--placa); }
 .volver-mapa:focus-visible { outline: 2px solid var(--cursor); outline-offset: 3px; }
+
+/* Los dos botones del rastro, uno al lado del otro. En el teléfono, cuando
+   los dos están, el renglón no alcanza para «Volver a la línea de tiempo»:
+   bajan y se apilan en vez de recortarse. */
+.rastro {
+  display: flex; flex-wrap: wrap; gap: .5rem;
+  margin: .9rem 0 .2rem 1.2rem; padding-right: 1.2rem;
+}
+.rastro:empty, .rastro:not(:has(> :not([hidden]))) { margin: 0; }
+
+/* El segundo no compite con el primero: volver un paso es lo que más se usa,
+   y dos botones iguales obligan a leer los dos cada vez. */
+.volver-mapa.tenue {
+  background: var(--placa); color: var(--tinta);
+  border: 1px solid var(--linea-viva);
+  box-shadow: none;
+}
+.volver-mapa.tenue:hover { background: var(--tinta); color: var(--placa); }
+
+body:has(main.suelto) > .rastro { display: none; }
 
 /* ---- el conmutador de vista ----
    Dos posiciones de un mismo interruptor, no dos botones: por eso comparten

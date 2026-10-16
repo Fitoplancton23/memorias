@@ -103,14 +103,22 @@ import { tituloSitio } from '../../lib/sitio.js';
       <code>db/18_consentimiento.sql</code>. Se puede cargar igual, pero la
       respuesta sobre el permiso no se va a guardar.
     </p>
+    {/* Lo que pasó con el sitio después de publicar, bajar o eliminar una
+        memoria. Va acá arriba y no al pie: la fila desde la que se hizo el
+        cambio desaparece, y un aviso al final de una lista de cuarenta
+        memorias es un aviso que nadie lee. */}
+    <p class="aviso-sitio" id="avisoSitio" hidden></p>
     <p class="ayuda" id="notaBandeja" hidden></p>
     <ul class="lista" id="lista"></ul>
     <p class="vacio" id="vacio" hidden></p>
 
     <div class="publicar" id="zonaPublicar" hidden>
       <div>
-        <strong>Publicar al sitio</strong>
-        <p class="ayuda">Lo aprobado aparece en el sitio unos minutos después.</p>
+        <strong>Volver a publicar el sitio</strong>
+        <p class="ayuda">
+          Publicar o bajar una memoria ya reconstruye el sitio solo. Este botón
+          es para cuando se editó algo ya publicado, o cuando un pedido no salió.
+        </p>
         <p class="ayuda listo" id="avisoPublicar" hidden></p>
       </div>
       <button type="button" id="publicar">Publicar</button>
@@ -649,6 +657,24 @@ import { tituloSitio } from '../../lib/sitio.js';
     .ayuda { color: var(--tinta-2); font-size: .85rem; line-height: 1.5; margin: .45rem 0 0; }
     .error { color: var(--anomalia); font-size: .9rem; margin: .9rem 0 0; }
     .listo { color: var(--tipo-persona); font-size: .95rem; margin: .9rem 0 0; }
+
+    /* El aviso del sitio tiene que seguir visible mientras se sigue
+       trabajando en la lista: si desaparece al desplazarse, el único lugar
+       donde dice que el pedido falló se va de pantalla. */
+    .aviso-sitio {
+      position: sticky; top: var(--alto-cabecera, 3.5rem); z-index: 4;
+      margin: .9rem 0 0; padding: .6rem .85rem;
+      font-size: .95rem; line-height: 1.45;
+      border-radius: .5rem;
+      color: var(--tipo-persona);
+      background: color-mix(in srgb, var(--tipo-persona) 14%, var(--panel));
+      border: 1px solid color-mix(in srgb, var(--tipo-persona) 35%, transparent);
+    }
+    .aviso-sitio.mal {
+      color: var(--anomalia);
+      background: color-mix(in srgb, var(--anomalia) 12%, var(--panel));
+      border-color: color-mix(in srgb, var(--anomalia) 38%, transparent);
+    }
     .saltear { margin-top: 1.6rem; padding-top: 1.1rem; border-top: 1px solid var(--linea);
                color: var(--tinta-2); font-size: .85rem; line-height: 1.6; }
     .aviso { background: var(--panel); border-left: 3px solid var(--tipo-evento);

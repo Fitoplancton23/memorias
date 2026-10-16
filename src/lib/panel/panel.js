@@ -206,6 +206,7 @@ async function entrarAlPanel() {
   ver($('#zonaPublicar'), !!admin.puede_publicar);
   ver($('#bandeja'), true);
   saludar(admin);
+  medirCabecera();
 
   /* Antes de la bandeja, porque la bandeja la usa para decidir qué ofrece. */
   hayPermiso = await api.traer('memorias', 'select=permiso_publicacion&limit=1')
@@ -758,7 +759,11 @@ function acciones(li, m, err) {
         } catch (x) {
           baja.disabled = false; baja.textContent = 'Despublicar';
           err.textContent = x.message; ver(err, true);
+          return;
         }
+        /* Y el sitio tiene que dejar de mostrarla ahora, no cuando alguien se
+           acuerde: ésta es la puerta de salida de quien pidió no aparecer. */
+        pedirReconstruccion(`«${m.titulo || 'Sin título'}» bajada del sitio.`, err);
       });
       fila.append(baja);
       accionEliminar(li, m, err, fila);
@@ -789,7 +794,11 @@ function acciones(li, m, err) {
       } catch (x) {
         ok.disabled = false; ok.textContent = 'Publicar';
         err.textContent = x.message; ver(err, true);
+        return;
       }
+      /* Después de sacar la fila, porque la fila ya no está para avisar nada:
+         lo que sigue pasando se cuenta arriba, donde se ve. */
+      pedirReconstruccion(`«${m.titulo || 'Sin título'}» publicada.`, err);
     });
     fila.append(ok);
   };
@@ -855,7 +864,13 @@ function accionEliminar(li, m, err, zona) {
       } catch (x) {
         caja.replaceWith(borrar);
         err.textContent = x.message; ver(err, true);
+        return;
       }
+      /* Si estaba publicada, el sitio la sigue mostrando hasta que se
+         reconstruya. Si estaba sin revisar, no hay nada que sacar del sitio y
+         no se pide nada: un build por una memoria que nunca salió es ruido. */
+      if (m.estado === 'aprobada')
+        pedirReconstruccion(`«${m.titulo || 'Sin título'}» eliminada.`, err);
     });
   });
 }
@@ -939,6 +954,72 @@ async function aprobarMemoria(id) {
     await api.actualizar('personas', v.persona_id, { estado: 'aprobada' });
   }
   await api.actualizar('memorias', id, { estado: 'aprobada' });
+}
+
+/* Pedir que el sitio se reconstruya, desde donde se hizo el cambio.
+   -------------------------------------------------------------------------
+   El botón de cada fila decía "Publicar" y NO publicaba: cambiaba el estado
+   en la base y listo. Para que la memoria llegara al sitio había que bajar
+   hasta el final de la bandeja y apretar otro botón. Un botón que dice
+   Publicar y no publica no es un matiz de redacción: es la pantalla mintiendo,
+   y le costó a Facundo preguntar dos veces por qué no aparecía nada.
+
+   Lo mismo valía —y era peor— para Despublicar: sacaba la memoria de la lista
+   y el sitio la seguía mostrando hasta que alguien se acordara del otro botón.
+   Esa es la puerta de salida de quien pidió no aparecer. No puede depender de
+   que alguien se acuerde.
+
+   Así que ahora cada acción que cambia lo que ve el público pide la
+   reconstrucción ella misma. El botón de abajo queda como lo que de verdad
+   es: la forma de volver a empujar el sitio cuando se editó algo o cuando un
+   pedido no salió.
+
+   Si aprueba cuatro memorias seguidas salen cuatro pedidos. Cloudflare los
+   encola y gana el último; no se junta en uno solo a propósito, porque
+   esperar unos segundos "por si viene otra" significa que cerrar la pestaña
+   deja el pedido sin salir — y el que no sale es justamente el que importa. */
+/* El aviso del sitio se pega debajo de la barra de arriba, que también es
+   pegajosa. La altura de la barra depende de la tipografía y del ancho, así
+   que no se adivina en el CSS: se mide. */
+function medirCabecera() {
+  const barra = document.querySelector('.barra');
+  if (!barra) return;
+  document.documentElement.style.setProperty(
+    '--alto-cabecera', `${Math.round(barra.getBoundingClientRect().height)}px`);
+}
+addEventListener('resize', medirCabecera);
+
+async function pedirReconstruccion(hecho, err) {
+  const aviso = $('#avisoSitio');
+  const decir = (texto, malo) => {
+    if (!aviso) return;
+    aviso.textContent = texto;
+    aviso.classList.toggle('mal', !!malo);
+    ver(aviso, true);
+  };
+  decir(`${hecho} Pidiendo que el sitio se reconstruya…`);
+  try {
+    await api.publicar();
+  } catch (x) {
+    /* El cambio en la base YA pasó y está bien; lo que falló es el pedido de
+       reconstrucción. Decirlo con esas palabras: si acá dijéramos sólo
+       "error", quien lo lee no sabe si tiene que volver a aprobar la memoria
+       —y volver a aprobarla no arreglaría nada—. */
+    decir(`${hecho} Pero el pedido al sitio no salió: ${x.message} `
+        + 'El cambio está guardado; se puede reintentar con «Publicar al sitio», abajo.', true);
+    return;
+  }
+  decir(`${hecho} El sitio se reconstruye en un minuto o dos.`);
+  /* Seis segundos: lo que se comprueba es si Cloudflare aceptó el pedido, no
+     si el build terminó. */
+  setTimeout(async () => {
+    try {
+      const e = await api.estadoPublicacion();
+      if (e.estado === 'error')
+        decir(`${hecho} Pero la reconstrucción no arrancó: `
+            + (e.mensaje || 'Cloudflare no aceptó el pedido.'), true);
+    } catch { /* preguntar cómo salió no puede romper nada */ }
+  }, 6000);
 }
 
 async function alPublicar() {

@@ -778,6 +778,83 @@ import { tituloSitio } from '../../lib/sitio.js';
     .sugerencias li:hover, .sugerencias li[aria-selected=true] { background: var(--panel-2); }
     .sugerencias small { color: var(--tinta-2); margin-left: .4rem; }
 
+    /* ---- ver una foto en grande ---- */
+    .visor { position: fixed; inset: 0; z-index: 90; display: grid;
+             grid-template-columns: auto 1fr auto; align-items: center;
+             gap: .5rem; padding: 3.2rem 1rem 2.6rem;
+             background: rgba(16, 18, 16, .88); }
+    .visor img { grid-column: 2; justify-self: center;
+                 max-width: 100%;
+                 /* El alto se mide contra la ventana y no contra la fila: la
+                    fila de la grilla la define la propia imagen, así que un
+                    `max-height: 100%` no se apoya en nada y una foto vertical
+                    se salía de la pantalla. Lo encontró la medición de la
+                    SEGUNDA foto —la apaisada entraba—, no la primera.
+                    5,8rem es el relleno de arriba más el de abajo. */
+                 max-height: calc(100vh - 5.8rem);
+                 max-height: calc(100dvh - 5.8rem);
+                 /* `contain`, nunca `cover`: acá se viene a mirar la foto
+                    entera, y recortarla para que llene la pantalla esconde
+                    justo los bordes que hay que revisar. */
+                 object-fit: contain; border-radius: 2px;
+                 background: #fff; box-shadow: 0 8px 40px rgba(0, 0, 0, .5); }
+    .visor-cuenta { position: absolute; left: 0; right: 0; bottom: .9rem;
+                    margin: 0; text-align: center; font-size: .85rem;
+                    color: rgba(255, 255, 255, .8); }
+    .visor-cerrar { position: absolute; top: .7rem; right: .8rem;
+                    width: 2.4rem; height: 2.4rem; border: 0; border-radius: 50%;
+                    background: rgba(255, 255, 255, .14); color: #fff;
+                    font-size: 1.5rem; line-height: 1; cursor: pointer; }
+    .visor-flecha { width: 2.6rem; height: 2.6rem; border: 0; border-radius: 50%;
+                    background: rgba(255, 255, 255, .14); color: #fff;
+                    font-size: 1.6rem; line-height: 1; cursor: pointer; }
+    .visor-flecha:disabled { opacity: .25; cursor: default; }
+    .visor-ant { grid-column: 1; }
+    .visor-sig { grid-column: 3; }
+    .visor-cerrar:hover, .visor-flecha:not(:disabled):hover { background: rgba(255, 255, 255, .26); }
+    /* Con el visor abierto, lo de atrás no scrollea. */
+    body.con-visor { overflow: hidden; }
+
+    /* ---- así va a quedar ---- */
+    .previa { position: fixed; inset: 0; z-index: 88; overflow: auto;
+              padding: 2.4rem 1rem; background: rgba(16, 18, 16, .72); }
+    .previa-caja { max-width: 34rem; margin: 0 auto; background: var(--placa);
+                   border-radius: .6rem; padding: 1.1rem 1.2rem 1.4rem;
+                   box-shadow: 0 12px 48px rgba(0, 0, 0, .3); }
+    .previa-cab { display: flex; align-items: center; justify-content: space-between;
+                  gap: 1rem; margin-bottom: .8rem; }
+    .previa-rotulo { font-size: .76rem; letter-spacing: .04em; text-transform: uppercase;
+                     color: var(--tinta-2); }
+    .previa-cerrar { width: 2rem; height: 2rem; border: 0; border-radius: 50%;
+                     background: var(--panel-2); color: var(--tinta);
+                     font-size: 1.25rem; line-height: 1; cursor: pointer; }
+    .previa-fotos { display: grid; gap: .4rem;
+                    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); }
+    .previa-fotos button { padding: 0; border: 0; background: none; cursor: zoom-in; }
+    .previa-fotos img { display: block; width: 100%; aspect-ratio: 4 / 3;
+                        object-fit: cover; border-radius: .3rem; background: var(--panel-2); }
+    .previa-sinfoto { margin: 0; padding: .9rem; border: 1px dashed var(--linea-viva);
+                      border-radius: .4rem; font-size: .84rem; color: var(--tinta-2); }
+    /* Como el título de una memoria en el sitio, que es un h1: tamaño,
+       peso y caja normal. Sin esto heredaba el `h2` global de tokens.css
+       —versalitas, espaciado ancho, gris— y la previsualización mostraba un
+       título que el sitio no muestra, que es justo lo que la hace inútil. */
+    .previa-titulo { margin: .9rem 0 .3rem; font-size: 1.45rem; line-height: 1.2;
+                     font-weight: 500; letter-spacing: -.015em;
+                     text-transform: none; color: var(--tinta); }
+    .previa-desc { margin: 0 0 .9rem; font-size: .92rem; line-height: 1.55; }
+    .previa-dato { margin: .25rem 0; font-size: .88rem; }
+    .previa-dato b { font-weight: 500; }
+    /* Igual que en el sitio: en cursiva y en el lugar del valor. */
+    .previa-falta { font-style: italic; color: var(--tinta-2); }
+    .previa-pie { margin: 1rem 0 0; padding-top: .8rem; border-top: 1px solid var(--linea);
+                  font-size: .78rem; line-height: 1.5; color: var(--tinta-2); }
+
+    /* La miniatura es un botón, pero tiene que seguir viéndose como la foto. */
+    .fotos .foto-ver { display: block; padding: 0; border: 0; background: none;
+                       cursor: zoom-in; width: 100%; }
+    .fotos .foto-ver img { display: block; width: 100%; }
+
     .hola { margin: 0 0 .2rem; font-size: .9rem; color: var(--tinta-2); }
     .hola b { font-weight: 500; color: var(--tinta); }
 

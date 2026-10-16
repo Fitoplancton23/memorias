@@ -158,3 +158,89 @@ export function altaPersona(texto, alGuardar, alCancelar) {
   setTimeout(() => (Object.values(campos).find(i => !i.value) || campos.nombre).focus(), 0);
   return caja;
 }
+
+/* ------------------------------------------------------------------ */
+/* Ver una foto en grande                                              */
+/* ------------------------------------------------------------------ */
+/* El panel mostraba las fotos en miniaturas de tres centímetros, y con eso
+   hay que decidir si una foto entra al archivo: si está derecha, si se lee,
+   si el escaneo salió movido, si es la misma que ya está cargada. Eso no se
+   puede ver en una miniatura, y la única salida era publicar y mirar el
+   sitio — o sea, revisar después de haber publicado.
+
+   Se abre sobre el panel y no en otra pestaña: revisar una memoria es mirar
+   sus cuatro fotos una tras otra, y cuatro pestañas para eso es perder el
+   hilo de lo que se estaba revisando.
+
+   `fotos` son URLs. Devuelve una función que cierra. */
+export function visorFotos(fotos, desde = 0) {
+  const urls = (fotos || []).filter(Boolean);
+  if (!urls.length) return () => {};
+  let i = Math.min(Math.max(0, desde), urls.length - 1);
+  const antes = document.activeElement;
+
+  const capa = document.createElement('div');
+  capa.className = 'visor';
+  capa.setAttribute('role', 'dialog');
+  capa.setAttribute('aria-modal', 'true');
+  capa.setAttribute('aria-label', 'Fotografía en grande');
+
+  const img = document.createElement('img');
+  img.alt = '';
+  const cuenta = document.createElement('p');
+  cuenta.className = 'visor-cuenta';
+
+  const cerrar = document.createElement('button');
+  cerrar.type = 'button'; cerrar.className = 'visor-cerrar';
+  cerrar.setAttribute('aria-label', 'Cerrar'); cerrar.textContent = '×';
+
+  const ant = document.createElement('button');
+  ant.type = 'button'; ant.className = 'visor-flecha visor-ant';
+  ant.setAttribute('aria-label', 'Foto anterior'); ant.textContent = '‹';
+  const sig = document.createElement('button');
+  sig.type = 'button'; sig.className = 'visor-flecha visor-sig';
+  sig.setAttribute('aria-label', 'Foto siguiente'); sig.textContent = '›';
+
+  const pintar = () => {
+    img.src = urls[i];
+    cuenta.textContent = urls.length > 1 ? `${i + 1} de ${urls.length}` : '';
+    cuenta.hidden = urls.length < 2;
+    ant.hidden = urls.length < 2;
+    sig.hidden = urls.length < 2;
+    ant.disabled = i === 0;
+    sig.disabled = i === urls.length - 1;
+  };
+  const irA = n => { i = Math.min(Math.max(0, n), urls.length - 1); pintar(); };
+
+  let ido = false;
+  const salir = () => {
+    if (ido) return;
+    ido = true;
+    removeEventListener('keydown', alTeclado, true);
+    capa.remove();
+    document.body.classList.remove('con-visor');
+    /* El foco vuelve de donde vino: si no, cerrar deja el teclado al principio
+       de la página y hay que volver a bajar hasta donde se estaba. */
+    if (antes && antes.focus) antes.focus();
+  };
+  const alTeclado = ev => {
+    if (ev.key === 'Escape') { ev.preventDefault(); salir(); }
+    if (ev.key === 'ArrowLeft') { ev.preventDefault(); irA(i - 1); }
+    if (ev.key === 'ArrowRight') { ev.preventDefault(); irA(i + 1); }
+  };
+
+  cerrar.addEventListener('click', salir);
+  ant.addEventListener('click', () => irA(i - 1));
+  sig.addEventListener('click', () => irA(i + 1));
+  /* Tocar afuera cierra; tocar la foto, no. Con una foto a pantalla casi
+     completa, exigir apuntarle a la cruz es exigir puntería. */
+  capa.addEventListener('click', ev => { if (ev.target === capa) salir(); });
+  addEventListener('keydown', alTeclado, true);
+
+  capa.append(ant, img, sig, cuenta, cerrar);
+  document.body.append(capa);
+  document.body.classList.add('con-visor');
+  pintar();
+  cerrar.focus();
+  return salir;
+}

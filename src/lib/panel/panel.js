@@ -14,7 +14,7 @@ import * as api from './api.js';
 import { parseFecha } from '../../../scripts/fechas.mjs';
 import { montarSelector, leerCoordenadas } from './selector-mapa.js';
 import { cablearFichero, abrirFichero } from './fichero.js';
-import { buscador, filtrar, sinTildes, unico, altaPersona } from './piezas.js';
+import { buscador, filtrar, sinTildes, unico, altaPersona, visorFotos } from './piezas.js';
 import { comoSeLlama, baseSlug, fila as filaPersona } from '../persona-nueva.js';
 import { encabezado, rotuloBoton } from '../notas.js';
 
@@ -334,6 +334,161 @@ async function cargarBandeja(estado) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Cómo va a quedar                                                    */
+/* ------------------------------------------------------------------ */
+/* Desde la bandeja, antes de entrar a editar, poder ver la memoria armada.
+   Entrar al asistente para enterarse de que falta el lugar son nueve pasos de
+   ida y nueve de vuelta, y la bandeja sola muestra título y fecha: no alcanza
+   para decidir si una memoria está lista.
+
+   Muestra los MISMOS campos que el sitio y con las mismas palabras —«dato
+   pendiente» incluido—, porque una previsualización que no coincide con lo
+   publicado es peor que ninguna: hace tomar decisiones sobre una pantalla que
+   no existe. No es pixel a pixel, y no pretende serlo: es qué se va a ver y
+   qué va a faltar. */
+const falta = () => {
+  const i = document.createElement('i');
+  i.className = 'previa-falta';
+  i.textContent = 'dato pendiente';
+  return i;
+};
+
+function dato(caja, etiqueta, valor) {
+  const p = document.createElement('p');
+  p.className = 'previa-dato';
+  const b = document.createElement('b');
+  b.textContent = etiqueta + ': ';
+  p.append(b);
+  if (valor) p.append(valor); else p.append(falta());
+  caja.append(p);
+}
+
+async function verComoQueda(m, err) {
+  let datos;
+  try {
+    const [fila] = await api.traer('memorias',
+      `select=*&id=eq.${encodeURIComponent(m.id)}`);
+    if (!fila) throw new Error('Esa memoria ya no está.');
+    const [vinculos, fotos, aconts] = await Promise.all([
+      api.traer('memoria_personas',
+        `select=persona_id,confianza&memoria_id=eq.${encodeURIComponent(m.id)}`),
+      api.traer('memoria_fotos',
+        `select=id,url,orden&memoria_id=eq.${encodeURIComponent(m.id)}&order=orden`),
+      api.traer('memoria_acontecimientos',
+        `select=acontecimiento_id&memoria_id=eq.${encodeURIComponent(m.id)}`),
+    ]);
+    datos = { fila, vinculos, fotos, aconts };
+  } catch (x) {
+    if (err) { err.textContent = x.message; ver(err, true); }
+    return;
+  }
+
+  const { fila, vinculos, fotos, aconts } = datos;
+  const antes = document.activeElement;
+  const capa = document.createElement('div');
+  capa.className = 'previa';
+  capa.setAttribute('role', 'dialog');
+  capa.setAttribute('aria-modal', 'true');
+  capa.setAttribute('aria-label', 'Así se va a ver esta memoria');
+
+  const caja = document.createElement('article');
+  caja.className = 'previa-caja';
+
+  const cab = document.createElement('div');
+  cab.className = 'previa-cab';
+  const rotulo = document.createElement('span');
+  rotulo.className = 'previa-rotulo';
+  rotulo.textContent = fila.estado === 'aprobada' ? 'Así se ve en el sitio' : 'Así se va a ver';
+  const cerrar = document.createElement('button');
+  cerrar.type = 'button'; cerrar.className = 'previa-cerrar';
+  cerrar.setAttribute('aria-label', 'Cerrar'); cerrar.textContent = '×';
+  cab.append(rotulo, cerrar);
+  caja.append(cab);
+
+  /* Las fotos: la portada vive en `memorias.foto_url` y el resto en
+     `memoria_fotos`, igual que en el formulario. */
+  const urls = [];
+  if (fila.foto_url) urls.push(fila.foto_url);
+  for (const f of fotos) if (f.url !== fila.foto_url) urls.push(f.url);
+
+  if (urls.length) {
+    const tira = document.createElement('div');
+    tira.className = 'previa-fotos';
+    urls.forEach((u, n) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('aria-label', `Ver la foto ${n + 1} en grande`);
+      const img = document.createElement('img');
+      img.src = u; img.alt = ''; img.loading = 'lazy';
+      b.append(img);
+      b.addEventListener('click', () => visorFotos(urls, n));
+      tira.append(b);
+    });
+    caja.append(tira);
+  } else {
+    const sin = document.createElement('p');
+    sin.className = 'previa-sinfoto';
+    sin.textContent = 'Sin fotografía. En el sitio la memoria se ve igual, con su texto.';
+    caja.append(sin);
+  }
+
+  const h = document.createElement('h2');
+  h.className = 'previa-titulo';
+  h.textContent = fila.titulo || '';
+  if (!fila.titulo) h.append(falta());
+  caja.append(h);
+
+  if (fila.descripcion) {
+    const d = document.createElement('p');
+    d.className = 'previa-desc';
+    d.textContent = fila.descripcion;
+    caja.append(d);
+  }
+
+  const lugar = cacheLugares.find(l => l.id === fila.lugar_id);
+  const gente = vinculos.map(v => cachePersonas.find(x => x.id === v.persona_id))
+    .filter(Boolean).map(p => comoSeLlama(p));
+  const acont = aconts.length
+    ? cacheAconts.find(a => a.id === aconts[0].acontecimiento_id) : null;
+
+  dato(caja, 'Cuándo', fila.fecha_texto || (fila.anio != null ? String(fila.anio) : ''));
+  dato(caja, 'Lugar', lugar ? lugar.nombre : '');
+  dato(caja, 'Aparecen', gente.length ? gente.join(', ') : '');
+  if (acont) dato(caja, 'Acontecimiento', acont.titulo || acont.nombre || '');
+  dato(caja, 'Aportado por', fila.aportado_por || '');
+
+  /* El punto propio no se muestra como número: en el sitio no se ve, y acá lo
+     único que importa es si está o no está. */
+  const conPunto = fila.lat != null && fila.lng != null;
+  dato(caja, 'Punto en el mapa', conPunto ? 'marcado' : '');
+
+  const pie = document.createElement('p');
+  pie.className = 'previa-pie';
+  pie.textContent = 'Lo que dice «dato pendiente» sale así publicado, y el sitio '
+                  + 'invita a completarlo. No es un error: es un hueco con nombre.';
+  caja.append(pie);
+
+  let ido = false;
+  const salir = () => {
+    if (ido) return;
+    ido = true;
+    removeEventListener('keydown', alTeclado, true);
+    capa.remove();
+    document.body.classList.remove('con-visor');
+    if (antes && antes.focus) antes.focus();
+  };
+  const alTeclado = ev => { if (ev.key === 'Escape') { ev.preventDefault(); salir(); } };
+  cerrar.addEventListener('click', salir);
+  capa.addEventListener('click', ev => { if (ev.target === capa) salir(); });
+  addEventListener('keydown', alTeclado, true);
+
+  capa.append(caja);
+  document.body.append(capa);
+  document.body.classList.add('con-visor');
+  cerrar.focus();
+}
+
+/* ------------------------------------------------------------------ */
 /* Las notas de una memoria                                            */
 /* ------------------------------------------------------------------ */
 /* En pantalla ancha van AL LADO de cada memoria y se leen sin tocar nada: el
@@ -561,6 +716,16 @@ function acciones(li, m, err) {
        base rechaza cualquier cambio que la deje publicada, así que el
        formulario entero terminaría en un error al guardar. Primero el
        permiso, que está acá al lado. */
+    /* Ver cómo queda va PRIMERO y está siempre, incluso donde editar no se
+       ofrece: es de mirar, no de tocar, así que no puede romper nada, y en
+       una publicada sin permiso —que no se deja editar— es la única forma de
+       ver qué hay adentro sin despublicarla. */
+    const previa = document.createElement('button');
+    previa.className = 'enlace';
+    previa.textContent = 'Ver cómo queda';
+    previa.addEventListener('click', () => verComoQueda(m, err));
+    fila.append(previa);
+
     if ((!publicada || puede) && !(publicada && faltaPermiso)) {
       const ed = document.createElement('button');
       ed.className = 'enlace';
@@ -1165,9 +1330,19 @@ function pintarFotos() {
   borrador.fotos.forEach((f, n) => {
     const li = document.createElement('li');
 
+    /* La miniatura abre la foto en grande. Decidir si un escaneo entra al
+       archivo —si está derecho, si se lee, si salió movido, si es la misma
+       que ya estaba— no se puede hacer en tres centímetros, y la única salida
+       era publicar y mirar el sitio: revisar después de publicar. */
     const img = document.createElement('img');
     img.src = f.previa; img.alt = '';
-    li.append(img);
+    const lupa = document.createElement('button');
+    lupa.type = 'button';
+    lupa.className = 'foto-ver';
+    lupa.setAttribute('aria-label', `Ver la foto ${n + 1} en grande`);
+    lupa.append(img);
+    lupa.addEventListener('click', () => visorFotos(borrador.fotos.map(x => x.previa), n));
+    li.append(lupa);
 
     if (n === 0 && borrador.fotos.length > 1) {
       const cinta = document.createElement('span');

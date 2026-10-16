@@ -1,7 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
 import Aportar from '../../components/Aportar.astro';
-import LineaDeTiempo from '../../components/LineaDeTiempo.astro';
 import Buscador from '../../components/Buscador.astro';
 import Indicacion from '../../components/Indicacion.astro';
 import { documentos, personas, lugares, acontecimientos, memoriasBuscables } from '../../lib/datos.js';
@@ -254,14 +253,19 @@ const listaLugares = lugares
       algo para dar no debería tener que entrar a una memoria para ofrecerlo. */}
   <Aportar />
 
-  {/* El tiempo no es una cuarta puerta: es una lectura del mismo archivo.
-      Va después de la rejilla porque lo que la gente viene a ver son las
-      memorias, no el gráfico. */}
-  <section class="tiempo">
-    <h2>Cómo cambió el pueblo</h2>
-    <LineaDeTiempo documentos={documentos} acontecimientos={acontecimientos} />
-  </section>
+  {/* Acá estaba «Cómo cambió el pueblo»: una banda de marcas donde el alto
+      decía la incertidumbre de la fecha y el verde, cuán firme era el dato.
+      Se sacó el 16/10/2026 porque no se entendía. No era un problema de
+      rótulos: pedía leer tres codificaciones a la vez —posición, alto y
+      color— y aprender una leyenda antes de poder mirar nada, que es
+      exactamente lo que este archivo no le pide a nadie. Buena parte del
+      público tiene setenta años y vino a buscar a su abuelo.
 
+      No se reemplaza por una versión más simple ahora. Mostrar cuánto se
+      recuperó de cada época es una buena idea y vuelve cuando esté bien
+      resuelta; dejar mientras tanto un gráfico a medias sería sostener el
+      mismo problema con menos tinta. El código está en el historial, en el
+      commit que lo sacó. */}
   <script>
     import { buscarMemorias, comoSeEncontro } from '../../lib/buscar.js';
 
@@ -691,7 +695,6 @@ const listaLugares = lugares
     }
 
     .nada { color: var(--tinta-2); font-size: .85rem; padding: 2rem 0; }
-    .tiempo { margin-top: 4rem; padding-top: 2.5rem; border-top: 1px solid var(--linea); }
 
     @media (max-width: 620px) {
       .f-grupo { grid-template-columns: 1fr; gap: .4rem; }

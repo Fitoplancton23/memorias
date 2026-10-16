@@ -308,9 +308,27 @@ async function cargarBandeja(estado) {
 
     for (const m of filas) {
       const li = document.createElement('li');
-      const img = m.foto_url
+      /* La fotito abre la previsualización. Era un botón aparte en la fila de
+         acciones y ahí competía con Editar, Aprobar y Eliminar —cuatro
+         enlaces parecidos, uno de los cuales no toca nada—. La miniatura ya
+         está ahí, ya es de esa memoria, y tocar una foto chica para verla
+         grande es lo que hace todo el mundo sin que se lo expliquen.
+
+         Y va también en las memorias SIN foto: el recuadro vacío se toca
+         igual. Si no, las que más hay que revisar —las que todavía no tienen
+         imagen— serían justo las que no se pueden mirar. */
+      const mini = document.createElement('button');
+      mini.type = 'button';
+      mini.className = 'mini';
+      mini.setAttribute('aria-label', `Ver cómo queda «${m.titulo || 'sin título'}»`);
+      /* Sin rótulo al lado, lo único que anuncia que la fotito se toca es el
+         cursor. El `title` no agrega ruido y lo dice al pasar por encima. */
+      mini.title = 'Ver cómo queda';
+      mini.append(m.foto_url
         ? Object.assign(document.createElement('img'), { src: m.foto_url, alt: '', loading: 'lazy' })
-        : Object.assign(document.createElement('div'), { className: 'sinfoto' });
+        : Object.assign(document.createElement('div'), { className: 'sinfoto' }));
+      mini.addEventListener('click', () => verComoQueda(m, err));
+      const img = mini;
       const txt = document.createElement('div');
       txt.className = 'crece';
       txt.innerHTML = '<b></b><small></small>';
@@ -716,16 +734,6 @@ function acciones(li, m, err) {
        base rechaza cualquier cambio que la deje publicada, así que el
        formulario entero terminaría en un error al guardar. Primero el
        permiso, que está acá al lado. */
-    /* Ver cómo queda va PRIMERO y está siempre, incluso donde editar no se
-       ofrece: es de mirar, no de tocar, así que no puede romper nada, y en
-       una publicada sin permiso —que no se deja editar— es la única forma de
-       ver qué hay adentro sin despublicarla. */
-    const previa = document.createElement('button');
-    previa.className = 'enlace';
-    previa.textContent = 'Ver cómo queda';
-    previa.addEventListener('click', () => verComoQueda(m, err));
-    fila.append(previa);
-
     if ((!publicada || puede) && !(publicada && faltaPermiso)) {
       const ed = document.createElement('button');
       ed.className = 'enlace';

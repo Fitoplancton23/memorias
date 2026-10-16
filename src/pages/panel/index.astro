@@ -850,7 +850,17 @@ import { tituloSitio } from '../../lib/sitio.js';
     .previa-pie { margin: 1rem 0 0; padding-top: .8rem; border-top: 1px solid var(--linea);
                   font-size: .78rem; line-height: 1.5; color: var(--tinta-2); }
 
-    /* La miniatura es un botón, pero tiene que seguir viéndose como la foto. */
+    /* La fotito de cada fila abre la previsualización. Es un botón, y tiene
+       que seguir viéndose como la foto: sin borde, sin fondo, sin relleno.
+       Lo único que lo delata es el cursor y que se aclara al pasar — que es
+       suficiente, porque tocar una foto chica para verla grande no hay que
+       explicarlo. */
+    .lista .mini { padding: 0; border: 0; background: none; cursor: zoom-in;
+                   flex: none; border-radius: .3rem; line-height: 0; }
+    .lista .mini:hover img, .lista .mini:hover .sinfoto { opacity: .78; }
+    .lista .mini:focus-visible { outline: 2px solid var(--marca); outline-offset: 2px; }
+
+    /* La miniatura del paso de fotos, también botón. */
     .fotos .foto-ver { display: block; padding: 0; border: 0; background: none;
                        cursor: zoom-in; width: 100%; }
     .fotos .foto-ver img { display: block; width: 100%; }

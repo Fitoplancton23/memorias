@@ -16,12 +16,27 @@ const SB = !DEMO && (process.argv.includes('--supabase') || !!process.env.SUPABA
 /* En CI no hay .env: las variables las inyecta la plataforma. Si faltan, SB
    queda en false, el build cae a los CSV y publica datos viejos como si fueran
    los reales, sin que nada lo diga. Con esta bandera, falla. */
-if (process.argv.includes('--exigir-supabase')) {
+/* Y lo mismo, sin que nadie tenga que acordarse de la bandera, cuando el
+   build corre en una plataforma de deploy. `CI` la ponen Cloudflare Pages,
+   GitHub Actions, Netlify y Vercel; en una máquina de trabajo no está.
+
+   Esto es el arreglo de un error real: las memorias que se publicaban desde
+   el panel no aparecían en el sitio. El deploy construía bien, devolvía
+   verde, y servía los CSV viejos — porque le faltaban las credenciales y la
+   caída a planillas no decía nada. Un deploy que falla se arregla en diez
+   minutos; uno que publica datos viejos en silencio puede pasar semanas, y
+   mientras tanto el profe carga memorias que nadie ve y deja de confiar en
+   el panel. De los dos finales posibles, acá queremos el que grita. */
+const EN_DEPLOY = !!process.env.CI && !DEMO;
+if (process.argv.includes('--exigir-supabase') || EN_DEPLOY) {
   const faltan = ['SUPABASE_URL', 'SUPABASE_KEY'].filter(v => !process.env[v]);
   if (faltan.length) {
     console.error('\nFalta ' + faltan.join(' y ') + '.');
     console.error('Sin base no se publica: el build caeria a los CSV y');
-    console.error('publicaria datos viejos en silencio.\n');
+    console.error('publicaria datos viejos en silencio.');
+    if (EN_DEPLOY && !process.argv.includes('--exigir-supabase'))
+      console.error('(Detectado por CI=1. Cargar las variables en el panel de la plataforma.)');
+    console.error('');
     process.exit(1);
   }
 }
@@ -278,6 +293,16 @@ if (sinFecha) avisos.push(`${sinFecha} documento(s) publicados sin fecha reconoc
 /* ---------- Salida ---------- */
 const snapshot = {
   generado: new Date().toISOString(),
+  /* De dónde salieron estos datos. Va al snapshot y de ahí a una etiqueta en
+     cada página, y existe por un caso concreto: si el deploy no encuentra las
+     credenciales de Supabase, este build NO falla — cae a los CSV y publica
+     datos viejos como si fueran los de la base. Desde afuera eso se ve igual
+     que un sitio funcionando, y lo único que se nota es que una memoria
+     recién publicada "no aparece", sin ninguna pista de por qué.
+
+     Con esta línea la pregunta se contesta mirando el código fuente de
+     cualquier página: si dice `csv`, el deploy no leyó la base. */
+  fuente: DEMO ? 'demo' : (SB ? 'supabase' : 'csv'),
   demo: DEMO || (SB && CON_DEMO && conteoDemo > 0),
   sinAprobar: conteoPendientes,
   totales: {

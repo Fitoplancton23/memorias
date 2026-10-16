@@ -3,6 +3,7 @@ import { otrosNombres } from './buscar.js';
 import { comoSeLlama } from './persona-nueva.js';
 
 export const { personas, lugares, acontecimientos, documentos, familias, anios, totales, avisos, generado, demo } = snapshot;
+export const fuente = snapshot.fuente || 'csv';
 export const sinAprobar = snapshot.sinAprobar || 0;
 
 const indexar = (arr) => Object.fromEntries(arr.map(x => [x.slug, x]));

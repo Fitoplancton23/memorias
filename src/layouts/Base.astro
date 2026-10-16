@@ -1,6 +1,9 @@
 ---
 import '../styles/tokens.css';
-import { demo, sinAprobar } from '../lib/datos.js';
+/* `fuente` ya es el ayudante de los videos de intro en este archivo, así
+   que el del snapshot entra con otro nombre. El choque no rompía el build:
+   dejaba la función entera impresa dentro de la etiqueta. */
+import { demo, sinAprobar, generado, fuente as fuenteDatos, totales } from '../lib/datos.js';
 import { sitio, tituloSitio, parajes, estudio } from '../lib/sitio.js';
 import Isotipo from '../components/Isotipo.astro';
 import Ondas from '../components/Ondas.astro';
@@ -71,6 +74,17 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
   {descripcion && <meta name="description" content={descripcion} />}
   <link rel="icon" href="/icono.svg" type="image/svg+xml" />
   <meta name="theme-color" content="#edf9f4" />
+  {/* De dónde salieron los datos de este build y cuándo se armó.
+      -------------------------------------------------------------------
+      No es para quien visita: es para contestar en dos segundos la pregunta
+      "publiqué una memoria y no aparece". Si acá dice `csv`, el deploy no
+      leyó Supabase —se quedó sin credenciales y cayó a las planillas, que es
+      algo que hace EN SILENCIO— y el sitio está mostrando datos viejos. Si
+      dice `supabase` y la memoria igual no está, el problema es otro y hay
+      que buscarlo en la base, no en el deploy.
+      Se mira con "ver código fuente" en cualquier página. */}
+  <meta name="memorias-build"
+        content={`fuente=${fuenteDatos} generado=${generado} memorias=${totales?.documentos ?? 0}`} />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600&display=swap" />

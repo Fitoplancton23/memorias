@@ -40,7 +40,22 @@ const srcMob = fuente('intro-mob', introMob) || srcWeb;
 const posterWeb = introWeb.poster ? '/intro/intro-web.webp' : '';
 const posterMob = introMob.poster ? '/intro/intro-mob.webp' : posterWeb;
 
-const { titulo, descripcion, suelto = false } = Astro.props;
+const { titulo, descripcion, suelto = false, imagen, tipo = 'website' } = Astro.props;
+
+/* La vista previa del enlace.
+   -------------------------------------------------------------------------
+   Este archivo se difunde por WhatsApp: la forma en que una memoria llega a
+   alguien es que otro vecino se la mande. Un enlace que llega como un renglón
+   de texto gris no lo abre nadie; con la foto adelante, sí.
+
+   Las direcciones acá tienen que ser absolutas y con el dominio verdadero
+   —WhatsApp y Facebook no resuelven rutas relativas—, así que todo pasa por
+   `Astro.site`. Si ese dominio está mal, TODAS las vistas previas quedan
+   rotas y el sitio se ve bien igual: el error no se nota desde adentro. */
+const canonica = new URL(Astro.url.pathname, Astro.site).href;
+const imagenAbs = imagen ? new URL(imagen, Astro.site).href : new URL('/og/memorias.jpg', Astro.site).href;
+const resumenOg = descripcion
+  || `Archivo comunitario de ${sitio.lugar}, ${sitio.provincia}. Fotografías y relatos aportados por vecinas y vecinos.`;
 /* En qué superficie estamos, para marcar el conmutador. El inicio no es una
    superficie de exploración: ahí se elige, y el conmutador no tiene sentido. */
 const ruta = Astro.url.pathname;
@@ -85,6 +100,19 @@ const t = titulo ? `${titulo} · ${tituloSitio}` : tituloSitio;
       Se mira con "ver código fuente" en cualquier página. */}
   <meta name="memorias-build"
         content={`fuente=${fuenteDatos} generado=${generado} memorias=${totales?.documentos ?? 0}`} />
+  <link rel="canonical" href={canonica} />
+  <meta property="og:type" content={tipo} />
+  <meta property="og:site_name" content={tituloSitio} />
+  <meta property="og:locale" content="es_AR" />
+  <meta property="og:title" content={titulo || tituloSitio} />
+  <meta property="og:description" content={resumenOg} />
+  <meta property="og:url" content={canonica} />
+  <meta property="og:image" content={imagenAbs} />
+  <meta property="og:image:alt" content={titulo || tituloSitio} />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={titulo || tituloSitio} />
+  <meta name="twitter:description" content={resumenOg} />
+  <meta name="twitter:image" content={imagenAbs} />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600&display=swap" />

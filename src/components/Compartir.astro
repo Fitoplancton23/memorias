@@ -1,0 +1,177 @@
+---
+/* Compartir una memoria: el enlace, o una historia de Instagram.
+   -------------------------------------------------------------------------
+   El archivo se difunde por WhatsApp y por el grupo de Facebook, no por
+   buscadores: la forma en que una memoria llega a alguien es que otro
+   vecino se la mande. Esto es, entonces, parte del archivo y no un adorno.
+
+   Dos acciones y nada más, porque son dos cosas distintas: mandar el enlace
+   —que del otro lado se abre en la memoria entera— o armar una pieza para
+   una historia, que es una imagen y se comparte como imagen.
+
+   Lo que NO se promete: que la historia se publique sola. Una web no puede
+   publicar en Instagram sin que la persona lo haga; cualquier botón que
+   diga lo contrario miente. Acá se arma la imagen, se ofrece compartirla
+   con lo que el teléfono tenga —de donde Instagram aparece como una opción
+   más— y si eso no está, se baja el archivo y se explica el paso que queda. */
+const { memoria, url } = Astro.props;
+const datos = {
+  titulo: memoria.titulo || 'Memoria',
+  fecha: memoria.fecha || null,
+  lugar: memoria.lugar || '',
+  foto: memoria.foto || '',
+  url,
+};
+---
+<section class="compartir" data-memoria={JSON.stringify(datos)}>
+  <button type="button" class="comp-abrir" id="compAbrir" aria-expanded="false" aria-controls="compPanel">
+    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3v13M12 3 7.5 7.5M12 3l4.5 4.5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>
+    </svg>
+    <b>Compartir memoria</b>
+  </button>
+
+  <div class="comp-panel" id="compPanel" hidden>
+    <div class="comp-acciones">
+      <button type="button" class="comp-accion" id="compEnlace">
+        <b>Compartir el enlace</b>
+        <i>Se abre en esta misma memoria.</i>
+      </button>
+      <button type="button" class="comp-accion" id="compHistoria">
+        <b>Para una historia</b>
+        <i>Arma una imagen vertical con la foto y el dato.</i>
+      </button>
+    </div>
+    <p class="comp-aviso" id="compAviso" hidden aria-live="polite"></p>
+    <div class="comp-vista" id="compVista" hidden>
+      <img id="compImagen" alt="Vista previa de la historia" />
+      <div class="comp-vista-pie">
+        <button type="button" class="comp-accion chico" id="compMandar" hidden><b>Compartir la imagen</b></button>
+        <a class="comp-accion chico" id="compBajar" download><b>Descargar la imagen</b></a>
+        <button type="button" class="comp-accion chico" id="compCopiar"><b>Copiar el enlace</b></button>
+      </div>
+      <p class="comp-nota">Para ponerla en tu historia: guardá o compartí la imagen,
+        abrila desde Instagram y, si querés, pegá el enlace con el adhesivo de enlace.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { dibujar } from '../lib/historia-dibujo.js';
+  import { sitio, parajes } from '../lib/sitio.js';
+
+  const caja = document.querySelector('.compartir');
+  if (caja) {
+    const m = JSON.parse(caja.dataset.memoria);
+    const $ = s => document.getElementById(s);
+    const panel = $('compPanel'), abrir = $('compAbrir'), aviso = $('compAviso');
+    const vista = $('compVista'), imagen = $('compImagen');
+    let archivo = null, urlImagen = null;
+
+    const decir = (t, malo) => {
+      aviso.textContent = t || '';
+      aviso.classList.toggle('mal', !!malo);
+      aviso.hidden = !t;
+    };
+
+    abrir.addEventListener('click', () => {
+      const ver = panel.hidden;
+      panel.hidden = !ver;
+      abrir.setAttribute('aria-expanded', String(ver));
+    });
+
+    /* ---- el enlace ---- */
+    const copiar = async () => {
+      try { await navigator.clipboard.writeText(m.url); decir('Enlace copiado.'); }
+      catch (e) { decir('No se pudo copiar solo. El enlace está en la barra de arriba.', true); }
+    };
+    $('compEnlace').addEventListener('click', async () => {
+      /* `navigator.share` del teléfono abre el mismo menú con el que se manda
+         cualquier cosa: WhatsApp primero, que es el canal del pueblo. En la
+         computadora casi nunca existe, y ahí copiar es lo que sirve. */
+      if (navigator.share) {
+        try { await navigator.share({ title: m.titulo, text: m.titulo, url: m.url }); return; }
+        catch (e) { if (e && e.name === 'AbortError') return; }
+      }
+      copiar();
+    });
+    $('compCopiar').addEventListener('click', copiar);
+
+    /* ---- la historia ---- */
+    $('compHistoria').addEventListener('click', async () => {
+      const b = $('compHistoria');
+      b.disabled = true;
+      decir('Armando la imagen…');
+      try {
+        const { canvas, fallo } = await dibujar(m, {
+          marca: sitio.nombre, parajes,
+          llamada: 'La historia completa, en',
+          enlace: m.url.replace(/^https?:\/\//, '').replace(/\/$/, ''),
+        });
+        const blob = await new Promise((listo, falla) =>
+          canvas.toBlob(x => x ? listo(x) : falla(new Error('el navegador no pudo exportar la imagen')),
+                        'image/jpeg', 0.92));
+        if (urlImagen) URL.revokeObjectURL(urlImagen);
+        urlImagen = URL.createObjectURL(blob);
+        const nombre = `memoria-${(m.url.split('/').filter(Boolean).pop() || 'historia')}.jpg`;
+        archivo = new File([blob], nombre, { type: 'image/jpeg' });
+        imagen.src = urlImagen;
+        $('compBajar').href = urlImagen;
+        $('compBajar').download = nombre;
+        vista.hidden = false;
+        const puede = navigator.canShare && navigator.canShare({ files: [archivo] });
+        $('compMandar').hidden = !puede;
+        decir(fallo ? 'La fotografía no se pudo leer, así que la historia salió sólo con el texto.' : '',
+              fallo);
+      } catch (e) {
+        decir(`No se pudo armar la imagen: ${e.message}`, true);
+      } finally { b.disabled = false; }
+    });
+
+    $('compMandar').addEventListener('click', async () => {
+      if (!archivo) return;
+      try { await navigator.share({ files: [archivo], title: m.titulo }); }
+      catch (e) { if (e && e.name !== 'AbortError') decir('El teléfono no quiso compartir la imagen. Se puede descargar.', true); }
+    });
+  }
+</script>
+
+<style>
+  .compartir { margin: 2.5rem 0 0; }
+  .comp-abrir {
+    display: inline-flex; align-items: center; gap: .55rem;
+    padding: .7rem 1.2rem; border-radius: 999px; border: 1px solid var(--linea-viva);
+    background: var(--placa); color: var(--tinta); cursor: pointer;
+    font: inherit; font-size: .92rem;
+  }
+  .comp-abrir:hover { background: var(--tinta); color: var(--placa); border-color: var(--tinta); }
+  .comp-abrir svg { width: 1.15rem; height: 1.15rem; }
+  .comp-abrir b { font-weight: 500; }
+
+  .comp-panel { margin-top: .9rem; }
+  .comp-acciones { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+  .comp-accion {
+    display: block; text-align: left; cursor: pointer; font: inherit;
+    padding: .85rem 1rem; border-radius: .6rem;
+    border: 1px solid var(--linea); background: var(--panel); color: var(--tinta);
+  }
+  .comp-accion:hover { border-color: var(--linea-viva); background: var(--panel-2); }
+  .comp-accion b { display: block; font-weight: 500; font-size: .92rem; }
+  .comp-accion i { display: block; font-style: normal; font-size: .8rem; color: var(--tinta-2); margin-top: .15rem; }
+  .comp-accion.chico { padding: .6rem .85rem; }
+  .comp-accion.chico b { font-size: .85rem; }
+  a.comp-accion { border-bottom: 1px solid var(--linea); }
+
+  .comp-aviso { font-size: .85rem; color: var(--tinta-2); margin: .8rem 0 0; }
+  .comp-aviso.mal { color: var(--anomalia); }
+
+  .comp-vista { margin-top: 1rem; }
+  /* La vista previa va chica a propósito: lo que se está mirando es si la
+     composición cierra, no la fotografía — para eso está la memoria entera
+     acá arriba. */
+  .comp-vista img { display: block; width: 270px; max-width: 60%; height: auto;
+                    border-radius: .5rem; border: 1px solid var(--linea); }
+  .comp-vista-pie { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
+  .comp-nota { font-size: .8rem; color: var(--tinta-2); margin: .7rem 0 0; max-width: 34rem; }
+</style>

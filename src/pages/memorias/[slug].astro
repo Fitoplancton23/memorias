@@ -1,7 +1,9 @@
 ---
 import Base from '../../layouts/Base.astro';
 import Aportar from '../../components/Aportar.astro';
+import Compartir from '../../components/Compartir.astro';
 import { P, L, A, D, nombre, fecha, documentos } from '../../lib/datos.js';
+import { sitio } from '../../lib/sitio.js';
 import { relacionadas, porQue } from '../../lib/relacionadas.js';
 export async function getStaticPaths() {
   const { documentos } = await import('../../lib/datos.js');
@@ -31,6 +33,13 @@ const nombres = Object.fromEntries([
 ]);
 const cerca = relacionadas(d, documentos, nombres).map(r => ({ ...r, m: D[r.slug] })).filter(x => x.m);
 
+/* Lo que se lee en la vista previa del enlace y abajo del título en la
+   historia. Se prefiere la descripción real; si no hay, se dice lo que el
+   archivo sí sabe —cuándo y dónde— en vez de repetir el título. */
+const resumen = (d.descripcion || '').trim()
+  || [fecha(d.fecha), sitios[0]?.nombre].filter(Boolean).join(' · ')
+  || `Una memoria de ${sitio.lugar}.`;
+
 const comoSeLee = f => {
   if (!f?.ref) return 'sin fecha';
   if (f.precision === 'decada') return `década de ${Math.floor(f.ref / 10) * 10}`;
@@ -38,7 +47,14 @@ const comoSeLee = f => {
   return String(f.ref);
 };
 ---
-<Base titulo={d.titulo} descripcion={d.descripcion?.slice(0, 160)}>
+{/* La vista previa que se ve cuando alguien manda esta memoria por WhatsApp:
+    la fotografía de la memoria, su título y su año. Antes todas las memorias
+    compartían la misma imagen genérica del sitio, o sea ninguna: el enlace
+    llegaba como un renglón de texto y nadie lo abría. */}
+<Base titulo={d.titulo}
+      descripcion={resumen}
+      imagen={fotos[0]}
+      tipo="article">
   <p class="sobretitulo">Memoria · <span class={imprecisa ? 'imprecisa' : ''}>{fecha(d.fecha)}</span></p>
   <h1>{d.titulo}</h1>
 
@@ -92,6 +108,12 @@ const comoSeLee = f => {
 
   {/* Va acá y no al final: el momento en que alguien reconoce algo es mirando
       la foto y leyendo lo que falta, no después de recorrer dos listas más. */}
+  {/* Antes de "seguí por acá": quien quiere mandársela a alguien lo decide
+      mirando la memoria, no después de recorrer otra lista. */}
+  <Compartir url={new URL(`/memorias/${d.slug}/`, Astro.site).href}
+             memoria={{ titulo: d.titulo, fecha: d.fecha,
+                        lugar: sitios[0]?.nombre || '', foto: fotos[0] || '' }} />
+
   <Aportar titulo={d.titulo} url={Astro.url.href} />
 
   {cerca.length > 0 && (<>

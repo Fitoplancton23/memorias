@@ -8,7 +8,7 @@
    permanente: una genealogía falsa de un pueblo real, sin avisar, sería
    desinformación sobre familias que existen.                                */
 
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -256,6 +256,25 @@ for (const [s, t, a] of ACT)
 writeFileSync(join(SAL, 'acontecimientos.csv'), filasA.join('\n') + '\n');
 
 const TIPOS = ['foto','foto','foto','relato','recorte'];
+
+/* Fotografías de verdad para la demo.
+   -------------------------------------------------------------------------
+   Hasta acá NINGUNA memoria de demostración tenía foto, y es la tercera vez
+   que los datos de prueba no ejercitan lo difícil: sin apodos no se podía ver
+   el buscador, sin coordenadas el mapa salía vacío, y sin fotos no se podía
+   mirar la pieza para una historia —que es, justamente, una foto con texto
+   alrededor—.
+
+   Se usan los archivos que ya están en `public/memorias/`, que son escaneos
+   reales del proyecto: apaisados, verticales y uno de 350 px de ancho. Esas
+   proporciones son el caso difícil y ninguna inventada se le parece.
+
+   Una de cada cuatro queda SIN foto, que también hay que poder mirar: una
+   memoria sin fotografía sigue siendo una memoria. */
+const FOTOS = readdirSync('public/memorias')
+  .filter(f => f.endsWith('.jpg'))
+  .sort()
+  .map(f => `/memorias/${f}`);
 const gente = [...personas.values()];
 const filasD = ['slug,tipo,titulo,fecha,descripcion,transcripcion,personas,lugares,acontecimientos,aportante,fuente_url,archivo,licencia,estado'];
 for (let i = 1; i <= 140; i++) {
@@ -283,7 +302,9 @@ for (let i = 1; i <= 140; i++) {
     fechaTexto(anio) || 'pendiente', 'DATOS DE DEMOSTRACION',
     tipo === 'relato' ? 'Texto de demostracion del relato aportado por el vecino.' : '',
     [...sel].join(';'), elegir(Object.keys(NOM)),
-    rnd() < .18 ? elegir(ACT)[0] : '', 'Vecino de demostracion', '', '', 'demo', 'publicado'].map(esc).join(','));
+    rnd() < .18 ? elegir(ACT)[0] : '', 'Vecino de demostracion', '',
+    (tipo !== 'relato' && FOTOS.length && rnd() < .75) ? elegir(FOTOS) : '',
+    'demo', 'publicado'].map(esc).join(','));
 }
 writeFileSync(join(SAL, 'documentos.csv'), filasD.join('\n') + '\n');
 writeFileSync(join(SAL, 'familia.csv'), 'persona,padre,madre,conyuges,notas\n');

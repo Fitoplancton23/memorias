@@ -1,141 +1,141 @@
 slug,tipo,titulo,fecha,descripcion,transcripcion,personas,lugares,acontecimientos,aportante,fuente_url,archivo,licencia,estado
-demo-001,foto,Retrato (1),1927,DATOS DE DEMOSTRACION,,ramon-roth;nelida-pereira,escuela-406,,Vecino de demostracion,,,demo,publicado
-demo-002,relato,Grupo familiar (2),1960,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,roberto-kowalczuk;clementina-paz,secadero-grande,,Vecino de demostracion,,,demo,publicado
-demo-003,foto,Frente del comercio (3),1993,DATOS DE DEMOSTRACION,,hector-nicklas-2,capilla-vieja,pavimentacion,Vecino de demostracion,,,demo,publicado
-demo-004,relato,Grupo familiar (4),1936,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,raul-weber;rosa-duarte;ramon-roth,barrio-teforito,,Vecino de demostracion,,,demo,publicado
-demo-005,foto,Frente del comercio (5),1992,DATOS DE DEMOSTRACION,,alberto-jhansson;teresa-kaiser;irma-kaiser,escuela-406,,Vecino de demostracion,,,demo,publicado
-demo-006,foto,Frente del comercio (6),1958,DATOS DE DEMOSTRACION,,anibal-hermann;mirta-paz,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
-demo-007,foto,Retrato (7),1933,DATOS DE DEMOSTRACION,,tito-lang,salto-encantado,,Vecino de demostracion,,,demo,publicado
-demo-008,foto,Retrato (8),dec. 1970,DATOS DE DEMOSTRACION,,pedro-lang;blanca-roth,loteo-lizoski,fundacion,Vecino de demostracion,,,demo,publicado
-demo-009,foto,Frente de la casa (9),1958 aprox,DATOS DE DEMOSTRACION,,tito-semeniuk;eva-silveira;eva-machado,plaza-libertad,,Vecino de demostracion,,,demo,publicado
-demo-010,foto,Retrato (10),1934,DATOS DE DEMOSTRACION,,pedro-muller,loteo-lizoski,fiesta-inmigrante,Vecino de demostracion,,,demo,publicado
-demo-011,foto,Frente del comercio (11),1958,DATOS DE DEMOSTRACION,,tito,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
-demo-012,foto,Cuadrilla de trabajo (12),1971,DATOS DE DEMOSTRACION,,antonio-nicklas;rosa-machado;la-rusa,barrio-teforito,,Vecino de demostracion,,,demo,publicado
-demo-013,relato,Frente de la casa (13),dec. 1980,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,berta-silveira;julio-silveira;walter-silveira,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
-demo-014,relato,Acto escolar (14),1978,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,antonio-nicklas;rosa-machado;la-rusa;oscar-nicklas;miguel-wagner,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
-demo-015,relato,Grupo familiar (15),1934 aprox,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,rodolfo-kaiser;mirta-silveira;susana-benitez,secadero-grande,,Vecino de demostracion,,,demo,publicado
-demo-016,foto,Baile del club (16),1916 aprox,DATOS DE DEMOSTRACION,,pedro-muller;hilda-ramirez,salto-encantado,primera-escuela,Vecino de demostracion,,,demo,publicado
-demo-017,foto,Acto escolar (17),1949,DATOS DE DEMOSTRACION,,miguel-muller;susana-ojeda-2,secadero-grande,,Vecino de demostracion,,,demo,publicado
-demo-018,foto,Cuadrilla de trabajo (18),1918,DATOS DE DEMOSTRACION,,gerardo-lizoski,escuela-406,,Vecino de demostracion,,,demo,publicado
-demo-019,recorte,Procesion (19),1968,DATOS DE DEMOSTRACION,,ramon-silveira;berta-silveira;julio-silveira,escuela-406,inauguracion-hospital,Vecino de demostracion,,,demo,publicado
-demo-020,foto,Procesion (20),1979,DATOS DE DEMOSTRACION,,elsa-kaiser,capilla-vieja,,Vecino de demostracion,,,demo,publicado
-demo-021,relato,Retrato (21),1942,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,hector-nicklas,secadero-grande,,Vecino de demostracion,,,demo,publicado
-demo-022,foto,Acto escolar (22),1930,DATOS DE DEMOSTRACION,,raul-weber;rosa-duarte,capilla-vieja,,Vecino de demostracion,,,demo,publicado
-demo-023,foto,Grupo familiar (23),1940,DATOS DE DEMOSTRACION,,gerardo-lizoski,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
-demo-024,relato,Casamiento (24),1983,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,jose-kowalczuk;elsa-hermann,salto-encantado,,Vecino de demostracion,,,demo,publicado
-demo-025,recorte,Cosecha de yerba (25),1925,DATOS DE DEMOSTRACION,,tito-lang;beba,secadero-grande,,Vecino de demostracion,,,demo,publicado
-demo-026,relato,Casamiento (26),1962 aprox,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,anibal-hermann,salto-encantado,,Vecino de demostracion,,,demo,publicado
-demo-027,foto,Acto escolar (27),dec. 1980,DATOS DE DEMOSTRACION,,coca;julio-weber,capilla-vieja,,Vecino de demostracion,,,demo,publicado
-demo-028,recorte,Cosecha de yerba (28),1992 aprox,DATOS DE DEMOSTRACION,,gerardo-prytuluk;ramon-prytuluk;olga-prytuluk;clementina-prytuluk,plaza-libertad,,Vecino de demostracion,,,demo,publicado
-demo-029,recorte,Acto escolar (29),dec. 1970,DATOS DE DEMOSTRACION,,luis-ramirez,escuela-406,,Vecino de demostracion,,,demo,publicado
-demo-030,relato,Cuadrilla de trabajo (30),1964,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,eduardo-hermann;susana-kaiser,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
-demo-031,foto,Procesion (31),1993,DATOS DE DEMOSTRACION,,el-turco,salto-encantado,,Vecino de demostracion,,,demo,publicado
-demo-032,foto,Frente de la casa (32),1952,DATOS DE DEMOSTRACION,,tito-lang;beba;teresa-lang;clementina-prytuluk,capilla-vieja,,Vecino de demostracion,,,demo,publicado
-demo-033,foto,Procesion (33),dec. 1930,DATOS DE DEMOSTRACION,,tito-lang,paraje-cerro-moreno,,Vecino de demostracion,,,demo,publicado
-demo-034,foto,Frente de la casa (34),1959 aprox,DATOS DE DEMOSTRACION,,luis-semeniuk;coca,plaza-libertad,,Vecino de demostracion,,,demo,publicado
-demo-035,foto,Frente del comercio (35),1975,DATOS DE DEMOSTRACION,,miguel-wagner,paraje-cerro-moreno,,Vecino de demostracion,,,demo,publicado
-demo-036,relato,Frente de la casa (36),pendiente,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,teresa-lang;coca-2;oscar-lizoski,secadero-grande,,Vecino de demostracion,,,demo,publicado
-demo-037,recorte,Frente del comercio (37),pendiente,DATOS DE DEMOSTRACION,,ramon-roth;nelida-pereira;antonio-nicklas,salto-encantado,,Vecino de demostracion,,,demo,publicado
-demo-038,relato,Cuadrilla de trabajo (38),dec. 1920,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,antonio-nicklas;rosa-machado;jose-roth,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
-demo-039,foto,Cuadrilla de trabajo (39),1921 aprox,DATOS DE DEMOSTRACION,,tito-lang;beba,salto-encantado,,Vecino de demostracion,,,demo,publicado
-demo-040,recorte,Procesion (40),1938,DATOS DE DEMOSTRACION,,luis-semeniuk;coca;ramon-roth,plaza-libertad,,Vecino de demostracion,,,demo,publicado
-demo-041,foto,Cuadrilla de trabajo (41),1963,DATOS DE DEMOSTRACION,,oscar-melnyk,salto-encantado,,Vecino de demostracion,,,demo,publicado
-demo-042,foto,Frente de la casa (42),1986 aprox,DATOS DE DEMOSTRACION,,oscar-nicklas,arroyo-cunapiru,,Vecino de demostracion,,,demo,publicado
-demo-043,foto,Grupo familiar (43),1958,DATOS DE DEMOSTRACION,,oscar-lizoski;marta-hermann,secadero-grande,,Vecino de demostracion,,,demo,publicado
-demo-044,relato,Grupo familiar (44),1939,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,alberto-silveira;rodolfo-kaiser,paraje-cerro-moreno,,Vecino de demostracion,,,demo,publicado
-demo-045,relato,Casamiento (45),dec. 1960,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,julio-weber,barrio-teforito,,Vecino de demostracion,,,demo,publicado
-demo-046,relato,Baile del club (46),1948,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,gerardo-jhansson;rosa-machado;eva-machado;ana-machado,barrio-teforito,primera-escuela,Vecino de demostracion,,,demo,publicado
-demo-047,foto,Casamiento (47),1965 aprox,DATOS DE DEMOSTRACION,,gerardo-prytuluk;hilda-ramirez,arroyo-cunapiru,fiesta-inmigrante,Vecino de demostracion,,,demo,publicado
-demo-048,recorte,Procesion (48),pendiente,DATOS DE DEMOSTRACION,,julio-weber,secadero-grande,,Vecino de demostracion,,,demo,publicado
-demo-049,relato,Grupo familiar (49),1992,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,alberto-jhansson;teresa-kaiser;irma-kaiser,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
-demo-050,foto,Frente del comercio (50),1995 aprox,DATOS DE DEMOSTRACION,,jose-ojeda;coca-2;susana-kaiser,escuela-406,,Vecino de demostracion,,,demo,publicado
-demo-051,recorte,Baile del club (51),pendiente,DATOS DE DEMOSTRACION,,antonio-nicklas,capilla-vieja,,Vecino de demostracion,,,demo,publicado
-demo-052,foto,Cosecha de yerba (52),1990 aprox,DATOS DE DEMOSTRACION,,la-rusa;oscar-nicklas,arroyo-cunapiru,,Vecino de demostracion,,,demo,publicado
-demo-053,foto,Baile del club (53),1969,DATOS DE DEMOSTRACION,,jose-kowalczuk,plaza-libertad,,Vecino de demostracion,,,demo,publicado
-demo-054,relato,Frente de la casa (54),1971,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,miguel-wagner,plaza-libertad,,Vecino de demostracion,,,demo,publicado
-demo-055,foto,Grupo familiar (55),1971 aprox,DATOS DE DEMOSTRACION,,julio-prytuluk,plaza-libertad,,Vecino de demostracion,,,demo,publicado
-demo-056,foto,Retrato (56),1922 aprox,DATOS DE DEMOSTRACION,,gerardo-jhansson,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
-demo-057,foto,Frente de la casa (57),1936,DATOS DE DEMOSTRACION,,eduardo-hermann,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
-demo-058,recorte,Grupo familiar (58),dec. 1930,DATOS DE DEMOSTRACION,,eduardo-hermann,secadero-grande,pavimentacion,Vecino de demostracion,,,demo,publicado
-demo-059,foto,Cuadrilla de trabajo (59),1991,DATOS DE DEMOSTRACION,,tito-semeniuk;eva-silveira;amalia-weber,capilla-vieja,,Vecino de demostracion,,,demo,publicado
-demo-060,recorte,Cuadrilla de trabajo (60),1921,DATOS DE DEMOSTRACION,,antonio-nicklas;rosa-machado;nelida-pereira-2,secadero-grande,,Vecino de demostracion,,,demo,publicado
-demo-061,relato,Cosecha de yerba (61),1944,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,jose-ojeda;norma-nicklas,barrio-teforito,,Vecino de demostracion,,,demo,publicado
-demo-062,foto,Baile del club (62),dec. 1970,DATOS DE DEMOSTRACION,,gerardo-prytuluk;susana-lang;amalia-semeniuk,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
-demo-063,recorte,Casamiento (63),1960 aprox,DATOS DE DEMOSTRACION,,oscar-melnyk,secadero-grande,,Vecino de demostracion,,,demo,publicado
-demo-064,foto,Retrato (64),1971,DATOS DE DEMOSTRACION,,tito-semeniuk,escuela-406,,Vecino de demostracion,,,demo,publicado
-demo-065,foto,Cuadrilla de trabajo (65),1979,DATOS DE DEMOSTRACION,,luis-melnyk;amalia-weber;susana-benitez,salto-encantado,,Vecino de demostracion,,,demo,publicado
-demo-066,foto,Retrato (66),1965,DATOS DE DEMOSTRACION,,miguel-machado,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
-demo-067,relato,Procesion (67),1944 aprox,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,roberto-kowalczuk;susana-ojeda-2,ruta-14-km-1209,fiesta-inmigrante,Vecino de demostracion,,,demo,publicado
-demo-068,recorte,Frente de la casa (68),1940 aprox,DATOS DE DEMOSTRACION,,eduardo-hermann;gerardo-lizoski,barrio-teforito,,Vecino de demostracion,,,demo,publicado
-demo-069,foto,Frente del comercio (69),dec. 1990,DATOS DE DEMOSTRACION,,julio-silveira;elsa-hermann,escuela-406,,Vecino de demostracion,,,demo,publicado
-demo-070,relato,Frente del comercio (70),1943,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,pedro-muller;norma-nicklas;blanca-muller;miguel-muller,escuela-406,,Vecino de demostracion,,,demo,publicado
-demo-071,recorte,Cosecha de yerba (71),1956,DATOS DE DEMOSTRACION,,julio-silveira;susana-benitez,paraje-cerro-moreno,llegada-luz,Vecino de demostracion,,,demo,publicado
-demo-072,foto,Acto escolar (72),1957,DATOS DE DEMOSTRACION,,tito,secadero-grande,primera-escuela,Vecino de demostracion,,,demo,publicado
-demo-073,foto,Cosecha de yerba (73),1952,DATOS DE DEMOSTRACION,,hector-nicklas;jose-roth,paraje-cerro-moreno,,Vecino de demostracion,,,demo,publicado
-demo-074,foto,Cuadrilla de trabajo (74),1939 aprox,DATOS DE DEMOSTRACION,,ramon-silveira,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
-demo-075,foto,Cuadrilla de trabajo (75),1938,DATOS DE DEMOSTRACION,,hector-nicklas,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
-demo-076,relato,Procesion (76),1929 aprox,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,pedro-muller;norma-nicklas,arroyo-cunapiru,,Vecino de demostracion,,,demo,publicado
-demo-077,recorte,Grupo familiar (77),1961 aprox,DATOS DE DEMOSTRACION,,el-turco,paraje-cerro-moreno,,Vecino de demostracion,,,demo,publicado
-demo-078,recorte,Cuadrilla de trabajo (78),1981,DATOS DE DEMOSTRACION,,anibal-hermann;mirta-paz,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
-demo-079,relato,Cuadrilla de trabajo (79),dec. 1930,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,ramon-silveira;amalia-ferreyra,plaza-libertad,pavimentacion,Vecino de demostracion,,,demo,publicado
-demo-080,foto,Baile del club (80),1958,DATOS DE DEMOSTRACION,,alberto-silveira;elsa-kaiser;hilda-ramirez,escuela-406,,Vecino de demostracion,,,demo,publicado
-demo-081,recorte,Baile del club (81),1975,DATOS DE DEMOSTRACION,,elsa-kaiser;elsa-kaiser-2;teresa-kaiser;antonio-kaiser,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
-demo-082,relato,Cuadrilla de trabajo (82),1919 aprox,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,ramon-roth;nelida-pereira;rosa-machado,escuela-406,,Vecino de demostracion,,,demo,publicado
-demo-083,foto,Procesion (83),pendiente,DATOS DE DEMOSTRACION,,raul-weber;ramona-weber,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
-demo-084,recorte,Cuadrilla de trabajo (84),1963 aprox,DATOS DE DEMOSTRACION,,antonio-kaiser,barrio-teforito,fiesta-inmigrante,Vecino de demostracion,,,demo,publicado
-demo-085,foto,Acto escolar (85),1954 aprox,DATOS DE DEMOSTRACION,,eduardo-hermann;blanca-wagner,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
-demo-086,foto,Frente del comercio (86),1968,DATOS DE DEMOSTRACION,,oscar-lizoski,secadero-grande,,Vecino de demostracion,,,demo,publicado
-demo-087,foto,Procesion (87),1952 aprox,DATOS DE DEMOSTRACION,,ramon-silveira,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
-demo-088,foto,Cuadrilla de trabajo (88),1994 aprox,DATOS DE DEMOSTRACION,,gerardo-hermann,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
-demo-089,foto,Baile del club (89),1933,DATOS DE DEMOSTRACION,,gerardo-lizoski;eva-kaiser;antonio-nicklas,capilla-vieja,,Vecino de demostracion,,,demo,publicado
-demo-090,foto,Retrato (90),1978,DATOS DE DEMOSTRACION,,eduardo-hermann;gerardo-hermann;elsa-hermann,paraje-cerro-moreno,,Vecino de demostracion,,,demo,publicado
-demo-091,relato,Frente del comercio (91),1943,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,gerardo-jhansson;rosa-machado,salto-encantado,,Vecino de demostracion,,,demo,publicado
-demo-092,recorte,Procesion (92),1941,DATOS DE DEMOSTRACION,,eduardo-hermann;blanca-wagner,escuela-406,inauguracion-hospital,Vecino de demostracion,,,demo,publicado
-demo-093,foto,Retrato (93),1988,DATOS DE DEMOSTRACION,,anibal-hermann;mirta-paz,barrio-teforito,pavimentacion,Vecino de demostracion,,,demo,publicado
-demo-094,foto,Frente de la casa (94),1987,DATOS DE DEMOSTRACION,,tito-semeniuk,plaza-libertad,,Vecino de demostracion,,,demo,publicado
-demo-095,relato,Cosecha de yerba (95),1921,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,antonio-nicklas,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
-demo-096,foto,Retrato (96),1951,DATOS DE DEMOSTRACION,,oscar-melnyk,paraje-cerro-moreno,,Vecino de demostracion,,,demo,publicado
-demo-097,foto,Retrato (97),1963,DATOS DE DEMOSTRACION,,gerardo-hermann,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
-demo-098,foto,Procesion (98),1941,DATOS DE DEMOSTRACION,,blanca-muller;gerardo-lizoski,capilla-vieja,,Vecino de demostracion,,,demo,publicado
-demo-099,foto,Cuadrilla de trabajo (99),1918 aprox,DATOS DE DEMOSTRACION,,roberto-kowalczuk,paraje-cerro-moreno,,Vecino de demostracion,,,demo,publicado
-demo-100,relato,Acto escolar (100),1983,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,gerardo-prytuluk;susana-lang,barrio-teforito,pavimentacion,Vecino de demostracion,,,demo,publicado
-demo-101,foto,Grupo familiar (101),1955,DATOS DE DEMOSTRACION,,miguel-wagner;hilda-lizoski,plaza-libertad,fundacion,Vecino de demostracion,,,demo,publicado
-demo-102,foto,Casamiento (102),1993,DATOS DE DEMOSTRACION,,hector-nicklas-2;ramona-weber;antonio-kaiser,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
-demo-103,relato,Frente de la casa (103),1942 aprox,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,ramon-silveira;amalia-ferreyra;julio-silveira;alberto-silveira,escuela-406,inauguracion-hospital,Vecino de demostracion,,,demo,publicado
-demo-104,recorte,Retrato (104),1995,DATOS DE DEMOSTRACION,,gerardo-hermann;elsa-hermann,barrio-teforito,,Vecino de demostracion,,,demo,publicado
-demo-105,foto,Cosecha de yerba (105),1975,DATOS DE DEMOSTRACION,,anibal-hermann;mirta-paz,secadero-grande,llegada-luz,Vecino de demostracion,,,demo,publicado
-demo-106,foto,Procesion (106),dec. 1950,DATOS DE DEMOSTRACION,,gerardo-lizoski;eva-kaiser,plaza-libertad,,Vecino de demostracion,,,demo,publicado
-demo-107,foto,Frente del comercio (107),1960,DATOS DE DEMOSTRACION,,pedro-muller,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
-demo-108,foto,Casamiento (108),1917,DATOS DE DEMOSTRACION,,rodolfo-kaiser,barrio-teforito,,Vecino de demostracion,,,demo,publicado
-demo-109,foto,Procesion (109),1989 aprox,DATOS DE DEMOSTRACION,,ramon-prytuluk;teresa-pereira,barrio-teforito,fiesta-inmigrante,Vecino de demostracion,,,demo,publicado
-demo-110,foto,Frente de la casa (110),dec. 1980,DATOS DE DEMOSTRACION,,eva-kaiser,paraje-cerro-moreno,,Vecino de demostracion,,,demo,publicado
-demo-111,foto,Procesion (111),1967,DATOS DE DEMOSTRACION,,tito-lang;beba;teresa-lang;gerardo-ojeda,escuela-406,,Vecino de demostracion,,,demo,publicado
-demo-112,recorte,Acto escolar (112),pendiente,DATOS DE DEMOSTRACION,,gerardo-prytuluk;rosa-machado,barrio-teforito,inauguracion-hospital,Vecino de demostracion,,,demo,publicado
-demo-113,foto,Baile del club (113),1933,DATOS DE DEMOSTRACION,,roberto-kowalczuk,plaza-libertad,,Vecino de demostracion,,,demo,publicado
-demo-114,relato,Frente de la casa (114),1988,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,miguel-machado,salto-encantado,,Vecino de demostracion,,,demo,publicado
-demo-115,recorte,Cosecha de yerba (115),1980,DATOS DE DEMOSTRACION,,miguel-machado;la-rusa,loteo-lizoski,inauguracion-hospital,Vecino de demostracion,,,demo,publicado
-demo-116,recorte,Retrato (116),1986 aprox,DATOS DE DEMOSTRACION,,elsa-kaiser;elsa-kaiser-2,capilla-vieja,,Vecino de demostracion,,,demo,publicado
-demo-117,foto,Cosecha de yerba (117),dec. 1920,DATOS DE DEMOSTRACION,,rodolfo-kaiser;mirta-silveira;eduardo-hermann,secadero-grande,,Vecino de demostracion,,,demo,publicado
-demo-118,foto,Cuadrilla de trabajo (118),1923,DATOS DE DEMOSTRACION,,gerardo-jhansson;ramon-silveira,barrio-teforito,,Vecino de demostracion,,,demo,publicado
-demo-119,foto,Frente del comercio (119),1938,DATOS DE DEMOSTRACION,,rodolfo-kaiser,arroyo-cunapiru,pavimentacion,Vecino de demostracion,,,demo,publicado
-demo-120,foto,Frente de la casa (120),1947,DATOS DE DEMOSTRACION,,luis-melnyk;amalia-weber;nelida-weber,secadero-grande,,Vecino de demostracion,,,demo,publicado
-demo-121,foto,Cuadrilla de trabajo (121),1948,DATOS DE DEMOSTRACION,,gerardo-jhansson;julio-weber,plaza-libertad,,Vecino de demostracion,,,demo,publicado
-demo-122,relato,Retrato (122),1972,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,raul-weber;ramona-weber;julio-weber;amalia-weber,arroyo-cunapiru,,Vecino de demostracion,,,demo,publicado
-demo-123,recorte,Procesion (123),1985,DATOS DE DEMOSTRACION,,jose-ojeda,ruta-14-km-1209,primera-escuela,Vecino de demostracion,,,demo,publicado
-demo-124,foto,Retrato (124),1972,DATOS DE DEMOSTRACION,,rodolfo-semeniuk;elsa-machado,loteo-lizoski,pavimentacion,Vecino de demostracion,,,demo,publicado
-demo-125,foto,Frente del comercio (125),1935,DATOS DE DEMOSTRACION,,rodolfo-kaiser;mirta-silveira,salto-encantado,,Vecino de demostracion,,,demo,publicado
-demo-126,recorte,Baile del club (126),dec. 1910,DATOS DE DEMOSTRACION,,ramon-roth;ramon-silveira,capilla-vieja,,Vecino de demostracion,,,demo,publicado
-demo-127,foto,Acto escolar (127),1923,DATOS DE DEMOSTRACION,,raul-weber;rosa-duarte,barrio-teforito,,Vecino de demostracion,,,demo,publicado
-demo-128,foto,Casamiento (128),pendiente,DATOS DE DEMOSTRACION,,gerardo-lizoski;eva-kaiser;oscar-lizoski;hilda-lizoski,secadero-grande,,Vecino de demostracion,,,demo,publicado
-demo-129,foto,Cuadrilla de trabajo (129),1972,DATOS DE DEMOSTRACION,,alberto-jhansson,arroyo-cunapiru,,Vecino de demostracion,,,demo,publicado
-demo-130,recorte,Grupo familiar (130),1993,DATOS DE DEMOSTRACION,,teresa-lang;coca-2;susana-lang;oscar-melnyk,barrio-teforito,fundacion,Vecino de demostracion,,,demo,publicado
-demo-131,foto,Acto escolar (131),1991,DATOS DE DEMOSTRACION,,marta-kowalczuk;dora-kowalczuk,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
-demo-132,foto,Casamiento (132),1970 aprox,DATOS DE DEMOSTRACION,,oscar-nicklas,capilla-vieja,fundacion,Vecino de demostracion,,,demo,publicado
-demo-133,foto,Cuadrilla de trabajo (133),1992,DATOS DE DEMOSTRACION,,jose-ojeda;coca-2,paraje-cerro-moreno,,Vecino de demostracion,,,demo,publicado
-demo-134,foto,Procesion (134),1921,DATOS DE DEMOSTRACION,,ramon-silveira,paraje-cerro-moreno,fiesta-inmigrante,Vecino de demostracion,,,demo,publicado
-demo-135,recorte,Grupo familiar (135),1937,DATOS DE DEMOSTRACION,,alberto-silveira;hilda-ramirez,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
-demo-136,foto,Baile del club (136),1975,DATOS DE DEMOSTRACION,,el-turco,secadero-grande,,Vecino de demostracion,,,demo,publicado
-demo-137,relato,Grupo familiar (137),1948,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,julio-silveira;rodolfo-kaiser,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
-demo-138,foto,Grupo familiar (138),1920,DATOS DE DEMOSTRACION,,ramon-roth;nelida-pereira;rodolfo-kaiser,secadero-grande,,Vecino de demostracion,,,demo,publicado
-demo-139,foto,Cuadrilla de trabajo (139),1975 aprox,DATOS DE DEMOSTRACION,,gerardo-ojeda;mirta-weber,plaza-libertad,,Vecino de demostracion,,,demo,publicado
-demo-140,foto,Grupo familiar (140),1957,DATOS DE DEMOSTRACION,,roberto-kowalczuk;clementina-paz;julio-weber,arroyo-cunapiru,pavimentacion,Vecino de demostracion,,,demo,publicado
+demo-001,foto,Retrato (1),1927,DATOS DE DEMOSTRACION,,ramon-roth;nelida-pereira,escuela-406,,Vecino de demostracion,,/memorias/morocha-fontana-1963-720.jpg,demo,publicado
+demo-002,foto,Retrato (2),1934,DATOS DE DEMOSTRACION,,eduardo-hermann,salto-encantado,,Vecino de demostracion,,/memorias/7-oct-2025-1080.jpg,demo,publicado
+demo-003,foto,Acto escolar (3),dec. 1910,DATOS DE DEMOSTRACION,,eduardo-hermann;blanca-wagner,plaza-libertad,,Vecino de demostracion,,/memorias/1943-monica-signer-1054.jpg,demo,publicado
+demo-004,foto,Cosecha de yerba (4),pendiente,DATOS DE DEMOSTRACION,,miguel-wagner;hilda-lizoski,plaza-libertad,,Vecino de demostracion,,/memorias/406-1985-1986-1421.jpg,demo,publicado
+demo-005,recorte,Baile del club (5),1938,DATOS DE DEMOSTRACION,,alberto-silveira,salto-encantado,fundacion,Vecino de demostracion,,/memorias/406-1985-1986-1421.jpg,demo,publicado
+demo-006,foto,Procesion (6),pendiente,DATOS DE DEMOSTRACION,,nelida-pereira;celina-roth;tito-semeniuk,secadero-grande,,Vecino de demostracion,,,demo,publicado
+demo-007,relato,Procesion (7),1974,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,ramona-weber,barrio-teforito,,Vecino de demostracion,,,demo,publicado
+demo-008,relato,Grupo familiar (8),1987,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,tito-semeniuk;antonio-kaiser,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
+demo-009,foto,Cosecha de yerba (9),1991,DATOS DE DEMOSTRACION,,tito-lang-2;celina-semeniuk;oscar-lizoski,paraje-cerro-moreno,,Vecino de demostracion,,/memorias/25-de-noviembre-del-2020-buearc-960.jpg,demo,publicado
+demo-010,recorte,Retrato (10),dec. 1980,DATOS DE DEMOSTRACION,,el-turco;nelida-weber,escuela-406,,Vecino de demostracion,,/memorias/406-1985-1986-1421.jpg,demo,publicado
+demo-011,foto,Baile del club (11),1946,DATOS DE DEMOSTRACION,,walter-silveira;susana-ojeda;miguel-wagner,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
+demo-012,foto,Frente de la casa (12),1985 aprox,DATOS DE DEMOSTRACION,,tito;amalia-semeniuk;eva-silveira,escuela-406,pavimentacion,Vecino de demostracion,,/memorias/7-oct-2025-1080.jpg,demo,publicado
+demo-013,relato,Grupo familiar (13),1951 aprox,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,mirta-silveira;elsa-kaiser;elsa-kaiser-2;teresa-kaiser;alberto-jhansson,secadero-grande,,Vecino de demostracion,,,demo,publicado
+demo-014,foto,Baile del club (14),1916 aprox,DATOS DE DEMOSTRACION,,pedro-muller;hilda-ramirez,salto-encantado,primera-escuela,Vecino de demostracion,,/memorias/fangio-2-362.jpg,demo,publicado
+demo-015,foto,Acto escolar (15),1974,DATOS DE DEMOSTRACION,,miguel-muller;susana-ojeda-2,secadero-grande,,Vecino de demostracion,,/memorias/reschke-1968-1045.jpg,demo,publicado
+demo-016,foto,Baile del club (16),1992,DATOS DE DEMOSTRACION,,alberto-silveira,escuela-406,,Vecino de demostracion,,/memorias/1943-monica-signer-1054.jpg,demo,publicado
+demo-017,relato,Grupo familiar (17),1947 aprox,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,teresa-kaiser,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
+demo-018,relato,Grupo familiar (18),1957,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,walter-silveira;luis-melnyk,paraje-cerro-moreno,,Vecino de demostracion,,,demo,publicado
+demo-019,foto,Cuadrilla de trabajo (19),1957,DATOS DE DEMOSTRACION,,hector-nicklas-2,salto-encantado,,Vecino de demostracion,,,demo,publicado
+demo-020,foto,Procesion (20),1939 aprox,DATOS DE DEMOSTRACION,,gerardo-lizoski;eva-kaiser,secadero-grande,primera-escuela,Vecino de demostracion,,/memorias/esc-425-salto-encantado-3-1451.jpg,demo,publicado
+demo-021,foto,Grupo familiar (21),1940,DATOS DE DEMOSTRACION,,gerardo-lizoski,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
+demo-022,foto,Grupo familiar (22),1949,DATOS DE DEMOSTRACION,,mirta-paz;el-turco,ruta-14-km-1209,gran-creciente,Vecino de demostracion,,/memorias/esc-425-salto-encantado-3-1451.jpg,demo,publicado
+demo-023,foto,Cuadrilla de trabajo (23),1947,DATOS DE DEMOSTRACION,,roberto-kowalczuk;clementina-paz,loteo-lizoski,,Vecino de demostracion,,/memorias/juan-galvez-1280.jpg,demo,publicado
+demo-024,foto,Acto escolar (24),dec. 1940,DATOS DE DEMOSTRACION,,luis-semeniuk;elsa-kaiser-2,capilla-vieja,,Vecino de demostracion,,,demo,publicado
+demo-025,relato,Frente del comercio (25),1929,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,eduardo-hermann;blanca-wagner,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
+demo-026,foto,Acto escolar (26),1985,DATOS DE DEMOSTRACION,,gerardo-prytuluk;ramon-prytuluk,barrio-teforito,,Vecino de demostracion,,/memorias/1960-aprox-buearc-960.jpg,demo,publicado
+demo-027,foto,Casamiento (27),1980,DATOS DE DEMOSTRACION,,ramon-prytuluk;teresa-pereira,paraje-cerro-moreno,,Vecino de demostracion,,/memorias/esc-425-salto-encantado-1500.jpg,demo,publicado
+demo-028,foto,Frente de la casa (28),1952,DATOS DE DEMOSTRACION,,tito-lang;beba;teresa-lang;clementina-prytuluk,capilla-vieja,,Vecino de demostracion,,/memorias/fangio-2-362.jpg,demo,publicado
+demo-029,foto,Procesion (29),dec. 1950,DATOS DE DEMOSTRACION,,tito-lang;beba,paraje-cerro-moreno,,Vecino de demostracion,,/memorias/reschke-1968-1045.jpg,demo,publicado
+demo-030,relato,Acto escolar (30),1931 aprox,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,eduardo-hermann;blanca-wagner,plaza-libertad,,Vecino de demostracion,,,demo,publicado
+demo-031,recorte,Grupo familiar (31),1954,DATOS DE DEMOSTRACION,,el-turco,escuela-406,,Vecino de demostracion,,/memorias/reschke-1968-1045.jpg,demo,publicado
+demo-032,foto,Procesion (32),1991,DATOS DE DEMOSTRACION,,anibal-hermann;mirta-paz,secadero-grande,,Vecino de demostracion,,/memorias/tito-salinas-1987-1600.jpg,demo,publicado
+demo-033,foto,Acto escolar (33),1950 aprox,DATOS DE DEMOSTRACION,,teresa-pereira,escuela-406,,Vecino de demostracion,,/memorias/carroza-1967-aprox-1600.jpg,demo,publicado
+demo-034,relato,Grupo familiar (34),1984,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,el-turco;hector-nicklas-2,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
+demo-035,foto,Cuadrilla de trabajo (35),pendiente,DATOS DE DEMOSTRACION,,julio-silveira,paraje-cerro-moreno,,Vecino de demostracion,,/memorias/prytuluk-1966-1047.jpg,demo,publicado
+demo-036,foto,Cuadrilla de trabajo (36),1963,DATOS DE DEMOSTRACION,,oscar-melnyk,salto-encantado,,Vecino de demostracion,,,demo,publicado
+demo-037,recorte,Baile del club (37),pendiente,DATOS DE DEMOSTRACION,,julio-silveira;elsa-hermann,capilla-vieja,,Vecino de demostracion,,/memorias/esc-425-salto-encantado-2-1425.jpg,demo,publicado
+demo-038,foto,Retrato (38),1994,DATOS DE DEMOSTRACION,,gerardo-ojeda,paraje-cerro-moreno,,Vecino de demostracion,,,demo,publicado
+demo-039,relato,Grupo familiar (39),1949,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,alberto-silveira;beba,paraje-cerro-moreno,,Vecino de demostracion,,,demo,publicado
+demo-040,relato,Casamiento (40),dec. 1960,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,julio-weber,barrio-teforito,,Vecino de demostracion,,,demo,publicado
+demo-041,relato,Baile del club (41),1948,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,gerardo-jhansson;rosa-machado;eva-machado;ana-machado,barrio-teforito,primera-escuela,Vecino de demostracion,,,demo,publicado
+demo-042,foto,Casamiento (42),1965 aprox,DATOS DE DEMOSTRACION,,gerardo-prytuluk;hilda-ramirez,arroyo-cunapiru,fiesta-inmigrante,Vecino de demostracion,,/memorias/esc-425-salto-encantado-2-1425.jpg,demo,publicado
+demo-043,recorte,Retrato (43),1935,DATOS DE DEMOSTRACION,,pedro-muller,paraje-cerro-moreno,gran-creciente,Vecino de demostracion,,/memorias/7-oct-2025-1080.jpg,demo,publicado
+demo-044,foto,Retrato (44),1961,DATOS DE DEMOSTRACION,,ramon-roth;nelida-pereira;gerardo-hermann,capilla-vieja,fundacion,Vecino de demostracion,,/memorias/prytuluk-1966-1047.jpg,demo,publicado
+demo-045,foto,Cosecha de yerba (45),1969 aprox,DATOS DE DEMOSTRACION,,gerardo-lizoski;eva-kaiser;oscar-lizoski,escuela-406,,Vecino de demostracion,,/memorias/reschke-1968-1045.jpg,demo,publicado
+demo-046,relato,Cuadrilla de trabajo (46),1946,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,jose-ojeda,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
+demo-047,recorte,Procesion (47),1971,DATOS DE DEMOSTRACION,,alberto-silveira;elsa-kaiser,capilla-vieja,,Vecino de demostracion,,/memorias/1960-aprox-buearc-960.jpg,demo,publicado
+demo-048,foto,Retrato (48),1985,DATOS DE DEMOSTRACION,,anibal-hermann,secadero-grande,,Vecino de demostracion,,/memorias/reschke-1968-1045.jpg,demo,publicado
+demo-049,relato,Frente de la casa (49),1928,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,ramon-silveira;amalia-ferreyra;susana-benitez,capilla-vieja,,Vecino de demostracion,,,demo,publicado
+demo-050,foto,Frente de la casa (50),1983,DATOS DE DEMOSTRACION,,tito-lang-2;dora-weber,loteo-lizoski,,Vecino de demostracion,,/memorias/juegos-900.jpg,demo,publicado
+demo-051,foto,Frente de la casa (51),pendiente,DATOS DE DEMOSTRACION,,rodolfo-kaiser;mirta-silveira,loteo-lizoski,,Vecino de demostracion,,/memorias/esc-425-salto-encantado-1500.jpg,demo,publicado
+demo-052,foto,Grupo familiar (52),1953,DATOS DE DEMOSTRACION,,antonio-kaiser,ruta-14-km-1209,pavimentacion,Vecino de demostracion,,,demo,publicado
+demo-053,foto,Casamiento (53),pendiente,DATOS DE DEMOSTRACION,,roberto-kowalczuk,plaza-libertad,inauguracion-hospital,Vecino de demostracion,,/memorias/esc-425-salto-encantado-2-1425.jpg,demo,publicado
+demo-054,recorte,Grupo familiar (54),dec. 1960,DATOS DE DEMOSTRACION,,hector-nicklas-2;ramona-weber,paraje-cerro-moreno,,Vecino de demostracion,,,demo,publicado
+demo-055,foto,Casamiento (55),pendiente,DATOS DE DEMOSTRACION,,julio-silveira;elsa-hermann,salto-encantado,,Vecino de demostracion,,/memorias/desfile-25-de-mayo-1961-720.jpg,demo,publicado
+demo-056,foto,Retrato (56),1971,DATOS DE DEMOSTRACION,,tito-semeniuk,escuela-406,,Vecino de demostracion,,,demo,publicado
+demo-057,foto,Casamiento (57),1959,DATOS DE DEMOSTRACION,,antonio-nicklas;rosa-machado;la-rusa;oscar-nicklas;mirta-paz,barrio-teforito,,Vecino de demostracion,,/memorias/1943-monica-signer-1054.jpg,demo,publicado
+demo-058,recorte,Cuadrilla de trabajo (58),1935,DATOS DE DEMOSTRACION,,ramon-roth;nelida-pereira;susana-ojeda-2,capilla-vieja,fiesta-inmigrante,Vecino de demostracion,,/memorias/fangio-1-350.jpg,demo,publicado
+demo-059,foto,Casamiento (59),1969,DATOS DE DEMOSTRACION,,ramon-roth;nelida-pereira;celina-roth;blanca-roth,salto-encantado,,Vecino de demostracion,,,demo,publicado
+demo-060,recorte,Frente de la casa (60),1969,DATOS DE DEMOSTRACION,,ramon-prytuluk,ruta-14-km-1209,,Vecino de demostracion,,/memorias/carmen-ramirez-1968-720.jpg,demo,publicado
+demo-061,foto,Retrato (61),1984 aprox,DATOS DE DEMOSTRACION,,rosa-benitez,loteo-lizoski,,Vecino de demostracion,,/memorias/406-1985-1986-1421.jpg,demo,publicado
+demo-062,foto,Retrato (62),pendiente,DATOS DE DEMOSTRACION,,julio-weber,loteo-lizoski,,Vecino de demostracion,,/memorias/25-de-noviembre-del-2020-buearc-960.jpg,demo,publicado
+demo-063,foto,Frente del comercio (63),1940,DATOS DE DEMOSTRACION,,gerardo-lizoski,ruta-14-km-1209,,Vecino de demostracion,,/memorias/25-de-noviembre-del-2020-buearc-960.jpg,demo,publicado
+demo-064,relato,Frente del comercio (64),1994 aprox,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,tito-lang-2;celina-semeniuk;luis-melnyk,plaza-libertad,fiesta-inmigrante,Vecino de demostracion,,,demo,publicado
+demo-065,recorte,Frente del comercio (65),1961,DATOS DE DEMOSTRACION,,miguel-muller;susana-ojeda-2,secadero-grande,,Vecino de demostracion,,,demo,publicado
+demo-066,recorte,Casamiento (66),1924,DATOS DE DEMOSTRACION,,gerardo-lizoski;eva-kaiser;mirta-silveira,paraje-cerro-moreno,,Vecino de demostracion,,/memorias/1960-aprox-buearc-960.jpg,demo,publicado
+demo-067,foto,Retrato (67),pendiente,DATOS DE DEMOSTRACION,,alberto-jhansson;teresa-kaiser,paraje-cerro-moreno,,Vecino de demostracion,,/memorias/fangio-1-350.jpg,demo,publicado
+demo-068,relato,Frente de la casa (68),1991,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,elsa-kaiser;elsa-kaiser-2;teresa-kaiser;antonio-kaiser,barrio-teforito,,Vecino de demostracion,,,demo,publicado
+demo-069,recorte,Acto escolar (69),1993,DATOS DE DEMOSTRACION,,antonio-kaiser,arroyo-cunapiru,,Vecino de demostracion,,,demo,publicado
+demo-070,relato,Cuadrilla de trabajo (70),dec. 1980,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,berta-silveira;julio-silveira;walter-silveira,plaza-libertad,pavimentacion,Vecino de demostracion,,,demo,publicado
+demo-071,foto,Baile del club (71),1958,DATOS DE DEMOSTRACION,,alberto-silveira;elsa-kaiser;hilda-ramirez,escuela-406,,Vecino de demostracion,,/memorias/1943-monica-signer-1054.jpg,demo,publicado
+demo-072,relato,Grupo familiar (72),1978,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,miguel-machado;clementina-prytuluk,paraje-cerro-moreno,gran-creciente,Vecino de demostracion,,,demo,publicado
+demo-073,foto,Cuadrilla de trabajo (73),1919,DATOS DE DEMOSTRACION,,julio-prytuluk,capilla-vieja,,Vecino de demostracion,,,demo,publicado
+demo-074,foto,Procesion (74),pendiente,DATOS DE DEMOSTRACION,,oscar-melnyk;dora-kowalczuk,secadero-grande,,Vecino de demostracion,,/memorias/25-de-noviembre-del-2020-buearc-960.jpg,demo,publicado
+demo-075,foto,Casamiento (75),1976,DATOS DE DEMOSTRACION,,pedro-lang;blanca-roth;teresa-lang,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
+demo-076,foto,Frente del comercio (76),1968,DATOS DE DEMOSTRACION,,oscar-lizoski,secadero-grande,,Vecino de demostracion,,/memorias/reschke-1968-1045.jpg,demo,publicado
+demo-077,foto,Procesion (77),dec. 1910,DATOS DE DEMOSTRACION,,roberto-kowalczuk;clementina-paz,capilla-vieja,,Vecino de demostracion,,/memorias/25-de-noviembre-del-2020-buearc-960.jpg,demo,publicado
+demo-078,relato,Casamiento (78),1972,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,raul-weber;ramona-weber,barrio-teforito,,Vecino de demostracion,,,demo,publicado
+demo-079,relato,Acto escolar (79),1949 aprox,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,berta-silveira,escuela-406,,Vecino de demostracion,,,demo,publicado
+demo-080,recorte,Grupo familiar (80),1943,DATOS DE DEMOSTRACION,,luis-semeniuk;coca,arroyo-cunapiru,,Vecino de demostracion,,,demo,publicado
+demo-081,relato,Cosecha de yerba (81),1924,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,rodolfo-kaiser,plaza-libertad,,Vecino de demostracion,,,demo,publicado
+demo-082,recorte,Frente de la casa (82),1948,DATOS DE DEMOSTRACION,,alberto-silveira,escuela-406,fundacion,Vecino de demostracion,,/memorias/reschke-1968-1045.jpg,demo,publicado
+demo-083,foto,Retrato (83),dec. 1930,DATOS DE DEMOSTRACION,,eduardo-hermann;blanca-wagner;clementina-paz,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
+demo-084,foto,Frente del comercio (84),1924 aprox,DATOS DE DEMOSTRACION,,ramon-silveira;amalia-ferreyra;rodolfo-kaiser,loteo-lizoski,,Vecino de demostracion,,,demo,publicado
+demo-085,foto,Frente del comercio (85),1930,DATOS DE DEMOSTRACION,,ramon-silveira;amalia-ferreyra,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
+demo-086,foto,Frente del comercio (86),1936,DATOS DE DEMOSTRACION,,ramon-roth;rosa-benitez,plaza-libertad,,Vecino de demostracion,,,demo,publicado
+demo-087,foto,Grupo familiar (87),1969,DATOS DE DEMOSTRACION,,walter-silveira;susana-ojeda,secadero-grande,,Vecino de demostracion,,,demo,publicado
+demo-088,relato,Baile del club (88),1960 aprox,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,tito;amalia-semeniuk,escuela-406,,Vecino de demostracion,,,demo,publicado
+demo-089,relato,Retrato (89),1969 aprox,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,rosa-machado;eva-machado;ana-machado;marta-machado,salto-encantado,primera-escuela,Vecino de demostracion,,,demo,publicado
+demo-090,foto,Retrato (90),1917,DATOS DE DEMOSTRACION,,antonio-nicklas,capilla-vieja,gran-creciente,Vecino de demostracion,,/memorias/juegos-900.jpg,demo,publicado
+demo-091,foto,Cosecha de yerba (91),dec. 1980,DATOS DE DEMOSTRACION,,alberto-silveira,barrio-teforito,primera-escuela,Vecino de demostracion,,/memorias/tito-salinas-1987-1600.jpg,demo,publicado
+demo-092,foto,Cuadrilla de trabajo (92),1916,DATOS DE DEMOSTRACION,,rosa-duarte,secadero-grande,,Vecino de demostracion,,/memorias/7-oct-2025-1080.jpg,demo,publicado
+demo-093,foto,Retrato (93),1977 aprox,DATOS DE DEMOSTRACION,,eduardo-hermann;gerardo-hermann;elsa-hermann,plaza-libertad,inauguracion-hospital,Vecino de demostracion,,/memorias/7-oct-2025-1080.jpg,demo,publicado
+demo-094,relato,Cuadrilla de trabajo (94),1952,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,eduardo-hermann;blanca-wagner;gerardo-hermann;elsa-hermann;rosa-machado,salto-encantado,,Vecino de demostracion,,,demo,publicado
+demo-095,foto,Procesion (95),1970 aprox,DATOS DE DEMOSTRACION,,ramon-prytuluk;teresa-pereira,barrio-teforito,fiesta-inmigrante,Vecino de demostracion,,,demo,publicado
+demo-096,recorte,Procesion (96),1930,DATOS DE DEMOSTRACION,,gerardo-jhansson;rosa-machado;nelida-pereira-2,barrio-teforito,inauguracion-hospital,Vecino de demostracion,,/memorias/fangio-1-350.jpg,demo,publicado
+demo-097,relato,Frente de la casa (97),pendiente,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,gerardo-lizoski,barrio-teforito,fundacion,Vecino de demostracion,,,demo,publicado
+demo-098,foto,Procesion (98),1924,DATOS DE DEMOSTRACION,,gerardo-jhansson;rosa-machado,arroyo-cunapiru,,Vecino de demostracion,,,demo,publicado
+demo-099,recorte,Retrato (99),1934 aprox,DATOS DE DEMOSTRACION,,tito-lang,secadero-grande,,Vecino de demostracion,,/memorias/morocha-fontana-1963-720.jpg,demo,publicado
+demo-100,relato,Baile del club (100),1955,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,miguel-muller,escuela-406,,Vecino de demostracion,,,demo,publicado
+demo-101,foto,Baile del club (101),dec. 1980,DATOS DE DEMOSTRACION,,oscar-melnyk,ruta-14-km-1209,,Vecino de demostracion,,,demo,publicado
+demo-102,foto,Cosecha de yerba (102),1918,DATOS DE DEMOSTRACION,,luis-semeniuk;coca;susana-benitez,plaza-libertad,fiesta-inmigrante,Vecino de demostracion,,,demo,publicado
+demo-103,foto,Acto escolar (103),1944,DATOS DE DEMOSTRACION,,roberto-kowalczuk,escuela-406,llegada-luz,Vecino de demostracion,,/memorias/carmen-ramirez-1968-720.jpg,demo,publicado
+demo-104,foto,Frente del comercio (104),1964 aprox,DATOS DE DEMOSTRACION,,julio-silveira;elsa-hermann,capilla-vieja,,Vecino de demostracion,,/memorias/tito-salinas-1987-1600.jpg,demo,publicado
+demo-105,recorte,Casamiento (105),1924,DATOS DE DEMOSTRACION,,gerardo-jhansson;rosa-machado,barrio-teforito,,Vecino de demostracion,,/memorias/prytuluk-1966-1047.jpg,demo,publicado
+demo-106,foto,Cuadrilla de trabajo (106),1983,DATOS DE DEMOSTRACION,,eva-machado,plaza-libertad,,Vecino de demostracion,,/memorias/25-de-noviembre-del-2020-buearc-960.jpg,demo,publicado
+demo-107,foto,Retrato (107),1984 aprox,DATOS DE DEMOSTRACION,,gerardo-hermann;berta-silveira,ruta-14-km-1209,,Vecino de demostracion,,/memorias/desfile-25-de-mayo-1961-720.jpg,demo,publicado
+demo-108,foto,Acto escolar (108),1993 aprox,DATOS DE DEMOSTRACION,,julio-weber,loteo-lizoski,,Vecino de demostracion,,/memorias/esc-425-salto-encantado-1500.jpg,demo,publicado
+demo-109,foto,Frente de la casa (109),1990 aprox,DATOS DE DEMOSTRACION,,antonio-kaiser;blanca-muller;alberto-jhansson,arroyo-cunapiru,inauguracion-hospital,Vecino de demostracion,,/memorias/carmen-ramirez-1968-720.jpg,demo,publicado
+demo-110,foto,Retrato (110),1938 aprox,DATOS DE DEMOSTRACION,,rodolfo-kaiser,capilla-vieja,,Vecino de demostracion,,,demo,publicado
+demo-111,foto,Grupo familiar (111),pendiente,DATOS DE DEMOSTRACION,,oscar-melnyk,barrio-teforito,,Vecino de demostracion,,/memorias/fangio-2-362.jpg,demo,publicado
+demo-112,foto,Acto escolar (112),1923,DATOS DE DEMOSTRACION,,raul-weber;rosa-duarte,barrio-teforito,,Vecino de demostracion,,,demo,publicado
+demo-113,foto,Frente del comercio (113),1931 aprox,DATOS DE DEMOSTRACION,,pedro-muller,secadero-grande,,Vecino de demostracion,,/memorias/esc-425-salto-encantado-2-1425.jpg,demo,publicado
+demo-114,recorte,Grupo familiar (114),1940 aprox,DATOS DE DEMOSTRACION,,hector-nicklas,escuela-406,,Vecino de demostracion,,,demo,publicado
+demo-115,recorte,Retrato (115),1915,DATOS DE DEMOSTRACION,,roberto-kowalczuk;clementina-paz;eduardo-hermann,ruta-14-km-1209,,Vecino de demostracion,,/memorias/25-de-noviembre-del-2020-buearc-960.jpg,demo,publicado
+demo-116,foto,Frente de la casa (116),1925,DATOS DE DEMOSTRACION,,rodolfo-kaiser,plaza-libertad,,Vecino de demostracion,,/memorias/esc-425-salto-encantado-3-1451.jpg,demo,publicado
+demo-117,foto,Casamiento (117),1957,DATOS DE DEMOSTRACION,,tito-lang;beba;teresa-lang;coca-2,plaza-libertad,,Vecino de demostracion,,/memorias/fangio-1-350.jpg,demo,publicado
+demo-118,foto,Cuadrilla de trabajo (118),dec. 1910,DATOS DE DEMOSTRACION,,rodolfo-kaiser;mirta-silveira,capilla-vieja,,Vecino de demostracion,,/memorias/7-oct-2025-1080.jpg,demo,publicado
+demo-119,foto,Retrato (119),1933,DATOS DE DEMOSTRACION,,gerardo-jhansson;rosa-machado;eva-machado,capilla-vieja,,Vecino de demostracion,,/memorias/1960-aprox-buearc-960.jpg,demo,publicado
+demo-120,recorte,Grupo familiar (120),1975,DATOS DE DEMOSTRACION,,elsa-kaiser;elsa-kaiser-2,barrio-teforito,primera-escuela,Vecino de demostracion,,/memorias/1960-aprox-buearc-960.jpg,demo,publicado
+demo-121,recorte,Procesion (121),pendiente,DATOS DE DEMOSTRACION,,hector-nicklas,capilla-vieja,,Vecino de demostracion,,/memorias/juan-galvez-1280.jpg,demo,publicado
+demo-122,foto,Grupo familiar (122),1917,DATOS DE DEMOSTRACION,,roberto-kowalczuk;julio-prytuluk,arroyo-cunapiru,pavimentacion,Vecino de demostracion,,/memorias/fangio-2-362.jpg,demo,publicado
+demo-123,foto,Procesion (123),1957,DATOS DE DEMOSTRACION,,tito-lang;beba;teresa-lang;teresa-pereira,escuela-406,inauguracion-hospital,Vecino de demostracion,,/memorias/25-de-noviembre-del-2020-buearc-960.jpg,demo,publicado
+demo-124,foto,Grupo familiar (124),pendiente,DATOS DE DEMOSTRACION,,pedro-muller;norma-nicklas,salto-encantado,,Vecino de demostracion,,/memorias/esc-425-salto-encantado-2-1425.jpg,demo,publicado
+demo-125,foto,Baile del club (125),1918 aprox,DATOS DE DEMOSTRACION,,rodolfo-kaiser;mirta-silveira,escuela-406,,Vecino de demostracion,,/memorias/reschke-1968-1045.jpg,demo,publicado
+demo-126,foto,Acto escolar (126),dec. 1950,DATOS DE DEMOSTRACION,,walter-silveira,arroyo-cunapiru,,Vecino de demostracion,,/memorias/esc-425-salto-encantado-3-1451.jpg,demo,publicado
+demo-127,recorte,Casamiento (127),1934,DATOS DE DEMOSTRACION,,roberto-kowalczuk,secadero-grande,,Vecino de demostracion,,/memorias/esc-425-salto-encantado-2-1425.jpg,demo,publicado
+demo-128,relato,Cuadrilla de trabajo (128),1952 aprox,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,gerardo-prytuluk,arroyo-cunapiru,,Vecino de demostracion,,,demo,publicado
+demo-129,relato,Cosecha de yerba (129),1988 aprox,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,tito-semeniuk,loteo-lizoski,primera-escuela,Vecino de demostracion,,,demo,publicado
+demo-130,foto,Frente de la casa (130),dec. 1930,DATOS DE DEMOSTRACION,,ramon-roth,secadero-grande,,Vecino de demostracion,,/memorias/esc-425-salto-encantado-3-1451.jpg,demo,publicado
+demo-131,recorte,Casamiento (131),1976,DATOS DE DEMOSTRACION,,pedro-lang;blanca-roth,secadero-grande,,Vecino de demostracion,,/memorias/juan-galvez-1280.jpg,demo,publicado
+demo-132,foto,Cuadrilla de trabajo (132),1920,DATOS DE DEMOSTRACION,,gerardo-lizoski,salto-encantado,,Vecino de demostracion,,/memorias/406-1985-1986-1421.jpg,demo,publicado
+demo-133,foto,Baile del club (133),1975,DATOS DE DEMOSTRACION,,jose-kowalczuk,ruta-14-km-1209,primera-escuela,Vecino de demostracion,,/memorias/7-oct-2025-1080.jpg,demo,publicado
+demo-134,foto,Casamiento (134),1989 aprox,DATOS DE DEMOSTRACION,,miguel-wagner,capilla-vieja,,Vecino de demostracion,,/memorias/reschke-1968-1045.jpg,demo,publicado
+demo-135,recorte,Procesion (135),1982,DATOS DE DEMOSTRACION,,gerardo-prytuluk;susana-lang,salto-encantado,pavimentacion,Vecino de demostracion,,,demo,publicado
+demo-136,recorte,Frente de la casa (136),1920,DATOS DE DEMOSTRACION,,gerardo-jhansson;rosa-machado,paraje-cerro-moreno,,Vecino de demostracion,,/memorias/carroza-1967-aprox-1600.jpg,demo,publicado
+demo-137,recorte,Frente de la casa (137),1992,DATOS DE DEMOSTRACION,,oscar-lizoski;hilda-lizoski,loteo-lizoski,,Vecino de demostracion,,/memorias/prytuluk-1966-1047.jpg,demo,publicado
+demo-138,foto,Casamiento (138),dec. 1970,DATOS DE DEMOSTRACION,,antonio-kaiser;blanca-muller,salto-encantado,,Vecino de demostracion,,/memorias/25-de-noviembre-del-2020-buearc-960.jpg,demo,publicado
+demo-139,recorte,Procesion (139),1989,DATOS DE DEMOSTRACION,,eva-machado;ana-machado,plaza-libertad,primera-escuela,Vecino de demostracion,,/memorias/morocha-fontana-1963-720.jpg,demo,publicado
+demo-140,relato,Procesion (140),1937,DATOS DE DEMOSTRACION,Texto de demostracion del relato aportado por el vecino.,rodolfo-kaiser,barrio-teforito,,Vecino de demostracion,,,demo,publicado

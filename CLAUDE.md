@@ -289,6 +289,8 @@ el test se verifica **rompiendo la función a propósito** y viendo que falle.
 - `claude/sistema-visual.md` — paleta validada, lenguaje de formas, movimiento.
 - `claude/roadmap.md` — sprints y bloqueos.
 - `claude/investigacion-familysearch.md` — cómo lo resuelve FamilySearch.
+- `claude/ric-records-in-contexts.md` — la norma del ICA: por qué no se
+  implementa todavía y qué quedó preparado para que después se pueda.
 - `claude/anatomia-linajes.md` — cómo está construida la red, y qué le falta.
 - `db/esquema.md` — el volcado de la base y lo que cambió después.
 

@@ -64,6 +64,21 @@ ninguno.
 
 ## Lo que cambió después del volcado
 
+`db/25_ric.sql` preparó la estructura para Records in Contexts **sin
+implementarlo** (la evaluación está en `claude/ric-records-in-contexts.md`).
+Agrega `memoria_lugares` —una memoria puede haber ocurrido en más de un
+lugar, y `memorias.lugar_id` sigue siendo el principal, el que decide dónde
+cae el marcador—, `memorias.tipo` —que antes se adivinaba mirando si había
+archivo, lo que hacía figurar como fotografía a todo relato fotografiado—,
+`fuente` y `confianza` en las dos tablas de parentesco, y
+`identificadores_retirados`, para que un slug no vuelva a usarse y los
+enlaces repartidos por el pueblo no terminen apuntando a otra persona.
+
+Ninguna de las dos tablas nuevas tiene grant para `anon`, y no es un olvido:
+el sitio es estático y no lee Supabase, así que nada de esto necesita estar
+abierto. El build baja con la clave secreta y el panel entra autenticado.
+
+
 `db/23_notas.sql` agregó `memoria_notas`: los recados que los administradores
 se dejan en una memoria sin revisar. No sale al sitio nunca — el build baja
 memorias aprobadas y esta tabla no entra en ninguna consulta pública. El

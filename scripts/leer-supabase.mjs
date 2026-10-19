@@ -1,3 +1,5 @@
+import { lugaresDeMemoria } from '../src/lib/lugares.js';
+
 /* Lector de Supabase para el build.
    -------------------------------------------------------------------------
    Devuelve exactamente las mismas filas que devolvería tabla() leyendo los
@@ -81,7 +83,7 @@ export async function traerTablas({ incluirDemo = false, incluirPendientes = fal
   const raiz = base.endsWith('/') ? base : base + '/';
 
   const [lugares, personas, alias, nucleos, hijos, memorias, apariciones,
-         acontecimientos, memAconts, fotos] = await Promise.all([
+         acontecimientos, memAconts, fotos, memLugares] = await Promise.all([
     traer(raiz, key, 'lugares'),
     traer(raiz, key, 'personas'),
     traer(raiz, key, 'persona_alias', { opcional: true }),
@@ -92,6 +94,11 @@ export async function traerTablas({ incluirDemo = false, incluirPendientes = fal
     traer(raiz, key, 'acontecimientos', { opcional: true }),
     traer(raiz, key, 'memoria_acontecimientos', { opcional: true }),
     traer(raiz, key, 'memoria_fotos', { opcional: true }),
+    /* Opcional porque `db/25_ric.sql` puede no estar corrido todavía. Una
+       memoria con un solo lugar —que hoy son todas— se lee igual por
+       `lugar_id`, así que el sitio no cambia hasta que alguien cargue el
+       segundo lugar de algo. */
+    traer(raiz, key, 'memoria_lugares', { opcional: true }),
   ]);
 
   const vivo = f => incluirDemo || !f.es_demo;
@@ -107,9 +114,16 @@ export async function traerTablas({ incluirDemo = false, incluirPendientes = fal
   /* Sin slug todavía (si no se corrió 06_ajustes.sql) el id sirve de
      identificador, pero las URLs quedan feas: el build avisa. */
   const sl = o => o?.slug || o?.id || '';
+  /* La regla de qué lugares tiene una memoria vive aparte y con tests
+     (src/lib/lugares.js): el entorno de desarrollo no alcanza Supabase, así
+     que lo que se decide acá adentro no se puede verificar en ningún lado
+     hasta que falla en producción. */
+  const lugaresDe = m => lugaresDeMemoria(m, memLugares, id => sl(L[id])).join(';');
   const porId = (xs, f = vivo) => Object.fromEntries(xs.filter(f).map(o => [o.id, o]));
 
   const L = porId(lugares), P = porId(personas, personaVisible), A = porId(acontecimientos);
+
+
   const avisos = [];
   if (personas.length && !personas[0].slug)
     avisos.push('Las personas no tienen slug: las URLs van a salir con uuid. Falta correr db/06_ajustes.sql.');
@@ -198,13 +212,24 @@ export async function traerTablas({ incluirDemo = false, incluirPendientes = fal
   const filasDocumentos = memorias.filter(memoriaVisible)
     .map(m => ({
       slug: sl(m),
-      tipo: m.foto_url ? 'foto' : 'relato',
+      /* Qué ES la memoria, dicho y no adivinado. Mirar si tiene archivo
+         confunde la memoria con su escaneo: el relato manuscrito de una
+         vecina, fotografiado para poder leerlo, figuraba como fotografía, y
+         una fotografía que todavía no se escaneó figuraba como relato.
+         Mientras `db/25_ric.sql` no esté corrido la columna no existe, y se
+         sigue adivinando igual que siempre. */
+      tipo: m.tipo || (m.foto_url ? 'foto' : 'relato'),
       titulo: m.titulo || '',
       fecha: textoFecha(m),
       descripcion: m.descripcion || '',
       transcripcion: '',
       personas: (personasDe[m.id] || []).join('; '),
-      lugares: sl(L[m.lugar_id]),
+      /* Los lugares de la memoria. `lugar_id` primero porque es el principal
+         —el que decide dónde cae el marcador— y después los demás, sin
+         repetirlo. Una procesión que pasó por tres lugares deja de perder
+         dos; mientras `memoria_lugares` no exista o esté vacía, esto da
+         exactamente lo mismo que antes. */
+      lugares: lugaresDe(m),
       acontecimientos: (acontsDe[m.id] || []).join('; '),
       aportante: m.aportado_por || '',
       fuente_url: m.fuente || '',

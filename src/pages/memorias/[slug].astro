@@ -4,6 +4,7 @@ import Aportar from '../../components/Aportar.astro';
 import Compartir from '../../components/Compartir.astro';
 import { P, L, A, D, nombre, fecha, documentos } from '../../lib/datos.js';
 import { sitio } from '../../lib/sitio.js';
+import { identificador } from '../../lib/identidad.js';
 import { relacionadas, porQue } from '../../lib/relacionadas.js';
 export async function getStaticPaths() {
   const { documentos } = await import('../../lib/datos.js');
@@ -110,7 +111,7 @@ const comoSeLee = f => {
       la foto y leyendo lo que falta, no después de recorrer dos listas más. */}
   {/* Antes de "seguí por acá": quien quiere mandársela a alguien lo decide
       mirando la memoria, no después de recorrer otra lista. */}
-  <Compartir url={new URL(`/memorias/${d.slug}/`, Astro.site).href}
+  <Compartir url={identificador('memoria', d.slug, Astro.site)}
              memoria={{ titulo: d.titulo, fecha: d.fecha,
                         lugar: sitios[0]?.nombre || '', foto: fotos[0] || '' }} />
 

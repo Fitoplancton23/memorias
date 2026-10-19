@@ -3,6 +3,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseFecha } from './fechas.mjs';
 import { parseLinajes } from './linajes.mjs';
+import { sirveDeIdentificador } from '../src/lib/identidad.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEMO = process.argv.includes('--demo');
@@ -189,6 +190,25 @@ const documentos = tabla('documentos').filter(publicado).map(r => ({
     ? { lat: +r.lat, lng: +r.lng, precision: r.precision_punto || 'exacta' }
     : null,
 }));
+
+/* ---------- Los identificadores, que son para siempre ----------
+   La dirección pública de cada entidad es su identificador: el enlace que
+   alguien manda por WhatsApp, la `og:url` de la vista previa y —el día que
+   el archivo se publique como datos enlazados— su nombre para cualquiera de
+   afuera. Un slug con una tilde, una mayúscula o un espacio funciona hoy y se
+   rompe en alguno de esos tres lugares, así que el build lo dice ahora, que
+   es cuando todavía no lo mandó nadie. Avisa, no frena: una memoria con el
+   slug raro sigue siendo una memoria.
+   La regla vive en src/lib/identidad.js, con tests. */
+for (const [que, filas] of [['memoria', documentos], ['persona', personas],
+                            ['lugar', lugares], ['acontecimiento', acontecimientos]]) {
+  for (const f of filas) {
+    if (!f.slug) { avisos.push(`IDENTIDAD: una ${que} sin slug no tiene dirección pública.`); continue; }
+    if (!sirveDeIdentificador(f.slug))
+      avisos.push(`IDENTIDAD: el slug "${f.slug}" (${que}) tiene algo que no sobrevive a una `
+                + 'dirección escrita a mano — tildes, mayúsculas, espacios o barras.');
+  }
+}
 
 /* ---------- Grafo familiar (planilla plana -> relaciones) ---------- */
 const byP = Object.fromEntries(personas.map(p => [p.slug, p]));

@@ -16,3 +16,11 @@ intake/fotos/
 # Copias locales de los documentos del proyecto, para poder editarlos sin
 # volver a tipearlos enteros. No son la fuente: la fuente vive en el proyecto.
 .tmp-docs/
+
+# Los datos de demostración se GENERAN (npm run demo) y son deterministas:
+# misma semilla, mismo resultado. Tenerlos versionados no agregaba nada y
+# costaba esto: cualquiera que corriera la demo antes de pullear se quedaba
+# con el pull bloqueado por un archivo que el propio proyecto reescribe.
+# Nadie los lee sin generarlos antes — `demo`, `dev:demo` y `build:demo`
+# corren el generador primero, y `datos:sb:demo` lee la base, no estos CSV.
+data/demo/

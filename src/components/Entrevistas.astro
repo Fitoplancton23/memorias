@@ -269,6 +269,12 @@ const DURA = Math.min(560, Math.max(320, duracionResorte(RESORTE)));
          Reproducirla en el hero mismo sería un video sin barra de progreso y
          sin volumen, que es peor que no tenerlo. */
       hero.addEventListener('click', () => {
+        /* En el teléfono el hero es un título y nada más, así que no lleva a
+           ningún lado: se mira el botón, que es lo que el CSS esconde ahí.
+           `offsetParent` en nulo es la forma de preguntar «¿esto se está
+           mostrando?» sin repetir el ancho del corte acá adentro — si mañana
+           cambia el corte, cambia en un solo lugar. */
+        if (!hero.querySelector('.hero-play').offsetParent) return;
         const t = tarjetas.find(x => x.dataset.id === hero.dataset.id);
         if (!t) return;
         t.scrollIntoView({ block: 'center', behavior: quieto.matches ? 'auto' : 'smooth' });
@@ -358,6 +364,33 @@ const DURA = Math.min(560, Math.max(320, duracionResorte(RESORTE)));
   .hero-play-texto i { font-style: normal; font-size: .78rem; color: var(--tinta-2);
                        max-width: 17rem; overflow: hidden; text-overflow: ellipsis;
                        white-space: nowrap; }
+
+  /* En el teléfono no hay hero: vuelve a ser un título con su bajada sobre
+     el papel, como era antes.
+     -----------------------------------------------------------------------
+     No es sólo que ocupe lugar. Un hero oscuro a pantalla completa en un
+     teléfono es una pantalla entera antes de la primera entrevista, y acá se
+     llega desde el inicio apretando «Entrevistas»: quien lo hizo ya sabe a
+     qué viene y lo que quiere es ver la lista, no otra portada. El avance
+     tampoco cargaba nunca en teléfono, así que lo único que quedaba era una
+     franja negra con el título adentro.
+
+     El corte es el mismo que usa el guion para decidir si carga el avance
+     —768 px—, para que no haya un ancho en el que el hero exista sin fondo. */
+  @media (max-width: 47.99rem) {
+    .hero {
+      margin-inline: 0; width: auto; min-height: 0; padding: 0;
+      background: none; display: grid; }
+    .hero::after { content: none; }
+    .hero-fondo { display: none; }
+    .hero-texto { max-width: 40rem; gap: .5rem; color: inherit; }
+    .hero-texto h2 { color: var(--tinta); font-size: clamp(1.4rem, 6vw, 1.9rem); }
+    .hero-texto p { color: var(--tinta-2); line-height: 1.6; }
+    /* El botón se va con el fondo: sin la foto de la entrevista detrás, «ver
+       esta entrevista» no dice cuál, y además la primera tarjeta de la lista
+       —que es esa misma— queda a un dedo de distancia. */
+    .hero-play { display: none; }
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .hero-play:hover { transform: none; }

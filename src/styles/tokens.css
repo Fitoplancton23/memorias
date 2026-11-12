@@ -390,12 +390,30 @@ html.sin-carga .cargando { display: none; }
 
 /* Sobre video el verde de la marca desaparece: acá el isotipo va del color del
    papel. Es una línea si la pieza pide lo contrario. */
+/* Y sobre video NO se dibuja: aparece entero.
+   -------------------------------------------------------------------------
+   El trazo que se dibuja solo es de la portada de siempre, donde el isotipo
+   es lo único en pantalla y la línea avanzando SE LEE como un dibujo
+   haciéndose. Encima de una pieza en movimiento no se lee así: se lee como
+   una mancha que está corrida, porque mientras se dibuja efectivamente lo
+   está. Medido sobre el trazado: al 10% dibujado la tinta visible está a 70
+   píxeles a la izquierda del centro en un logo de 190, y recién después de
+   la mitad del trazo queda centrada. Con una pieza de cinco segundos eso son
+   dos segundos de logo corrido, que es lo que se ve.
+
+   Aparece entero, con una entrada corta, y después respira: el latido es
+   simétrico —escala desde el centro— así que no corre nada. */
 .cargando.con-intro .cargando-marca { position: relative; z-index: 1;
   fill: var(--fondo); stroke: var(--fondo);
-  animation: trazo var(--trazo-dur, 1850ms) cubic-bezier(.65, 0, .25, 1)
-                   var(--trazo-del, 250ms) forwards,
-             relleno var(--relleno-dur, 500ms) ease-out
-                     var(--relleno-del, 1900ms) forwards; }
+  stroke-dashoffset: 0; fill-opacity: 1; opacity: 0;
+  animation: aparece-entero 900ms cubic-bezier(.2, .7, .3, 1)
+                            var(--trazo-del, 250ms) forwards,
+             respira 3.2s ease-in-out
+                     calc(var(--trazo-del, 250ms) + 900ms) infinite; }
+@keyframes aparece-entero {
+  from { opacity: 0; transform: scale(.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
 
 /* Los puntos dicen "se está esperando algo", y durante la intro no se espera
    nada: se está mirando. El que quiere entrar ya tiene el botón. */
@@ -411,9 +429,9 @@ html.sin-carga .cargando { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   /* Por las dudas: el script ya no enciende la intro acá, pero si alguna vez
-     se enciende por otro camino, el isotipo no se dibuja solo. */
+     se enciende por otro camino, el isotipo no se dibuja ni late. */
   .cargando.con-intro .cargando-marca { animation: none; fill-opacity: 1;
-                                        stroke-dashoffset: 0; }
+                                        stroke-dashoffset: 0; opacity: 1; }
 }
 
 .cargando-marca { width: min(28vw, 190px); min-width: 110px;

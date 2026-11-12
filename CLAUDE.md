@@ -63,6 +63,17 @@ coordenada representativa que se fija una vez y sólo cambia si alguien la
 edita. Nunca se recalcula sola: un mapa cuyos marcadores se corren cada vez
 que entra una foto es un mapa en el que no se puede confiar.
 
+**Y un lugar puede no ser un punto.** «La picada Propaganda» es un camino de
+dos kilómetros con memorias repartidas a lo largo: marcarla con un pin afirma
+que las cosas pasaron en ese metro cuadrado y esconde lo único que la hace
+reconocible, que es el recorrido. Por eso un lugar puede tener **traza**, una
+línea quebrada que acompaña a la coordenada sin reemplazarla. Si el lugar
+tiene coordenada propia, ésa manda; si no, el marcador sale del medio del
+**recorrido** —no del punto del medio de la lista, que en una picada en ele es
+un codo arbitrario—. Se dibuja como una franja y no como una línea: una línea
+se lee como una calle con su borde exacto, y una picada no lo tiene. Cubierto
+por tests.
+
 **Una memoria puede tener su propia ubicación, más precisa que la del lugar y
 distinta de ella.** El patio y el salón de actos son dos puntos dentro de la
 misma escuela, y no son dos lugares. Esa coordenada se guarda con toda la

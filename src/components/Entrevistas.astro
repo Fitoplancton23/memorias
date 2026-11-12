@@ -1,0 +1,124 @@
+---
+import { entrevistas, tapa, reproductor, enYoutube } from '../lib/entrevistas.js';
+---
+{/* La galería de entrevistas.
+    -------------------------------------------------------------------------
+    Cada tarjeta es una tapa con un botón de play, y el reproductor de YouTube
+    recién se incrusta cuando alguien lo aprieta. No es un ahorro de bytes
+    porque sí: ocho reproductores de entrada son varios megas y ocho
+    rastreadores de Google en una página que mucha gente abre desde el pueblo
+    con el dato del celular para ir al mapa y no mirar ningún video. Cuando sí
+    lo mira, se incrusta uno, y en el dominio sin cookies.
+
+    Si la tapa no carga —el teléfono sin datos, YouTube bloqueado— la tarjeta
+    no se rompe: queda el panel de papel con el número, el título y el play,
+    que es todo lo que hace falta para saber qué hay y para entrar. */}
+<section class="entrevistas" id="entrevistas" aria-labelledby="entrevistas-titulo">
+  <header class="entrevistas-cab">
+    <h2 id="entrevistas-titulo">Entrevistas a los pioneros</h2>
+    <p>Las voces de quienes estuvieron: la fundación del pueblo, la cooperativa,
+       los años del Salto. Grabadas en video y contadas por ellos mismos.</p>
+  </header>
+
+  <ul class="entrevistas-lista">
+    {entrevistas.map(e => (
+      <li class="entrevista">
+        <button type="button" class="entrevista-tapa" data-id={e.id} title={e.completo}>
+          <img src={tapa(e.id)} alt="" loading="lazy" decoding="async" width="480" height="360"
+               onerror="this.closest('.entrevista-tapa').classList.add('sin-tapa'); this.remove();" />
+          <span class="entrevista-play" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 7.5v9l7.5-4.5L9 7.5Z"/></svg>
+          </span>
+          <span class="visualmente-oculto">Ver: {e.completo}</span>
+        </button>
+        <div class="entrevista-pie">
+          {e.numero && <span class="entrevista-num">Entrevista Nº {e.numero}</span>}
+          <b>{e.titulo}</b>
+          <a class="entrevista-yt" href={enYoutube(e.id)} target="_blank" rel="noopener">
+            Verla en YouTube
+          </a>
+        </div>
+      </li>
+    ))}
+  </ul>
+</section>
+
+<script define:vars={{ MOLDE: reproductor('__ID__') }}>
+  /* Una tapa que ya falló antes de que corriera este guion no dispara su
+     `onerror`: el navegador ya terminó con ella. Se repasa al arrancar. */
+  for (const img of document.querySelectorAll('.entrevista-tapa img'))
+    if (img.complete && img.naturalWidth === 0) {
+      img.closest('.entrevista-tapa').classList.add('sin-tapa');
+      img.remove();
+    }
+
+  for (const b of document.querySelectorAll('.entrevista-tapa')) {
+    b.addEventListener('click', () => {
+      const marco = document.createElement('iframe');
+      marco.src = MOLDE.replace('__ID__', b.dataset.id);
+      marco.title = b.title;
+      marco.loading = 'lazy';
+      marco.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+      marco.referrerPolicy = 'strict-origin-when-cross-origin';
+      marco.allowFullscreen = true;
+      marco.className = 'entrevista-marco';
+      b.replaceWith(marco);
+      /* El foco salta al reproductor: quien llegó con el teclado apretó play y
+         tiene que quedar adentro del video, no tres tarjetas más abajo. */
+      marco.focus?.();
+    });
+  }
+</script>
+
+<style>
+  .entrevistas { margin: 0; display: grid; gap: 1.8rem; }
+  .entrevistas-cab { display: grid; gap: .5rem; max-width: 40rem; }
+  .entrevistas-cab h2 { margin: 0; font-size: clamp(1.4rem, 3.4vw, 1.9rem); font-weight: 500;
+                        letter-spacing: 0; text-transform: none; color: var(--tinta); }
+  .entrevistas-cab p { margin: 0; color: var(--tinta-2); line-height: 1.6; }
+
+  .entrevistas-lista { list-style: none; margin: 0; padding: 0;
+                       display: grid; gap: 1.6rem 1.2rem;
+                       grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); }
+  .entrevista { display: grid; gap: .7rem; align-content: start; }
+
+  /* La tapa y el reproductor ocupan exactamente el mismo lugar, así que al
+     apretar play no se mueve nada de lo que hay abajo. */
+  .entrevista-tapa, .entrevista-marco {
+    display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: .6rem;
+    border: 1px solid var(--linea); background: var(--panel); overflow: hidden; }
+  .entrevista-marco { border: 0; }
+  .entrevista-tapa { position: relative; padding: 0; cursor: pointer; }
+  /* La tapa de YouTube viene con bandas negras arriba y abajo: se recorta al
+     centro, que es donde está la cara de quien habla. */
+  .entrevista-tapa img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .entrevista-tapa:hover { border-color: var(--linea-viva); }
+  .entrevista-tapa:focus-visible { outline: 2px solid var(--cursor); outline-offset: 3px; }
+
+  /* Sin tapa la tarjeta no se rompe: queda el panel de papel con el play, y
+     abajo el número y el título, que es todo lo que hace falta para saber qué
+     hay y para entrar. Un recuadro con el ícono de imagen rota diría que el
+     sitio está fallando, y lo que falló es una imagen de YouTube. */
+  .entrevista-tapa.sin-tapa { background:
+    linear-gradient(160deg, color-mix(in srgb, var(--marca) 9%, var(--panel)),
+                            color-mix(in srgb, var(--marca) 3%, var(--panel))); }
+
+  .entrevista-play { position: absolute; inset: 0; margin: auto;
+                     width: 3.4rem; height: 3.4rem; border-radius: 50%;
+                     display: grid; place-items: center;
+                     background: rgba(10, 18, 14, .62); color: #fff;
+                     transition: transform .18s ease, background .18s ease; }
+  .entrevista-play svg { width: 2rem; height: 2rem; margin-left: .1rem; }
+  .entrevista-tapa:hover .entrevista-play { transform: scale(1.08); background: rgba(10, 18, 14, .78); }
+
+  .entrevista-pie { display: grid; gap: .2rem; }
+  .entrevista-num { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+                    color: var(--marca); }
+  .entrevista-pie b { font-weight: 500; font-size: 1rem; line-height: 1.35; color: var(--tinta); }
+  .entrevista-yt { justify-self: start; margin-top: .15rem; font-size: .82rem;
+                   color: var(--tinta-2); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .entrevista-tapa:hover .entrevista-play { transform: none; }
+  }
+</style>

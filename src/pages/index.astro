@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import Isotipo from '../components/Isotipo.astro';
 import { parajes } from '../lib/sitio.js';
+import Entrevistas from '../components/Entrevistas.astro';
 
 /* La pantalla de inicio.
    -------------------------------------------------------------------------
@@ -79,10 +80,54 @@ import { parajes } from '../lib/sitio.js';
         que se lo recuerden, y quien recarga sí —durante el armado hace falta
         poder volver a verlo—, igual que la pantalla de carga. */}
     <p class="inicio-empuje" id="empuje" hidden>Seleccioná una opción</p>
+
+    {/* La bajada a las entrevistas.
+        ---------------------------------------------------------------
+        Abajo a la derecha y sobre el borde de la primera pantalla, que es
+        donde se mira cuando se terminó de leer lo de arriba. Lleva el
+        chevron y además la palabra: un chevron solo le dice «hay algo más»
+        a quien ya sabe que una página se desplaza, y buena parte del
+        público acá no da eso por sabido — y aunque lo diera, no sabría que
+        lo que hay abajo son las entrevistas, que es lo que hace que valga
+        la pena bajar.
+
+        Se va apenas alguien se desplaza: es un aviso, no un control, y un
+        botón que sigue ahí después de haber hecho lo que pedía se lee como
+        que no funcionó. */}
+    <a class="inicio-baja" id="bajaEntrevistas" href="#entrevistas">
+      <span>Entrevistas</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m6 9 6 6 6-6"/>
+      </svg>
+    </a>
   </section>
+
+  <Entrevistas />
 </Base>
 
 <script>
+  /* La barra de arriba mide distinto según el ancho y la tipografía, así que
+     la altura de la primera pantalla no se adivina en el CSS: se mide. Sin
+     esto, en algún ancho el título de las entrevistas asoma por abajo y la
+     pill avisa de algo que ya se ve. */
+  const medirBarra = () => {
+    const barra = document.querySelector('header.sitio');
+    if (barra) document.documentElement.style.setProperty(
+      '--alto-barra', `${Math.round(barra.getBoundingClientRect().height)}px`);
+  };
+  medirBarra();
+  addEventListener('resize', medirBarra);
+
+  /* La pill se va en cuanto alguien baja, por su cuenta o apretándola. */
+  const baja = document.getElementById('bajaEntrevistas');
+  if (baja) {
+    const esconder = () => baja.classList.add('se-fue');
+    addEventListener('scroll', () => { if (scrollY > 24) esconder(); }, { passive: true });
+    baja.addEventListener('click', esconder);
+    if (scrollY > 24) esconder();   /* se llegó con la página ya desplazada */
+  }
+
   /* Igual que la pantalla de carga: una vez elegido, no vuelve a aparecer;
      recargar sí lo muestra, que es lo que hace falta mientras se lo ajusta. */
   const empuje = document.getElementById('empuje');
@@ -105,8 +150,18 @@ import { parajes } from '../lib/sitio.js';
      hacia abajo, como se lee. No es decoración — es lo que convierte una
      pantalla que aparece de golpe en una que se presenta. Se apaga entera con
      `prefers-reduced-motion`. */
-  .inicio { max-width: 52rem; margin: 0 auto; padding: 2rem 0 5rem;
-            display: grid; gap: 2.6rem; }
+  /* La primera pantalla es la elección, y nada más: las dos puertas tienen
+     que entrar enteras sin desplazar. `min-height` y no `height` para que en
+     una pantalla baja —un teléfono apaisado— el contenido pueda pasarse en
+     vez de encimarse. El descuento es la barra de arriba más su aire. */
+  .inicio { max-width: 52rem; margin: 0 auto; padding: 2rem 0 4rem;
+            display: grid; gap: 2.6rem; align-content: center;
+            /* La primera pantalla termina donde termina la pantalla: si
+               asomara el título de las entrevistas, la pill estaría avisando
+               de algo que ya se ve, y eso enseña que los avisos de este sitio
+               avisan de más. `--alto-barra` lo mide el guion de la barra. */
+            min-height: calc(100svh - var(--alto-barra, 3.7rem));
+            position: relative; }
   .inicio-cab { text-align: center; display: grid; justify-items: center; gap: .35rem; }
   .inicio-cab :global(.inicio-marca) { width: 4.6rem; height: 4.6rem;
                                        color: var(--marca); margin-bottom: .6rem; }
@@ -140,9 +195,33 @@ import { parajes } from '../lib/sitio.js';
                    color: var(--tinta-2); animation: respira-empuje 2.6s ease-in-out infinite; }
   @keyframes respira-empuje { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 
+  /* La bajada a las entrevistas. Pegada al borde de abajo de la primera
+     pantalla y a la derecha, flotando sobre el papel. */
+  .inicio-baja {
+    /* Fija a la pantalla y no al bloque: en el teléfono las dos puertas
+       apiladas ya pasan el alto de la pantalla, así que una pill pegada al
+       final del bloque queda debajo del pliegue — justo donde no sirve, que
+       es el único lugar donde no la puede ver quien todavía no bajó. */
+    position: fixed; right: 1.1rem; bottom: 1.1rem; z-index: 60;
+    display: inline-flex; align-items: center; gap: .45rem;
+    padding: .55rem 1rem .55rem 1.1rem; border-radius: 999px;
+    border: 1px solid var(--linea-viva); background: var(--panel);
+    color: var(--tinta); text-decoration: none; font-size: .88rem;
+    box-shadow: 0 10px 26px -18px rgba(24,30,27,.6);
+    transition: opacity .3s ease, transform .3s ease, border-color .2s ease; }
+  .inicio-baja svg { width: 1.05rem; height: 1.05rem; color: var(--marca);
+                     animation: baja-senala 2.2s ease-in-out infinite; }
+  .inicio-baja:hover { border-color: var(--marca); }
+  .inicio-baja:focus-visible { outline: 2px solid var(--cursor); outline-offset: 3px; }
+  .inicio-baja.se-fue { opacity: 0; transform: translateY(8px); pointer-events: none; }
+  @keyframes baja-senala { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+
   @media (max-width: 40rem) {
     .puertas { grid-template-columns: 1fr; }
     .puerta { padding: 1.4rem 1.2rem 1.2rem; }
+    /* En el teléfono las dos puertas apiladas ya ocupan la pantalla sin
+       ayuda: la altura mínima sobra y sólo agregaría papel en blanco. */
+    .inicio { min-height: 0; padding-bottom: 5.5rem; }
   }
 
   .inicio-cab, .puerta, .inicio-empuje { animation: llega .55s cubic-bezier(.22,.7,.3,1) backwards; }
@@ -157,5 +236,6 @@ import { parajes } from '../lib/sitio.js';
   @media (prefers-reduced-motion: reduce) {
     .inicio-cab, .puerta, .inicio-empuje { animation: none; }
     .puerta:hover { transform: none; }
+    .inicio-baja svg { animation: none; }
   }
 </style>

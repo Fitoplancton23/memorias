@@ -1,5 +1,8 @@
 ---
-import { entrevistas, tapa, reproductor, enYoutube } from '../lib/entrevistas.js';
+import { entrevistas, tapa, tapaGrande, reproductor, avance, enYoutube, DESTACADA }
+  from '../lib/entrevistas.js';
+
+const destacada = entrevistas.find(e => e.id === DESTACADA) || entrevistas[0];
 import { curvaResorte, duracionResorte } from '../lib/resorte.js';
 
 /* El resorte se simula acá, en el build, y no en cada navegador: es la misma
@@ -23,14 +26,44 @@ const DURA = Math.min(560, Math.max(320, duracionResorte(RESORTE)));
     no se rompe: queda el panel de papel con el número, el título y el play,
     que es todo lo que hace falta para saber qué hay y para entrar. */}
 <section class="entrevistas" id="entrevistas" aria-labelledby="entrevistas-titulo">
-  <header class="entrevistas-cab">
-    <h2 id="entrevistas-titulo">Entrevistas a los pioneros</h2>
-    {/* «Nuestras localidades», en plural, porque son dos: Aristóbulo del Valle
-        y Salto Encantado. La versión anterior enumeraba —«la fundación del
-        pueblo, la cooperativa, los años del Salto»— y ahí «el Salto» se leía
-        como un período y no como el lugar que es. El «ellos» se apoya en el
-        título de arriba, que ya dice de quiénes se trata. */}
-    <p>Los inicios de nuestras localidades, contados por ellos mismos.</p>
+  {/* El hero: de borde a borde, con una entrevista de fondo.
+      -------------------------------------------------------------------
+      Arranca como una fotografía quieta —la tapa del video— y el avance en
+      silencio entra recién después, cuando la página ya está y si el aparato
+      y la conexión lo permiten. Es el orden de Netflix y no es un capricho:
+      un reproductor de YouTube en el inicio son dos megas y un rastreador en
+      cada visita, y buena parte de esta gente entra desde el pueblo con el
+      dato del celular para ir al mapa.
+
+      El título es el de la sección: el hero no agrega una frase más, se
+      queda con la que ya estaba. Lo que sí agrega es el nombre de la
+      entrevista que se está viendo de fondo, porque si no, el botón de
+      reproducir no dice qué va a reproducir. */}
+  <header class="hero" data-id={destacada.id} data-avance={avance(destacada.id)}>
+    <div class="hero-fondo" aria-hidden="true">
+      {/* Dos intentos y después se va: `maxresdefault` no existe para todos
+          los videos, así que se cae en la tapa de siempre; si tampoco está
+          —sin conexión a YouTube— la imagen se saca en vez de dejar el ícono
+          de imagen rota en el medio del hero, que se lee como que el sitio
+          falló. Sin foto queda el fondo oscuro con el título encima, que es
+          una portada perfectamente digna. */}
+      <img src={tapaGrande(destacada.id)} alt="" fetchpriority="low" decoding="async"
+           data-respaldo={tapa(destacada.id)}
+           onerror="if (this.dataset.respaldo) { this.src = this.dataset.respaldo; this.dataset.respaldo = ''; } else { this.remove(); }" />
+    </div>
+    <div class="hero-texto">
+      <h2 id="entrevistas-titulo">Entrevistas a los pioneros</h2>
+      <p>Los inicios de nuestras localidades, contados por ellos mismos.</p>
+      <button type="button" class="hero-play">
+        <span class="hero-play-icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 7.5v9l7.5-4.5L9 7.5Z"/></svg>
+        </span>
+        <span class="hero-play-texto">
+          <b>Ver esta entrevista</b>
+          <i>{destacada.numero ? `Nº ${destacada.numero} · ` : ''}{destacada.titulo}</i>
+        </span>
+      </button>
+    </div>
   </header>
 
   {/* Los datos viven en cada tarjeta y no sólo en su tapa, porque la tapa se
@@ -186,6 +219,63 @@ const DURA = Math.min(560, Math.max(320, duracionResorte(RESORTE)));
       }, 460);
     });
 
+    /* El hero.
+       --------------------------------------------------------------------
+       El avance en silencio entra DESPUÉS y no siempre. Un reproductor de
+       YouTube pesa unos dos megas y pone un rastreador, y el inicio lo abre
+       todo el mundo — incluida la mayoría que viene a buscar una foto en el
+       mapa y no va a mirar ningún video. Así que se carga sólo cuando no
+       estorba:
+
+       · en pantallas grandes, porque en el teléfono es el peor lugar para
+         gastar datos y además casi no se ve;
+       · si el navegador no dice que hay poco dato o conexión lenta;
+       · si nadie pidió menos movimiento;
+       · y recién cuando el navegador está sin nada que hacer, nunca
+         compitiendo con lo que hace falta para que el sitio exista.
+
+       Si algo de eso no se cumple, queda la fotografía, que es lo que la
+       gente ve igual el 95% del tiempo: el avance tarda unos segundos en
+       arrancar y mucha gente ya bajó. */
+    const hero = document.querySelector('.hero');
+    if (hero) {
+      const conexion = navigator.connection || {};
+      const vale = innerWidth >= 768
+        && !quieto.matches
+        && !conexion.saveData
+        && !/^(slow-)?2g$/.test(conexion.effectiveType || '');
+
+      if (vale) {
+        const poner = () => {
+          const av = document.createElement('iframe');
+          av.src = hero.dataset.avance;
+          av.className = 'hero-avance';
+          av.title = '';
+          av.setAttribute('aria-hidden', 'true');
+          av.tabIndex = -1;
+          av.allow = 'autoplay; encrypted-media';
+          av.referrerPolicy = 'strict-origin-when-cross-origin';
+          hero.querySelector('.hero-fondo').append(av);
+          /* El fundido arranca cuando el reproductor ya está, no cuando se lo
+             pide: si no, se funde a un rectángulo negro mientras carga. */
+          av.addEventListener('load', () => requestAnimationFrame(() => av.classList.add('puesto')));
+        };
+        const cuandoPueda = window.requestIdleCallback || (f => setTimeout(f, 1800));
+        addEventListener('load', () => cuandoPueda(poner, { timeout: 4000 }), { once: true });
+      }
+
+      /* Todo el hero lleva a la entrevista que se está viendo de fondo: se
+         baja hasta su tarjeta y se la abre ahí, con sonido y con controles.
+         Reproducirla en el hero mismo sería un video sin barra de progreso y
+         sin volumen, que es peor que no tenerlo. */
+      hero.addEventListener('click', () => {
+        const t = tarjetas.find(x => x.dataset.id === hero.dataset.id);
+        if (!t) return;
+        t.scrollIntoView({ block: 'center', behavior: quieto.matches ? 'auto' : 'smooth' });
+        if (!t.classList.contains('abierta')) reacomodar(() => abrir(t));
+      });
+    }
+
     addEventListener('keydown', ev => {
       if (ev.key !== 'Escape') return;
       const t = lista.querySelector('.entrevista.abierta');
@@ -204,10 +294,75 @@ const DURA = Math.min(560, Math.max(320, duracionResorte(RESORTE)));
 
 <style>
   .entrevistas { margin: 0; display: grid; gap: 1.8rem; }
-  .entrevistas-cab { display: grid; gap: .5rem; max-width: 40rem; }
-  .entrevistas-cab h2 { margin: 0; font-size: clamp(1.4rem, 3.4vw, 1.9rem); font-weight: 500;
-                        letter-spacing: 0; text-transform: none; color: var(--tinta); }
-  .entrevistas-cab p { margin: 0; color: var(--tinta-2); line-height: 1.6; }
+  /* De borde a borde, saliéndose del envoltorio que lo contiene. El margen
+     negativo en porcentaje y no en `vw` a propósito: `100vw` incluye el ancho
+     de la barra de desplazamiento, así que en Windows —donde la barra ocupa
+     lugar de verdad— deja quince píxeles de más y aparece una barra
+     horizontal en todo el sitio. */
+  .hero {
+    position: relative; isolation: isolate;
+    margin-inline: calc(50% - 50vw); width: 100vw;
+    min-height: min(26rem, 52vh);
+    display: grid; align-items: end;
+    padding: clamp(1.6rem, 5vw, 3.4rem);
+    padding-inline: max(clamp(1.6rem, 5vw, 3.4rem), calc(50vw - 36rem));
+    overflow: hidden; background: #1b241f; }
+
+  .hero-fondo { position: absolute; inset: 0; z-index: -2; }
+  .hero-fondo img,
+  .hero :global(.hero-avance) {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; border: 0; }
+  /* El avance entra fundiéndose sobre la fotografía, no de un corte: el corte
+     se lee como que algo se rompió y volvió a cargar. */
+  .hero :global(.hero-avance) { opacity: 0; transition: opacity .9s ease; }
+  .hero :global(.hero-avance.puesto) { opacity: 1; }
+  /* Un reproductor de YouTube a pantalla completa recorta la imagen distinto
+     que la foto: se lo agranda para que no asomen las bandas negras de los
+     costados. No recibe el mouse — el clic es del hero entero. */
+  .hero :global(.hero-avance) { pointer-events: none;
+    width: 177.78vh; min-width: 100%; height: 56.25vw; min-height: 100%;
+    inset: 50% auto auto 50%; translate: -50% -50%; }
+
+  /* El velo. Sin esto el título blanco sobre una foto clara desaparece, y
+     sobre una oscura desaparece el resto. Es más denso abajo, que es donde
+     está el texto. */
+  .hero::after {
+    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: linear-gradient(to top, rgba(10,18,14,.92) 0%, rgba(10,18,14,.72) 38%,
+                                        rgba(10,18,14,.35) 70%, rgba(10,18,14,.2) 100%); }
+
+  .hero-texto { display: grid; gap: .5rem; max-width: 34rem; color: var(--fondo); }
+  /* `line-height` propio: el del cuerpo del sitio está pensado para texto de
+     leer, y a tres rem deja los dos renglones del título tan separados que
+     se leen como dos títulos distintos. */
+  .hero-texto h2 { margin: 0; font-size: clamp(1.7rem, 5.2vw, 2.9rem); font-weight: 500;
+                   line-height: 1.08; letter-spacing: -.01em; text-transform: none;
+                   color: var(--fondo); text-wrap: balance; }
+  .hero-texto p { margin: 0; color: rgba(246,244,234,.86); line-height: 1.5;
+                  font-size: clamp(.95rem, 2.4vw, 1.1rem); }
+
+  .hero-play {
+    margin-top: .7rem; justify-self: start; cursor: pointer; font: inherit;
+    display: inline-flex; align-items: center; gap: .7rem; text-align: left;
+    padding: .55rem 1.2rem .55rem .6rem; border-radius: 999px;
+    background: var(--fondo); color: var(--tinta); border: 0;
+    transition: transform .2s ease, background .2s ease; }
+  .hero-play:hover { transform: translateY(-2px); }
+  .hero-play:focus-visible { outline: 2px solid var(--fondo); outline-offset: 3px; }
+  .hero-play-icono { display: grid; place-items: center; width: 2.1rem; height: 2.1rem;
+                     border-radius: 50%; background: var(--marca); color: var(--fondo); }
+  .hero-play-icono svg { width: 1.4rem; height: 1.4rem; margin-left: .08rem; }
+  .hero-play-texto { display: grid; }
+  .hero-play-texto b { font-weight: 500; font-size: .95rem; }
+  .hero-play-texto i { font-style: normal; font-size: .78rem; color: var(--tinta-2);
+                       max-width: 17rem; overflow: hidden; text-overflow: ellipsis;
+                       white-space: nowrap; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-play:hover { transform: none; }
+    .hero :global(.hero-avance) { transition: none; }
+  }
 
   .entrevistas-lista { list-style: none; margin: 0; padding: 0;
                        display: grid; gap: 1.6rem 1.2rem;

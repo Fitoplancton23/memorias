@@ -46,6 +46,24 @@ export const entrevistas = [
     completo: 'COLOÑERO KUERY por Santa Chamorro (Taller Pororó)' },
 ];
 
+/* Cuál abre la galería, arriba de todo. Se elige a mano y no al azar: una
+   portada que cambia sola hace que dos personas vean cosas distintas y que
+   nadie pueda decir "mirá la del principio". Es la primera de la serie, que
+   además es la más vieja. */
+export const DESTACADA = 'bmdpNkBv6n0';
+
+/* La tapa grande, para el fondo del hero. `maxresdefault` es 1280×720 y no
+   existe para todos los videos; si falta, el navegador cae en la de siempre. */
+export const tapaGrande = id => `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`;
+
+/* El reproductor en silencio y en bucle que va de fondo. Sin controles, sin
+   título y sin sugerencias al final: no es para mirar, es para que algo se
+   mueva. `playlist` con el mismo id es el truco que YouTube pide para que un
+   solo video se repita. */
+export const avance = id =>
+  `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}` +
+  '&controls=0&disablekb=1&modestbranding=1&rel=0&playsinline=1&iv_load_policy=3';
+
 /* La imagen de tapa que YouTube ya tiene de cada video. `i.ytimg.com` sirve
    imágenes y no pone cookies — a diferencia del reproductor, que las pone
    apenas se dibuja, mire o no mire alguien el video. */

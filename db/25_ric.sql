@@ -97,6 +97,9 @@ update memorias
    set tipo = case when coalesce(foto_url, '') <> '' then 'foto' else 'relato' end
  where tipo is null;
 
+-- Igual que en el 26: `add constraint` no tiene `if not exists`, y sin el
+-- `drop` previo este archivo se podia correr una sola vez.
+alter table memorias drop constraint if exists memorias_tipo_conocido;
 alter table memorias
   add constraint memorias_tipo_conocido
   check (tipo is null or tipo in ('foto', 'relato', 'recorte', 'documento', 'objeto'));
@@ -123,9 +126,11 @@ alter table nucleo_hijos       add column if not exists confianza text;
 
 -- `confianza` repite los valores que ya usa `memoria_personas`, para que una
 -- misma palabra signifique lo mismo en toda la base.
+alter table nucleos_familiares drop constraint if exists nucleos_confianza_conocida;
 alter table nucleos_familiares
   add constraint nucleos_confianza_conocida
   check (confianza is null or confianza in ('confirmada', 'probable'));
+alter table nucleo_hijos drop constraint if exists nucleo_hijos_confianza_conocida;
 alter table nucleo_hijos
   add constraint nucleo_hijos_confianza_conocida
   check (confianza is null or confianza in ('confirmada', 'probable'));

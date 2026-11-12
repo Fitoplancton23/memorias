@@ -36,6 +36,12 @@ comment on column lugares.traza is
 -- Al menos dos puntos. Una traza de uno solo es un punto, y para eso ya están
 -- lat y lng: dibujarla daría una línea de largo cero que después nadie
 -- entiende por qué no se ve.
+-- `add constraint` no tiene `if not exists` —a diferencia de `add column`—,
+-- asi que sin este `drop` el archivo se podia correr una sola vez: la segunda
+-- cortaba con 42710 y, como todo esto va dentro de una transaccion, se caia
+-- el archivo entero. Un archivo de migracion que no se puede volver a correr
+-- es una trampa: siempre hay una segunda vez.
+alter table lugares drop constraint if exists lugares_traza_es_recorrido;
 alter table lugares
   add constraint lugares_traza_es_recorrido
   check (traza is null
@@ -58,13 +64,22 @@ commit;
 -- ===========================================================================
 
 -- 1. ¿Quedó cargada? Si esto devuelve CERO filas, es que la picada todavía no
---    existe como lugar en la base: hay que crearla desde el taller del panel
---    —con ese nombre— y volver a correr el update de arriba.
+--    existe como lugar en la base con ese nombre.
 select slug, nombre, tipo,
        jsonb_array_length(traza) as puntos,
        lat is not null as "tiene coordenada propia"
   from lugares
  where traza is not null;
+
+-- 1b. Si la de arriba vino vacía, ésta dice por qué: muestra todo lugar cuyo
+--     nombre suene a picada o a camino. Si acá aparece con otro nombre, se
+--     corrige el `like` del update; si no aparece nada, hay que crearla desde
+--     el taller del panel y recién después correr el update.
+select slug, nombre, tipo, lat is not null as "tiene coordenada"
+  from lugares
+ where lower(nombre) like '%picada%'
+    or lower(nombre) like '%camino%'
+    or lower(nombre) like '%propaganda%';
 
 -- 2. Todos los puntos de todas las trazas tienen que caer adentro del ejido
 --    (lat entre -27.153 y -27.001, lng entre -54.960 y -54.758). Lo que

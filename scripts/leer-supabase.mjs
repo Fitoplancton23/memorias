@@ -254,6 +254,14 @@ export async function traerTablas({ incluirDemo = false, incluirPendientes = fal
     lat: l.lat == null ? '' : String(l.lat),
     lng: l.lng == null ? '' : String(l.lng),
     vigencia: '', alias: l.localidad || '', notas: l.notas || '',
+    /* La traza de un lugar que no es un punto —una picada, un camino viejo—.
+       `leerTraza` aguanta las dos formas en que puede venir: el jsonb de la
+       base ya parseado, o el texto "lat,lng; lat,lng" si se cargó a mano.
+       Mientras `db/26_picadas.sql` no esté corrido la columna no existe,
+       llega `undefined` y queda vacía, que es lo que tienen todos los
+       lugares que sí son un punto. */
+    traza: l.traza == null ? ''
+      : (typeof l.traza === 'string' ? l.traza : JSON.stringify(l.traza)),
   }));
 
   const filasAcontecimientos = acontecimientos.filter(vivo).map(a => ({

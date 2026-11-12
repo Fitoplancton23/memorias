@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { parseFecha } from './fechas.mjs';
 import { parseLinajes } from './linajes.mjs';
 import { sirveDeIdentificador } from '../src/lib/identidad.js';
+import { leerTraza, largoEnMetros } from '../src/lib/traza.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEMO = process.argv.includes('--demo');
@@ -121,6 +122,12 @@ const lugares = tabla('lugares').map(r => {
     // libres por si alguna vez hace falta un mapa geográfico de verdad.
     x: r.x ? +r.x : null, y: r.y ? +r.y : null,
     lat: r.lat ? +r.lat : null, lng: r.lng ? +r.lng : null,
+    /* Un lugar que no es un punto: la picada, el camino viejo, la costa del
+       arroyo. Es una línea quebrada, y acompaña a la coordenada en vez de
+       reemplazarla — la regla de que un marcador no se mueve solo vale
+       también cuando aparece una traza. Vacía para casi todos los lugares,
+       que sí son un punto. */
+    traza: leerTraza(r.traza),
     desde: d ? +d : null, hasta: h ? +h : null,
     alias: lista(r.alias), notas: r.notas || '',
     documentos: [], acontecimientos: []
@@ -190,6 +197,35 @@ const documentos = tabla('documentos').filter(publicado).map(r => ({
     ? { lat: +r.lat, lng: +r.lng, precision: r.precision_punto || 'exacta' }
     : null,
 }));
+
+/* ---------- Las trazas caen adentro del mapa ----------
+   Un par de coordenadas escrito al revés —lng primero— son dos números
+   válidos, así que `leerTraza` no los puede distinguir: no sabe en qué parte
+   del mundo está este archivo. El build sí, porque tiene los límites del
+   mapa. Un punto afuera no se descarta —puede ser un lugar lejano de
+   verdad— pero se dice, que es lo que permite agarrar el error de carga el
+   día que entra, y no el día que alguien no encuentra la picada. */
+try {
+  const mapas = JSON.parse(readFileSync(join(root, 'public', 'mapa', 'mapa.json'), 'utf8')).mapas;
+  const ejido = mapas.find(m => m.nombre === 'ejido') || mapas[0];
+  if (ejido) {
+    const [minlat, minlon, maxlat, maxlon] = ejido.bounds;
+    for (const l of lugares)
+      for (const p of l.traza)
+        if (p.lat < minlat || p.lat > maxlat || p.lng < minlon || p.lng > maxlon) {
+          avisos.push(`TRAZA: un punto de "${l.nombre}" (${p.lat}, ${p.lng}) cae fuera del `
+                    + 'ejido. Revisá que no estén la latitud y la longitud al revés.');
+          break;
+        }
+  }
+} catch (e) { /* sin mapa.json no hay contra qué comparar, y no es asunto de acá */ }
+
+for (const l of lugares)
+  if (l.traza.length) {
+    const m = Math.round(largoEnMetros(l.traza));
+    if (m < 50) avisos.push(`TRAZA: "${l.nombre}" mide ${m} m. Para algo tan corto `
+                          + 'alcanza con la coordenada del lugar.');
+  }
 
 /* ---------- Los identificadores, que son para siempre ----------
    La dirección pública de cada entidad es su identificador: el enlace que

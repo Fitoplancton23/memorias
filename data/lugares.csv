@@ -1,4 +1,4 @@
-slug,nombre,tipo,x,y,lat,lng,vigencia,alias,notas
+slug,nombre,tipo,x,y,lat,lng,vigencia,alias,notas,traza
 plaza-libertad,Plaza Libertad,plaza,,,-27.0956,-54.8988,,,DATO DE EJEMPLO - reemplazar
 escuela-n1,Escuela N 1,escuela,,,,,1935-,,DATO DE EJEMPLO - reemplazar
 capilla-vieja,Capilla Vieja,iglesia,,,,,1928-1971,Capilla San Jose,DATO DE EJEMPLO - reemplazar

@@ -100,7 +100,11 @@ function alta(nombre, apellido, sexo, anioNac, lugar) {
 
 /* --- fundadores: 12 parejas que llegan entre 1890 y 1915 --- */
 const LUGARES = ['plaza-libertad','escuela-406','capilla-vieja','secadero-grande','salto-encantado',
-  'paraje-cerro-moreno','barrio-teforito','loteo-lizoski','ruta-14-km-1209','arroyo-cunapiru'];
+  'paraje-cerro-moreno','barrio-teforito','loteo-lizoski','ruta-14-km-1209','arroyo-cunapiru',
+  /* Las dos picadas entran al sorteo como cualquier otro lugar: lo que hace
+     falta mirar es un recorrido CON memorias repartidas, que es para lo que
+     existe. Una picada vacía no sale al mapa y no se podría ver. */
+  'picada-propaganda','camino-viejo-al-salto'];
 
 const raices = [];
 for (let i = 0; i < 12; i++) {
@@ -239,10 +243,29 @@ const COORD = {
   'salto-encantado':     [-27.0631, -54.8098],
   'paraje-cerro-moreno': [-27.1382, -54.9401],
 };
-const filasL = ['slug,nombre,tipo,x,y,lat,lng,vigencia,alias,notas'];
+/* Un lugar que NO es un punto, que es el caso que la demo no ejercitaba.
+   Una picada es un camino de kilómetros con memorias repartidas a lo largo:
+   marcarla con un pin dice que las cosas pasaron en ese metro cuadrado. Si
+   acá no hubiera ninguna, el dibujo de los recorridos no se podría mirar
+   nunca en la demo — y mirarlo es la única forma de saber si se ve.
+
+   Ojo con el otro caso, que también está: una traza SIN coordenada propia.
+   El marcador tiene que salir del medio del recorrido, y si todas las
+   picadas tuvieran su punto fijado eso no se probaría jamás. */
+const TRAZAS = {
+  'picada-propaganda': '-27.1226,-54.9055; -27.1275,-54.8960; -27.1341,-54.8906',
+  'camino-viejo-al-salto': '-27.0880,-54.9120; -27.0790,-54.8880; -27.0700,-54.8600',
+};
+NOM['picada-propaganda'] = ['Picada Propaganda', 'picada'];
+NOM['camino-viejo-al-salto'] = ['Camino viejo al Salto', 'camino'];
+/* A la Propaganda se le fija el punto; al camino viejo no, a propósito. */
+COORD['picada-propaganda'] = [-27.1275, -54.8960];
+
+const filasL = ['slug,nombre,tipo,x,y,lat,lng,vigencia,alias,notas,traza'];
 for (const [s, [n, t]] of Object.entries(NOM)) {
   const c = COORD[s] || ['', ''];
-  filasL.push([s, n, t, '', '', c[0], c[1], '', '', 'DATOS DE DEMOSTRACION'].map(esc).join(','));
+  filasL.push([s, n, t, '', '', c[0], c[1], '', '', 'DATOS DE DEMOSTRACION',
+               TRAZAS[s] || ''].map(esc).join(','));
 }
 writeFileSync(join(SAL, 'lugares.csv'), filasL.join('\n') + '\n');
 

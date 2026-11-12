@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import { lugares, documentos, personas as personasTodas } from '../../lib/datos.js';
 import { aNormalizado } from '../../lib/proyeccion.js';
+import { puntoDeReferencia } from '../../lib/traza.js';
 import mapas from '../../../public/mapa/mapa.json';
 import Ondas from '../../components/Ondas.astro';
 import Buscador from '../../components/Buscador.astro';
@@ -39,16 +40,29 @@ const M_POR_UNIDAD = (() => {
    alguien creó para ubicar algo que después no llegó. En el mapa sería un
    marcador que no lleva a ningún lado, y el archivo prometería material que
    no tiene. Cuando le entre la primera memoria, aparece solo. */
+/* Un lugar entra al mapa si se lo puede ubicar, y hay dos maneras: su
+   coordenada, o —cuando no tiene— el medio de su recorrido. Antes la
+   condición era tener coordenada, y eso dejaba afuera a una picada entera
+   por no tener un punto que, para una picada, es justamente lo que no
+   tiene sentido elegir. */
 const puntos = lugares
-  .filter(l => l.lat != null && l.lng != null)
-  .filter(l => (l.documentos || []).length > 0)
-  .map(l => {
-    const { x, y } = aNormalizado(l.lat, l.lng, mapa);
+  .map(l => ({ l, ref: puntoDeReferencia(l) }))
+  .filter(({ ref }) => ref != null)
+  .filter(({ l }) => (l.documentos || []).length > 0)
+  .map(({ l, ref }) => {
+    const { x, y } = aNormalizado(ref.lat, ref.lng, mapa);
     const docs = (l.documentos || []).map(s => doc[s]).filter(Boolean)
       .sort((a, b) => (a.fecha?.ref ?? 9999) - (b.fecha?.ref ?? 9999));
     const anios = docs.map(d => d.fecha?.ref).filter(Boolean);
     return {
       slug: l.slug, nombre: l.nombre, notas: l.notas || '',
+      /* El recorrido, ya proyectado al dibujo. Se calcula en el build: es una
+         cuenta por lugar que no cambia nunca. Vacío para los lugares que sí
+         son un punto, que son casi todos. */
+      traza: (l.traza || []).map(q => {
+        const r = aNormalizado(q.lat, q.lng, mapa);
+        return [+(r.x * ANCHO).toFixed(1), +(r.y * ALTO).toFixed(1)];
+      }),
       cx: +(x * ANCHO).toFixed(1), cy: +(y * ALTO).toFixed(1),
       fuera: x < 0 || x > 1 || y < 0 || y > 1,
       n: docs.length,
@@ -185,6 +199,29 @@ const apellidosPortada = Object.entries(cuentaApellidos)
          aria-label="Mapa de Aristóbulo del Valle con las memorias ubicadas.">
       <g id="mundo">
         <g id="base"></g>
+        {/* Los lugares que no son un punto: la picada, el camino viejo.
+            Van en el SVG y no en la capa HTML de los marcadores porque son
+            geografía —se estiran con el mapa, como el río y las calles— y
+            no una marca que se mantiene del mismo tamaño en pantalla. Van
+            encima de la base y debajo de todo lo demás: es el terreno, no
+            un dato que compita con los marcadores. */}
+        <g id="trazas" aria-hidden="true">
+          {puntos.filter(p => p.traza.length >= 2).map(p => {
+            const d = 'M' + p.traza.map(([x, y]) => `${x},${y}`).join('L');
+            /* Dos trazos, no uno: una franja ancha y tenue abajo y una línea
+               fina arriba. Eso es lo que la hace leer como un LUGAR —una
+               zona por donde pasa la picada— y no como una ruta dibujada con
+               el borde exacto, que es lo que una línea sola parece.
+               Y la franja es lo que vuelve clicable un recorrido: sobre una
+               línea de dos píxeles no acierta nadie, menos con el dedo. */
+            return (
+              <>
+                <path class="traza-faja" data-slug={p.slug} d={d} />
+                <path class="traza" data-slug={p.slug} d={d} />
+              </>
+            );
+          })}
+        </g>
       </g>
     </svg>
 
@@ -772,12 +809,18 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       dibujarPuntos(tActual);
       guardarEstado();
       for (const m of marcas) m.el.classList.remove('foco');
+      for (const t of document.querySelectorAll('#trazas path'))
+        t.classList.remove('abierta');
     }
 
     function mostrar(slug) {
       const p = porSlug[slug];
       if (!p) return;
       for (const m of marcas) m.el.classList.toggle('foco', m.p.slug === slug);
+      /* Si el lugar abierto es una picada, su recorrido pasa a primer plano:
+         es lo que hay que mirar para entender de qué lugar se está hablando. */
+      for (const t of document.querySelectorAll('#trazas path'))
+        t.classList.toggle('abierta', t.dataset.slug === slug);
       const lapso = p.desde ? (p.desde === p.hasta ? p.desde : p.desde + '–' + p.hasta) : null;
       ficha.hidden = false;
       ficha.innerHTML =
@@ -814,6 +857,32 @@ const apellidosPortada = Object.entries(cuentaApellidos)
       });
     }
 
+    /* La franja de una picada también se toca.
+       --------------------------------------------------------------------
+       Si sólo abriera el marcador, el lugar más grande del mapa sería el más
+       difícil de abrir: dos kilómetros de picada a la vista y un círculo de
+       cuarenta píxeles en el medio como única puerta. Se escucha sobre la
+       franja ancha y no sobre la línea fina, que con el dedo no la acierta
+       nadie.
+
+       Un arrastre del mapa termina en `click` sobre lo que haya debajo, así
+       que se mira cuánto se movió el puntero entre apretar y soltar: mover
+       el mapa no es elegir un lugar. */
+    {
+      let desde = null;
+      const lienzoSvg = document.getElementById('mapa');
+      lienzoSvg.addEventListener('pointerdown', ev => { desde = [ev.clientX, ev.clientY]; });
+      for (const faja of document.querySelectorAll('#trazas .traza-faja')) {
+        faja.addEventListener('click', ev => {
+          if (desde && Math.hypot(ev.clientX - desde[0], ev.clientY - desde[1]) > 6) return;
+          if (faja.classList.contains('apagada')) return;
+          ev.stopPropagation();
+          mostrar(faja.dataset.slug);
+          encuadrar([faja.dataset.slug]);
+        });
+      }
+    }
+
     function buscarEnMapa() {
       const texto = (campoQ.value || '').trim();
       borrarQ.hidden = !texto;
@@ -829,6 +898,8 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         hallazgos = null; lugaresHallados = null;
         dichoQ.hidden = true;
         for (const m of marcas) m.el.classList.remove('apagado', 'hallado');
+        for (const t of document.querySelectorAll('#trazas path'))
+          t.classList.remove('apagada', 'hallada');
         if (abierta) mostrar(abierta);     /* la ficha vuelve a mostrarlas todas */
         return;
       }
@@ -846,6 +917,13 @@ const apellidosPortada = Object.entries(cuentaApellidos)
         const hay = lugaresHallados.has(m.p.slug);
         m.el.classList.toggle('hallado', hay);
         m.el.classList.toggle('apagado', !hay);
+      }
+      /* El recorrido de una picada sigue a su marcador: si la picada no tiene
+         nada de lo que se buscó, su línea se apaga igual que el pin. Una
+         línea encendida de un lugar apagado dice que ahí hay algo. */
+      for (const t of document.querySelectorAll('#trazas path')) {
+        t.classList.toggle('hallada', lugaresHallados.has(t.dataset.slug));
+        t.classList.toggle('apagada', !lugaresHallados.has(t.dataset.slug));
       }
 
       /* Si el lugar abierto dejó de tener algo, se cierra: una ficha que
@@ -1664,6 +1742,42 @@ const apellidosPortada = Object.entries(cuentaApellidos)
     /* Lo que la búsqueda no alcanzó. No se esconde: un lugar que desaparece
        deja un mapa distinto cada vez que se escribe una letra, y el ojo pierde
        el pueblo. Se apaga, que dice "está, pero no es esto". */
+    /* El recorrido de un lugar que no es un punto.
+       -----------------------------------------------------------------
+       En el azul de los lugares, que es lo que es: un lugar, no una ruta
+       trazada por alguien ni una conexión entre dos cosas. `non-scaling
+       stroke` para que el ancho se mantenga en píxeles de pantalla — si
+       se estirara con el zoom, de lejos sería un pelo invisible y de
+       cerca una franja de cincuenta metros de ancho.
+
+       Una franja ancha y tenue con una línea fina encima. Una línea sola
+       se lee como una calle dibujada, con su borde exacto; una picada de
+       este archivo no tiene borde exacto —es por dónde pasa, más o
+       menos— y la franja dice eso sin tener que explicarlo.
+
+       Nada de punteado: el patrón de guiones se estira con el zoom
+       aunque el ancho no —`non-scaling-stroke` sólo gobierna el ancho—,
+       así que de cerca la picada quedaba hecha un collar de cuentas de
+       doce píxeles. Se vio acercándose; no se veía en el código. */
+    .traza, .traza-faja {
+      fill: none; stroke: var(--tipo-lugar, #29abe2);
+      stroke-linecap: round; stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+      transition: opacity .3s ease, stroke-width .3s ease; }
+    /* Sólo la franja recibe el dedo, y sólo sobre el trazo: el relleno de un
+       camino quebrado es un polígono enorme que taparía medio mapa. */
+    .traza-faja { stroke-width: 16; opacity: .14; pointer-events: stroke; cursor: pointer; }
+    .traza-faja.apagada { pointer-events: none; cursor: default; }
+    .traza-faja:hover { opacity: .26; }
+    .traza      { stroke-width: 2.5; opacity: .62; }
+
+    .traza.hallada { opacity: .95; stroke-width: 3; }
+    .traza-faja.hallada { opacity: .22; }
+    .traza.apagada, .traza-faja.apagada { opacity: .07; }
+    /* Al abrir la ficha de la picada, su recorrido es lo que hay que mirar. */
+    .traza.abierta { opacity: 1; stroke-width: 3.5; }
+    .traza-faja.abierta { opacity: .3; stroke-width: 22; }
+
     .marca-mapa.apagado { opacity: .22 !important; filter: grayscale(1);
                           pointer-events: none; }
     .marca-mapa.hallado .lente { box-shadow: 0 0 0 2px var(--cursor),

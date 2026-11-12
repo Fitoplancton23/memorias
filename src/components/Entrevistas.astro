@@ -1,5 +1,14 @@
 ---
 import { entrevistas, tapa, reproductor, enYoutube } from '../lib/entrevistas.js';
+import { curvaResorte, duracionResorte } from '../lib/resorte.js';
+
+/* El resorte se simula acá, en el build, y no en cada navegador: es la misma
+   cuenta siempre y da el mismo resultado, así que hacerla ciento cuarenta
+   veces por visita sería trabajo regalado. Lo que viaja es la curva ya
+   escrita. */
+const RESORTE = { masa: 1, rigidez: 210, amortiguacion: 30 };
+const CURVA = curvaResorte({ ...RESORTE, muestras: 36 });
+const DURA = Math.min(560, Math.max(320, duracionResorte(RESORTE)));
 ---
 {/* La galería de entrevistas.
     -------------------------------------------------------------------------
@@ -20,16 +29,27 @@ import { entrevistas, tapa, reproductor, enYoutube } from '../lib/entrevistas.js
        los años del Salto. Grabadas en video y contadas por ellos mismos.</p>
   </header>
 
+  {/* Los datos viven en cada tarjeta y no sólo en su tapa, porque la tapa se
+      destruye al reproducir y se vuelve a armar al cerrar: si el id y el
+      título se fueran con ella, cerrar dejaría una tarjeta muda. */}
   <ul class="entrevistas-lista">
     {entrevistas.map(e => (
-      <li class="entrevista">
-        <button type="button" class="entrevista-tapa" data-id={e.id} title={e.completo}>
-          <img src={tapa(e.id)} alt="" loading="lazy" decoding="async" width="480" height="360"
-               onerror="this.closest('.entrevista-tapa').classList.add('sin-tapa'); this.remove();" />
-          <span class="entrevista-play" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 7.5v9l7.5-4.5L9 7.5Z"/></svg>
-          </span>
-          <span class="visualmente-oculto">Ver: {e.completo}</span>
+      <li class="entrevista" data-id={e.id} data-completo={e.completo} data-tapa={tapa(e.id)}>
+        <div class="entrevista-caja">
+          <button type="button" class="entrevista-tapa" data-id={e.id} title={e.completo}>
+            <img src={tapa(e.id)} alt="" loading="lazy" decoding="async" width="480" height="360"
+                 onerror="this.closest('.entrevista-tapa').classList.add('sin-tapa'); this.remove();" />
+            <span class="entrevista-play" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 7.5v9l7.5-4.5L9 7.5Z"/></svg>
+            </span>
+            <span class="visualmente-oculto">Ver: {e.completo}</span>
+          </button>
+        </div>
+        {/* Sólo aparece en la que se está mirando. Sin esto, una vez abierta
+            una entrevista no hay forma de volver a la galería sin abrir otra. */}
+        <button type="button" class="entrevista-cerrar" hidden>
+          <span aria-hidden="true">×</span>
+          <span class="visualmente-oculto">Cerrar esta entrevista</span>
         </button>
         <div class="entrevista-pie">
           {e.numero && <span class="entrevista-num">Entrevista Nº {e.numero}</span>}
@@ -43,30 +63,138 @@ import { entrevistas, tapa, reproductor, enYoutube } from '../lib/entrevistas.js
   </ul>
 </section>
 
-<script define:vars={{ MOLDE: reproductor('__ID__') }}>
-  /* Una tapa que ya falló antes de que corriera este guion no dispara su
-     `onerror`: el navegador ya terminó con ella. Se repasa al arrancar. */
-  for (const img of document.querySelectorAll('.entrevista-tapa img'))
-    if (img.complete && img.naturalWidth === 0) {
-      img.closest('.entrevista-tapa').classList.add('sin-tapa');
-      img.remove();
-    }
+<script define:vars={{ MOLDE: reproductor('__ID__'), CURVA, DURA }}>
+  const lista = document.querySelector('.entrevistas-lista');
+  if (lista) {
+    const tarjetas = [...lista.querySelectorAll('.entrevista')];
+    const quieto = matchMedia('(prefers-reduced-motion: reduce)');
 
-  for (const b of document.querySelectorAll('.entrevista-tapa')) {
-    b.addEventListener('click', () => {
+    /* El movimiento es de resorte y no una curva fija: ocho tarjetas que se
+       reacomodan tienen que arrancar con ganas y asentarse, no frenar de
+       golpe en el último cuadro. Bien amortiguado —no rebota—, porque un
+       rebote en ocho cosas a la vez es un temblor.
+       La curva viene calculada del build; `linear()` con muchas muestras es
+       reciente, así que donde no exista se usa la de siempre y el movimiento
+       es el mismo, un poco menos vivo. */
+    const SUAVE = (CSS.supports && CSS.supports('animation-timing-function', 'linear(0, 1)'))
+      ? CURVA : 'cubic-bezier(.22,.7,.3,1)';
+
+    /* El reacomodo, sin que nada salte.
+       --------------------------------------------------------------------
+       Cuando una entrevista se agranda, la grilla reubica a las otras siete
+       de un cuadro al otro. Hecho así nomás, eso es un parpadeo: ocho
+       tarjetas que estaban en un lado aparecen en otro sin que se vea el
+       camino, y lo que queda es la sensación de que la pantalla se rompió.
+
+       Se mide dónde está cada una ANTES, se deja que el navegador reacomode,
+       y en ese momento se las devuelve a su lugar viejo con un `transform`
+       para soltarlas enseguida: el navegador anima de ahí a cero y el ojo ve
+       el viaje. Es el mismo truco con el que se mueven las cosas en el mapa.
+
+       `prefers-reduced-motion` lo apaga entero: el final es el mismo, lo
+       único que se saca es el viaje. */
+    const reacomodar = cambiar => {
+      if (quieto.matches) { cambiar(); return; }
+      const antes = new Map(tarjetas.map(t => [t, t.getBoundingClientRect()]));
+      cambiar();
+      for (const t of tarjetas) {
+        const a = antes.get(t), d = t.getBoundingClientRect();
+        const dx = a.left - d.left, dy = a.top - d.top;
+        const sx = d.width ? a.width / d.width : 1;
+        const sy = d.height ? a.height / d.height : 1;
+        /* Menos de un píxel no es un movimiento: animarlo cuesta un cuadro y
+           no se ve. */
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(sx - 1) < .01 && Math.abs(sy - 1) < .01)
+          continue;
+        t.animate(
+          [{ transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})` },
+           { transform: 'none' }],
+          { duration: DURA, easing: SUAVE });
+      }
+    };
+
+    /* Una sola entrevista sonando a la vez. Dos reproductores hablando
+       encima no es una galería, es un problema: la primera queda sonando
+       abajo de la pantalla y hay que ir a buscarla para callarla.
+
+       La tapa NO se destruye: el reproductor se pone ENCIMA y la tapa se
+       esconde. Antes se la reemplazaba y se la volvía a fabricar al cerrar, y
+       eso tenía un problema que no se ve leyendo el código: Astro acota los
+       estilos del componente con un atributo que les pone a los elementos que
+       escribe él, y un elemento creado por el guion no lo lleva — así que la
+       tapa rehecha se quedaba sin una sola regla de estilo. Lo mismo le
+       pasaba al reproductor, que por eso salía de trescientos píxeles adentro
+       de una tarjeta de setecientos. Se vio mirando la pantalla. */
+    const cerrar = t => {
+      t.querySelector('.entrevista-marco')?.remove();
+      t.querySelector('.entrevista-tapa').hidden = false;
+      t.classList.remove('abierta');
+      t.querySelector('.entrevista-cerrar').hidden = true;
+    };
+
+    const abrir = t => {
       const marco = document.createElement('iframe');
-      marco.src = MOLDE.replace('__ID__', b.dataset.id);
-      marco.title = b.title;
+      marco.src = MOLDE.replace('__ID__', t.dataset.id);
+      marco.title = t.dataset.completo;
       marco.loading = 'lazy';
       marco.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
       marco.referrerPolicy = 'strict-origin-when-cross-origin';
       marco.allowFullscreen = true;
       marco.className = 'entrevista-marco';
-      b.replaceWith(marco);
-      /* El foco salta al reproductor: quien llegó con el teclado apretó play y
-         tiene que quedar adentro del video, no tres tarjetas más abajo. */
-      marco.focus?.();
+      t.querySelector('.entrevista-tapa').hidden = true;
+      t.querySelector('.entrevista-caja').append(marco);
+      t.classList.add('abierta');
+      const x = t.querySelector('.entrevista-cerrar');
+      x.hidden = false;
+      /* El foco va al botón de cerrar y NO al reproductor: desde ahí Escape
+         cierra y el tabulador sigue por la galería. El video arranca igual.
+
+         Lo que esto NO puede garantizar, y conviene tenerlo escrito: cuando
+         se abre una segunda entrevista estando otra abierta, el navegador
+         reacomoda el foco por su cuenta y lo manda al reproductor. Desde
+         adentro de un iframe de otro dominio las teclas no vuelven, así que
+         ahí Escape deja de cerrar. Por eso el botón «×» está siempre a la
+         vista y es el que manda: Escape es la comodidad, no la salida. */
+      x.focus();
+    };
+
+    lista.addEventListener('click', ev => {
+      const cerrarB = ev.target.closest('.entrevista-cerrar');
+      if (cerrarB) {
+        const t = cerrarB.closest('.entrevista');
+        reacomodar(() => cerrar(t));
+        t.querySelector('.entrevista-tapa')?.focus();
+        return;
+      }
+      const tapaB = ev.target.closest('.entrevista-tapa');
+      if (!tapaB) return;
+      const t = tapaB.closest('.entrevista');
+      reacomodar(() => {
+        for (const otra of tarjetas) if (otra !== t && otra.classList.contains('abierta')) cerrar(otra);
+        abrir(t);
+      });
+      /* Si la tarjeta creció y se fue abajo del pliegue, no sirve de nada que
+         esté sonando: se la trae a la vista, sin pelearle al reacomodo. */
+      setTimeout(() => {
+        const r = t.getBoundingClientRect();
+        if (r.top < 60 || r.bottom > innerHeight)
+          t.scrollIntoView({ block: 'center', behavior: quieto.matches ? 'auto' : 'smooth' });
+      }, 460);
     });
+
+    addEventListener('keydown', ev => {
+      if (ev.key !== 'Escape') return;
+      const t = lista.querySelector('.entrevista.abierta');
+      if (t) { reacomodar(() => cerrar(t)); t.querySelector('.entrevista-tapa')?.focus(); }
+    });
+
+    /* Una tapa que ya habia fallado antes de que corriera este guion no
+       dispara su `onerror`: el navegador ya termino con ella. Se repasa. */
+    for (const img of lista.querySelectorAll('.entrevista-tapa img'))
+      if (img.complete && img.naturalWidth === 0) {
+        img.closest('.entrevista-tapa').classList.add('sin-tapa');
+        img.remove();
+      }
   }
 </script>
 
@@ -79,20 +207,63 @@ import { entrevistas, tapa, reproductor, enYoutube } from '../lib/entrevistas.js
 
   .entrevistas-lista { list-style: none; margin: 0; padding: 0;
                        display: grid; gap: 1.6rem 1.2rem;
-                       grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); }
-  .entrevista { display: grid; gap: .7rem; align-content: start; }
+                       grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+                       /* `dense` es lo que hace que las otras se reacomoden
+                          ALREDEDOR de la que creció en vez de dejar un hueco
+                          al lado: las que vienen después rellenan lo que
+                          quedó libre antes. */
+                       grid-auto-flow: dense; }
+  .entrevista { display: grid; gap: .7rem; align-content: start; position: relative; }
 
-  /* La tapa y el reproductor ocupan exactamente el mismo lugar, así que al
-     apretar play no se mueve nada de lo que hay abajo. */
-  .entrevista-tapa, .entrevista-marco {
-    display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: .6rem;
-    border: 1px solid var(--linea); background: var(--panel); overflow: hidden; }
-  .entrevista-marco { border: 0; }
-  .entrevista-tapa { position: relative; padding: 0; cursor: pointer; }
+  /* La que se está mirando se lleva dos columnas. En una sola columna
+     —teléfono— no hay a dónde crecer y tampoco hace falta: ya ocupa el
+     ancho entero. */
+  @media (min-width: 38rem) {
+    .entrevista.abierta { grid-column: span 2; }
+  }
+  /* Las demás ceden un poco de presencia, sin volverse ilegibles: el título
+     de cada una tiene que seguir leyéndose, porque de eso se trata la
+     galería. Nada de desenfoque — acá nunca toca un nombre. */
+  /* Apagadas, pero legibles: cada título tiene que poder leerse igual, que de
+     eso se trata una galería. .78 y no menos — con menos, ocho tarjetas
+     pálidas al lado de una encendida se leen como que el sitio se rompió. */
+  .entrevistas-lista:has(.abierta) .entrevista:not(.abierta) { opacity: .78; }
+  .entrevistas-lista:has(.abierta) .entrevista:not(.abierta):hover,
+  .entrevistas-lista:has(.abierta) .entrevista:not(.abierta):focus-within { opacity: 1; }
+  .entrevista:not(.abierta) { transition: opacity .35s ease; }
+
+  .entrevista.abierta .entrevista-pie b { font-size: 1.15rem; }
+
+  /* El botón de volver a la galería. Sólo existe en la abierta. */
+  .entrevista-cerrar {
+    position: absolute; top: .45rem; right: .45rem; z-index: 2;
+    width: 2rem; height: 2rem; border-radius: 50%; cursor: pointer;
+    display: grid; place-items: center; font: inherit; font-size: 1.1rem;
+    line-height: 1; color: #fff; background: rgba(10, 18, 14, .62);
+    border: 1px solid rgba(255,255,255,.28); }
+  .entrevista-cerrar:hover { background: rgba(10, 18, 14, .85); }
+  .entrevista-cerrar:focus-visible { outline: 2px solid var(--cursor); outline-offset: 2px; }
+
+  /* La caja es la que tiene la forma: 16:9, el borde y el redondeo. Adentro
+     van la tapa y, encima, el reproductor. Así al apretar play no se mueve un
+     píxel de lo que hay abajo, y la proporción no depende de quién esté
+     ocupando el lugar. */
+  .entrevista-caja {
+    position: relative; width: 100%; aspect-ratio: 16 / 9;
+    border-radius: .6rem; overflow: hidden;
+    border: 1px solid var(--linea); background: var(--panel); }
+  .entrevista-tapa { position: absolute; inset: 0; width: 100%; height: 100%;
+                     display: block; padding: 0; cursor: pointer;
+                     border: 0; background: none; }
+  /* `:global` a propósito: el reproductor lo crea el guion y no lleva el
+     atributo con el que Astro acota los estilos del componente, así que una
+     regla normal no lo alcanza. */
+  .entrevista-caja :global(.entrevista-marco) {
+    position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
   /* La tapa de YouTube viene con bandas negras arriba y abajo: se recorta al
      centro, que es donde está la cara de quien habla. */
   .entrevista-tapa img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .entrevista-tapa:hover { border-color: var(--linea-viva); }
+  .entrevista-caja:has(.entrevista-tapa:hover) { border-color: var(--linea-viva); }
   .entrevista-tapa:focus-visible { outline: 2px solid var(--cursor); outline-offset: 3px; }
 
   /* Sin tapa la tarjeta no se rompe: queda el panel de papel con el play, y
@@ -120,5 +291,6 @@ import { entrevistas, tapa, reproductor, enYoutube } from '../lib/entrevistas.js
 
   @media (prefers-reduced-motion: reduce) {
     .entrevista-tapa:hover .entrevista-play { transform: none; }
+    .entrevista:not(.abierta) { transition: none; }
   }
 </style>
